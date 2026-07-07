@@ -1,0 +1,29 @@
+rules_version = '2';
+
+// HINWEIS: Diese Datei wird NICHT automatisch angewendet.
+// Du musst ihren Inhalt manuell in der Firebase Console einfuegen unter:
+// Firestore Database -> Rules -> Inhalt ersetzen -> Veroeffentlichen
+//
+// Das ist der naechste Schritt, NACHDEM alles funktioniert und BEVOR
+// du den Partnern einen oeffentlich erreichbaren Link schickst.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Jeder darf die Kartendatenbank lesen, niemand darf sie ueber die App
+    // veraendern (Karten aktualisierst du nur ueber den Admin-Import-Tab).
+    match /cards/{cardId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Jeder darf Decks lesen (damit oeffentliche Meta-Decks sichtbar sind)
+    // und neue Decks erstellen. Aendern/Loeschen ist bewusst noch offen,
+    // solange es keine echte Benutzer-Authentifizierung gibt.
+    match /decks/{deckId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if false;
+    }
+  }
+}
