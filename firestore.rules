@@ -1,0 +1,25 @@
+rules_version = '2';
+
+// HINWEIS: Diese Datei wird NICHT automatisch angewendet.
+// Firebase Console -> Firestore Database -> Rules -> Inhalt ersetzen -> Publish
+//
+// Update: Jetzt mit echter Google-Anmeldung. Decks koennen nur noch vom
+// eingeloggten Besitzer (ownerId == eigene UID) bearbeitet/geloescht werden.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /cards/{cardId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /decks/{deckId} {
+      allow read: if true;
+      allow create: if request.auth != null
+                    && request.auth.uid == request.resource.data.ownerId;
+      allow update, delete: if request.auth != null
+                    && request.auth.uid == resource.data.ownerId;
+    }
+  }
+}

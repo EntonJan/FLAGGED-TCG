@@ -1,0 +1,604 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Flagged Deckbuilder</title>
+
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background: #0f1115; color: #e8e8ea; }
+.app-header { padding: 1.5rem 2rem 0; border-bottom: 1px solid #262a33; }
+.app-header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+.app-header h1 { margin: 0; font-size: 1.5rem; }
+.tabs { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.tab { background: none; border: none; color: #9aa0ab; padding: 0.75rem 1rem; cursor: pointer; font-size: 0.95rem; border-bottom: 2px solid transparent; }
+.tab.active { color: #ffffff; border-bottom: 2px solid #5b8cff; }
+.app-content { padding: 1.5rem 2rem; max-width: 1300px; margin: 0 auto; }
+.panel { background: #171a21; border: 1px solid #262a33; border-radius: 12px; padding: 1.5rem; position: relative; }
+.panel.error { color: #ff8080; }
+.filters { display: flex; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
+input, select { background: #0f1115; border: 1px solid #262a33; color: #e8e8ea; padding: 0.5rem 0.75rem; border-radius: 8px; font-size: 0.95rem; }
+button { background: #5b8cff; border: none; color: white; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; font-size: 0.9rem; }
+button:disabled { background: #3a3f4b; cursor: not-allowed; }
+button.secondary { background: #262a33; }
+.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
+.card-tile { background: #0f1115; border: 1px solid #262a33; border-radius: 10px; padding: 1rem; }
+.card-tile-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem; }
+.card-name { font-weight: 600; }
+.card-meta { font-size: 0.8rem; color: #9aa0ab; margin-bottom: 0.5rem; }
+.card-description { font-size: 0.85rem; color: #c4c8cf; line-height: 1.4; }
+.form-row { margin-bottom: 1rem; display: flex; flex-direction: column; gap: 0.35rem; max-width: 400px; }
+.form-row label { font-size: 0.85rem; color: #9aa0ab; }
+.checkbox-row { flex-direction: row; align-items: center; }
+.checkbox-row label { display: flex; align-items: center; gap: 0.5rem; }
+.deck-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1rem; }
+.card-list-compact { max-height: 460px; overflow-y: auto; border: 1px solid #262a33; border-radius: 8px; padding: 0.5rem; }
+.card-row { display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.25rem; border-bottom: 1px solid #1c2029; cursor: default; }
+.card-row-name { flex: 1; font-size: 0.9rem; }
+.card-row-count { font-size: 0.8rem; color: #9aa0ab; }
+.save-button { margin-top: 1.5rem; }
+.status { margin-top: 0.75rem; color: #7fd68a; }
+.deck-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+.deck-tile { background: #0f1115; border: 1px solid #262a33; border-radius: 10px; padding: 1rem; }
+.deck-card-list { font-size: 0.85rem; color: #c4c8cf; padding-left: 1.1rem; }
+
+/* Auth */
+.user-badge { display: flex; align-items: center; gap: 0.6rem; }
+.user-badge img { width: 28px; height: 28px; border-radius: 50%; }
+.btn-google { background: #ffffff; color: #1f1f1f; font-weight: 600; }
+
+/* View toggle */
+.view-toggle { display: flex; gap: 0.25rem; background: #0f1115; border: 1px solid #262a33; border-radius: 8px; padding: 3px; }
+.view-toggle button { background: none; color: #9aa0ab; padding: 0.4rem 0.8rem; font-size: 0.85rem; }
+.view-toggle button.active { background: #5b8cff; color: white; }
+
+/* Card visual (stylized placeholder art) */
+.card-visual { border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.15); display: flex; flex-direction: column; box-shadow: 0 4px 16px rgba(0,0,0,0.4); }
+.card-visual-art { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; }
+.card-visual-art .icon-big { font-size: 3rem; opacity: 0.9; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5)); }
+.card-visual-art img { width: 100%; height: 100%; object-fit: cover; }
+.card-visual-header { padding: 0.5rem 0.7rem; font-weight: 700; font-size: 0.9rem; background: rgba(0,0,0,0.35); display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+.card-visual-footer { padding: 0.5rem 0.7rem; background: rgba(0,0,0,0.45); font-size: 0.75rem; max-height: 90px; overflow-y: auto; }
+.card-visual-small { width: 100%; aspect-ratio: 5/7; }
+.card-visual-small .card-visual-art { min-height: 60px; }
+.card-visual-small .card-visual-footer { display: none; }
+.card-visual-large { width: 260px; aspect-ratio: 5/7; }
+.card-visual-large .card-visual-art { min-height: 130px; }
+
+.grid-of-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.9rem; }
+.grid-of-cards-large { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
+
+/* Hover preview */
+.hover-preview { position: fixed; z-index: 999; pointer-events: none; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+const CARDS_DATA = [{"id": "001", "number": "1/110", "name": "Assassin", "icon": "👑", "cardType": "Held", "class": "Assassine", "subtypes": ["Held"], "description": "Zu Spielbeginn oder bei Wiedergeburt: Erstelle 1 Schattenklon angrenzend zu deiner Figur auf der Startlinie. Bestimme neu, welches die Heldenfigur ist. Zu bewegende Felder dürfen die Heldenfigur und auch der Klon fahren. Karten können auch vom Klon aus gespielt werden, jedoch kann er keine Flaggen tragen oder Gegner schnappen. Wird deine Heldenfigur oder der Klon geschnappt, entferne den Klon aus dem Spiel.", "cost": null, "penalty": null, "trigger": "Zu Spielbeginn oder bei Wiedergeburt", "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/001.jpg"}, {"id": "002", "number": "2/110", "name": "Ritter", "icon": "👑", "cardType": "Held", "class": "Ritter", "subtypes": ["Held"], "description": "Zu Spielbeginn oder bei Wiedergeburt: Du kannst 1 Mal in einem beliebigen Spielzug eines der folgenden Aktionen zusätzlich ausführen: • 1 Karte ziehen • 1 Karte spielen • 1 Feld bewegen • 1 Wand setzen", "cost": null, "penalty": null, "trigger": "Zu Spielbeginn oder bei Wiedergeburt", "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/002.jpg"}, {"id": "003", "number": "3/110", "name": "Waldläufer", "icon": "👑", "cardType": "Held", "class": "Ranger", "subtypes": ["Held"], "description": "Ab Spielbeginn sowie nach Wiedergeburt: Du kannst 1 Mal in einem beliebigen Spielzug dein Deck nach 1 Karte durchsuchen und auf die Hand nehmen. Mische dein Deck anschliessend.", "cost": null, "penalty": null, "trigger": "Zu Spielbeginn oder bei Wiedergeburt", "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/003.jpg"}, {"id": "004", "number": "4/110", "name": "Zauberer", "icon": "👑", "cardType": "Held", "class": "Zauberer", "subtypes": ["Held"], "description": "Zu Spielbeginn: Platziere 2 Portale auf derselben horizontalen Linie. Betrittst du ein Portal, erscheinst du beim anderen. Die Portale können nur von dir und befreundete Spieler benutzt werden.", "cost": null, "penalty": null, "trigger": "Zu Spielbeginn", "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/004.jpg"}, {"id": "005", "number": "5/110", "name": "Dämmertritt", "icon": "⚡", "cardType": "Klasse", "class": "Assassine", "subtypes": ["Klasse"], "description": "Du kannst dich diesen zug diagonal bewegen.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/005.jpg"}, {"id": "006", "number": "6/110", "name": "Echobruch", "icon": "🛡️", "cardType": "Konter", "class": "Assassine", "subtypes": ["Konter", "Klasse"], "description": "• Bedingung: Gegnerische figur bewegt sich min. Um 1 zusätzliches feld • In deinem nächsten zug kannst du dich 2 zusätzliche felder bewegen.", "cost": null, "penalty": null, "trigger": "Gegnerische figur bewegt sich min. Um 1 zusätzliches feld", "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/006.jpg"}, {"id": "007", "number": "7/110", "name": "Flüsterschritt", "icon": "⚡", "cardType": "Klasse", "class": "Assassine", "subtypes": ["Klasse"], "description": "Du kannst dich diesen zug um 1 zusätzliches feld bewegen. Du kannst 1 zusätzliche karte spielen.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/007.jpg"}, {"id": "008", "number": "8/110", "name": "Rauchbombe", "icon": "⚡", "cardType": "Klasse", "class": "Assassine", "subtypes": ["Klasse"], "description": "Platziere auf deiner position eine rauchwolke mit umkreis von 2 feldern. Gegnerische figuren können die wolke weder durch bewegung noch durch teleportation verlassen. Gegnerische spieler, deren figur sich in der wolke befindet, können keine karten spielen. Die wolke endet zu beginn deines nächsten zuges.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/008.jpg"}, {"id": "009", "number": "9/110", "name": "Schattenmanifest", "icon": "🔥", "cardType": "Ultimate", "class": "Assassine", "subtypes": ["Ultimate"], "description": "Deine schattenklone dürfen in diesem zug gegner schnappen.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/009.jpg"}, {"id": "010", "number": "10/110", "name": "Schattenreflexe", "icon": "🔥", "cardType": "Ultimate", "class": "Assassine", "subtypes": ["Ultimate"], "description": "Wirf eine beliebige Anzahl Handkarten ab: Du kannst dich in diesem zug um 1 zusätzliches feld bewegen. Für jede durch schattenreflexe abgeworfene karte kannst du dich in diesem zug um 1 weiteres feld bewegen.", "cost": "Wirf eine beliebige Anzahl Handkarten ab", "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": null}, {"id": "011", "number": "11/110", "name": "Schattenriss", "icon": "⚡", "cardType": "Klasse", "class": "Assassine", "subtypes": ["Klasse"], "description": "Du kannst dich diesen zug durch wände bewegen.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/011.jpg"}, {"id": "012", "number": "12/110", "name": "Schattenwechsel", "icon": "🔥", "cardType": "Ultimate", "class": "Assassine", "subtypes": ["Ultimate"], "description": "Bestimme neu, welche deiner figuren die heldenfigur ist. Du kannst dich bis zum ende des zuges nicht mehr bewegen. Nicht spielbar während du die flagge trägst.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": true, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/012.jpg"}, {"id": "013", "number": "13/110", "name": "Schleierflucht", "icon": "🔥", "cardType": "Ultimate", "class": "Assassine", "subtypes": ["Klasse", "Ultimate"], "description": "• Bedingung: Gegner betritt ein angrenzendes feld • Wirf 1 karte ab: Enthülle deine heldenfigur und teleportiere sie um 1 feld in eine beliebige richtung. Entferne deine schattenklone und erstelle einen neuen angrenzend zur heldenfigur. Bestimme neu, welche die heldenfigur ist. Nicht spielbar während du die flagge trägst.", "cost": null, "penalty": null, "trigger": "Gegner betritt ein angrenzendes feld", "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": true, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/013.jpg"}, {"id": "014", "number": "14/110", "name": "Schleierhülle", "icon": "⚡", "cardType": "Klasse", "class": "Assassine", "subtypes": ["Klasse"], "description": "Wirf 1 karte ab: Enthülle deine heldenfigur. Entferne deine schattenklone und erstelle einen neuen angrenzend zur heldenfigur. Bestimme neu, welche die heldenfigur ist. Nicht spielbar während du die flagge trägst.", "cost": "Wirf 1 karte ab", "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": true, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/014.jpg"}, {"id": "015", "number": "15/110", "name": "Seelentausch", "icon": "⚡", "cardType": "Klasse", "class": "Assassine", "subtypes": ["Klasse"], "description": "Tausche die position durch teleportation mit einer anderen befreundeten figur im umkreis von 3 feldern. Diese karte ersetzt \"tauschkristall\".", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": ["tauschkristall"], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/015.jpg"}, {"id": "016", "number": "16/110", "name": "Spiegeltausch", "icon": "🛡️", "cardType": "Konter", "class": "Assassine", "subtypes": ["Konter", "Klasse"], "description": "• Bedingung: Eine deiner figuren wird von einem gegnerischen karteneffekt betroffen • Tausche die position der figur durch teleportation mit einer anderen befreundeten figur im umkreis von 3 feldern. Die andere figur wird nun das neue ziel des karteneffekts.", "cost": null, "penalty": null, "trigger": "Eine deiner figuren wird von einem gegnerischen karteneffekt betroffen", "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/016.jpg"}, {"id": "017", "number": "17/110", "name": "Todesstoss", "icon": "🛡️", "cardType": "Konter", "class": "Assassine", "subtypes": ["Konter", "Klasse"], "description": "• Bedingung: In deinem zug - nach einer bewegung - gegnerische figur steht in freier gerader sichtlinie angrenzend zu deiner figur • Die figur wird sofort geschnappt. Diese karte kann nicht von einem schattenklon aus gespielt werden, ausser durch schattenmanifest.", "cost": null, "penalty": null, "trigger": "In deinem zug - nach einer bewegung - gegnerische figur steht in freier gerader sichtlinie angrenzend zu deiner figur", "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/017.jpg"}, {"id": "018", "number": "18/110", "name": "Tödliche ruhe", "icon": "⚡", "cardType": "Klasse", "class": "Assassine", "subtypes": ["Klasse"], "description": "Wirf 1 karte ab: In deinem nächsten zug kannst du 1 zusätzliche karte spielen.", "cost": "Wirf 1 karte ab", "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/018.jpg"}, {"id": "019", "number": "19/110", "name": "Toxinstoss", "icon": "🛡️", "cardType": "Konter", "class": "Assassine", "subtypes": ["Klasse", "Konter"], "description": "• Bedingung: Gegnerische figur betritt ein angrenzendes feld zu deiner figur • Die gegnerische figur kann sich bis zum anfang ihres nächsten zuges nicht mehr bewegen. Du kannst in deinem nächsten zug keine karten spielen.", "cost": null, "penalty": "Du kannst in deinem nächsten Zug keine Karten spielen.", "trigger": "Gegnerische figur betritt ein angrenzendes feld zu deiner figur", "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/019.jpg"}, {"id": "020", "number": "20/110", "name": "Umbrafaden", "icon": "🔥", "cardType": "Ultimate", "class": "Assassine", "subtypes": ["Ultimate", "Konter"], "description": "• Bedingung: Nach einer bewegung – min. 1 gegnerische figur steht auf derselben geraden linie zwischen deiner heldenfigur und einem befreundeten schattenklon • Enthülle deine heldenfigur. Alle gegnerische figuren zwischen deiner heldenfigur und dem klon können sich in diesem zug nicht mehr bewegen und ihre besitzer setzen ihre nächsten 2 züge aus (team modus: 1 zug).", "cost": null, "penalty": null, "trigger": "Nach einer bewegung – min. 1 gegnerische figur steht auf derselben geraden linie zwischen deiner heldenfigur und einem befreundeten schattenklon", "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/020.jpg"}, {"id": "021", "number": "21/110", "name": "Schattenverzehr", "icon": "⚡", "cardType": "Klasse", "class": "Assassine", "subtypes": ["Klasse"], "description": "Entferne alle deine schattenklone. Du kannst dich in diesem zug um 1 zusätzliches feld bewegen. Außerdem kannst du dich in diesem zug für jeden durch schattenverzehr entfernten schattenklon um 1 zusätzliches feld bewegen.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": null}, {"id": "022", "number": "22/110", "name": "Ätherdeflektion", "icon": "🔥", "cardType": "Ultimate", "class": "Ritter", "subtypes": ["Ultimate", "Konter"], "description": "• Bedingung: Eine deiner figuren wird von einem gegnerischen karteneffekt betroffen • Wähle eine beliebige figur: Die gewählte figur wird stattdessen vom effekt betroffen. Diese karte ersetzt \"riftklingen-resonanz\".", "cost": null, "penalty": null, "trigger": "Eine deiner figuren wird von einem gegnerischen karteneffekt betroffen", "deckLimit": null, "trapDeckLimit": null, "replacesCard": ["riftklingen-resonanz"], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/022.jpg"}, {"id": "023", "number": "23/110", "name": "Donnerbrüller", "icon": "⚡", "cardType": "Klasse", "class": "Ritter", "subtypes": ["Klasse"], "description": "Gegnerische figuren im umkreis von 2 feldern können sich in ihrem nächsten zug nicht bewegen.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/023.jpg"}, {"id": "024", "number": "24/110", "name": "Eisenruf", "icon": "⚡", "cardType": "Klasse", "class": "Ritter", "subtypes": ["Klasse"], "description": "Gegnerische spieler, deren figur sich im umkreis von 2 feldern um deine figur befindet, können in ihrem nächsten zug keine karten spielen.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/024.jpg"}, {"id": "025", "number": "25/110", "name": "Entwaffnungsgriff", "icon": "⚡", "cardType": "Klasse", "class": "Ritter", "subtypes": ["Klasse"], "description": "Schaue dir 2 handkarten des gegners an. Wähle anschließend 1 dieser beiden karten, die keine Ultimate-Karte ist, oder 1 verdeckte handkarte. Der gegner muss die gewählte karte ablegen.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/025.jpg"}, {"id": "026", "number": "26/110", "name": "Festungsbrecher", "icon": "🔥", "cardType": "Ultimate", "class": "Ritter", "subtypes": ["Ultimate"], "description": "Zerstöre alle wände im umkreis von 1 feld um deine figur.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/026.jpg"}, {"id": "027", "number": "27/110", "name": "Flankenstoss", "icon": "⚡", "cardType": "Klasse", "class": "Ritter", "subtypes": ["Klasse"], "description": "Du kannst dich diesen zug um 2 zusätzliche felder horizontal bewegen.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/027.jpg"}, {"id": "028", "number": "28/110", "name": "Herausforderung", "icon": "⚡", "cardType": "Klasse", "class": "Ritter", "subtypes": ["Klasse"], "description": "Wähle eine gegnerische figur. Sie muss sich 2 gerade Felder in die richtung der figur bewegen, von der diese karte gespielt wurde. Diese karte ersetzt \"flüstergift\".", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": ["flüstergift"], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": null}, {"id": "029", "number": "29/110", "name": "Kampfvorbereitung", "icon": "⚡", "cardType": "Klasse", "class": "Ritter", "subtypes": ["Klasse"], "description": "In deinem nächsten zug kannst du 1 zusätzliche karte spielen. Ziehe 1 karte.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/029.jpg"}, {"id": "030", "number": "30/110", "name": "Königszug", "icon": "🔥", "cardType": "Ultimate", "class": "Ritter", "subtypes": ["Ultimate"], "description": "Bewege dich um 1 zusätzliches feld. Gegner dürfen in ihrem nächsten zug keine karten spielen. Diese karte kann nicht gekontert werden. In diesem zug können keine konterkarten mehr gespielt werden.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": true, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/030.jpg"}, {"id": "031", "number": "31/110", "name": "Letzter stand", "icon": "⚡", "cardType": "Klasse", "class": "Ritter", "subtypes": ["Klasse"], "description": "Bewege dich um 1 zusätzliches feld. Diese karte kann nicht gekontert werden. In diesem zug können keine konterkarten mehr gespielt werden. Du kannst diese karte nur 2 mal im deck besitzen. Diese karte kann im teammodus nicht verwendet werden.", "cost": null, "penalty": null, "trigger": null, "deckLimit": 2, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": true, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/031.jpg"}, {"id": "032", "number": "32/110", "name": "Ritterschritt", "icon": "⚡", "cardType": "Klasse", "class": "Ritter", "subtypes": ["Klasse"], "description": "Bewege dich um bis zu 2 zusätzliche felder.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/032.jpg"}, {"id": "033", "number": "33/110", "name": "Runenbann", "icon": "⚡", "cardType": "Klasse", "class": "Ritter", "subtypes": ["Klasse"], "description": "Diese karte kann nicht gekontert werden. In diesem zug können keine konterkarten mehr gespielt werden. Du kannst 1 weitere karte spielen. Du kannst diese karte nur 2 mal im deck besitzen. Diese karte ersetzt \"schleierphiole\".", "cost": null, "penalty": null, "trigger": null, "deckLimit": 2, "trapDeckLimit": null, "replacesCard": ["schleierphiole"], "notPlayableWithFlag": false, "notCounterable": true, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/033.jpg"}, {"id": "034", "number": "34/110", "name": "Schildkonter", "icon": "🛡️", "cardType": "Konter", "class": "Ritter", "subtypes": ["Konter", "Klasse"], "description": "• Bedingung: Gegner betritt ein angrenzendes feld zu deiner figur • Setze 1 wand direkt an deine figur. Sind keine wände mehr verfügbar, repositioniere stattdessen 1 wand auf dem spielfeld an deine figur. Du kannst ihre ausrichtung ändern.", "cost": null, "penalty": null, "trigger": "Gegner betritt ein angrenzendes feld zu deiner figur", "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/034.jpg"}, {"id": "035", "number": "35/110", "name": "Schildmodus", "icon": "⚡", "cardType": "Klasse", "class": "Ritter", "subtypes": ["Klasse"], "description": "In diesem zug können sich alle deine figuren max. 2 felder bewegen. Bis zu beginn deines nächsten zuges können deine figuren nicht geschnappt werden.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/035.jpg"}, {"id": "036", "number": "36/110", "name": "Schlachtbanner", "icon": "⚡", "cardType": "Klasse", "class": "Ritter", "subtypes": ["Klasse"], "description": "Platziere 1 banner auf einem feld. Es kann nicht mehr ziel von wänden oder fallen werden. Fallen darauf werden zerstört. Du kannst 1 weitere karte spielen. Diese karte ersetzt \"ehrenbanner\".", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": ["ehrenbanner"], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/036.jpg"}, {"id": "037", "number": "37/110", "name": "Klang des singenden schwertes", "icon": "🔥", "cardType": "Ultimate", "class": "Ritter", "subtypes": ["Ultimate"], "description": "Du kannst in diesem zug 2 weitere karten spielen.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": null}, {"id": "038", "number": "38/110", "name": "Wandbrecher", "icon": "⚡", "cardType": "Klasse", "class": "Ritter", "subtypes": ["Klasse"], "description": "Zerstöre 1 wand deiner wahl.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/038.jpg"}, {"id": "039", "number": "39/110", "name": "Wirbelklinge", "icon": "🔥", "cardType": "Ultimate", "class": "Ritter", "subtypes": ["Ultimate"], "description": "Alle figuren im umkreis von 1 feld um deine heldenfigur werden geschnappt.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/039.jpg"}, {"id": "040", "number": "40/110", "name": "Wirbelwurf", "icon": "⚡", "cardType": "Klasse", "class": "Ritter", "subtypes": ["Klasse"], "description": "Wähle eine angrenzende figur in freier sichtlinie: Teleportiere sie von deiner figur aus um bis zu 2 felder in eine gerade richtung. Diese karte ersetzt \"katapultgriff\".", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": ["katapultgriff"], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/040.jpg"}, {"id": "041", "number": "41/110", "name": "Ausweichrolle", "icon": "✨", "cardType": "Standard", "class": "Neutral", "subtypes": ["Standard"], "description": "Bewege dich um 1 zusätzliches feld diagonal.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/041.jpg"}, {"id": "042", "number": "42/110", "name": "Bannkreis", "icon": "✨", "cardType": "Standard", "class": "Neutral", "subtypes": ["Standard"], "description": "Wähle 1 feld. Gegner können es bis zu deinem nächsten zug nicht betreten. Ziehe 1 karte.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/042.jpg"}, {"id": "043", "number": "43/110", "name": "Blockstellung", "icon": "✨", "cardType": "Standard", "class": "Neutral", "subtypes": ["Standard"], "description": "Wähle 2 angrenzende felder. Gegner können diese felder bis zu deinem nächsten zug nicht betreten. Ziehe 1 karte.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/043.jpg"}, {"id": "044", "number": "44/110", "name": "Ehrenbanner", "icon": "✨", "cardType": "Standard", "class": "Neutral", "subtypes": ["Standard"], "description": "Platziere 1 banner auf einem feld. Es kann nicht mehr ziel von wänden oder fallen werden. Fallen darauf werden zerstört.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/044.jpg"}, {"id": "045", "number": "45/110", "name": "Elixier der geschwindigkeit", "icon": "✨", "cardType": "Standard", "class": "Neutral", "subtypes": ["Standard"], "description": "Bewege dich um bis zu 2 zusätzliche felder.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/045.jpg"}, {"id": "046", "number": "46/110", "name": "Falle: Auge des raben", "icon": "🎯", "cardType": "Falle", "class": "Neutral", "subtypes": ["Falle"], "description": "Lege die falle verdeckt auf ein freies feld. Betritt eine gegnerische figur das feld, muss dessen besitzer dir seine handkarten zeigen. Die falle wird danach zerstört. Du kannst diese karte nur 1 mal im deck besitzen. Du kannst max. 5 fallen im deck besitzen.", "cost": null, "penalty": null, "trigger": null, "deckLimit": 1, "trapDeckLimit": 5, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/046.jpg"}, {"id": "047", "number": "47/110", "name": "Falle: Fangeisen", "icon": "🎯", "cardType": "Falle", "class": "Neutral", "subtypes": ["Falle"], "description": "Lege die falle verdeckt auf ein freies feld. Betritt eine gegnerische figur das feld, kann sie sich in diesem zug nicht mehr bewegen und dessen besitzer muss 1 karte abwerfen. Die falle wird danach zerstört. Du kannst diese karte nur 1 mal im deck besitzen. Du kannst max. 5 fallen im deck besitzen.", "cost": null, "penalty": null, "trigger": null, "deckLimit": 1, "trapDeckLimit": 5, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/047.jpg"}, {"id": "048", "number": "48/110", "name": "Felsverschiebung", "icon": "✨", "cardType": "Standard", "class": "Neutral", "subtypes": ["Standard"], "description": "Wirf 1 karte ab: Verschiebe 1 wand um 1 feld in eine beliebige gerade richtung. Du kannst diese karte nur 2 mal im deck besitzen.", "cost": "Wirf 1 karte ab", "penalty": null, "trigger": null, "deckLimit": 2, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/048.jpg"}, {"id": "049", "number": "49/110", "name": "Flüstergift", "icon": "✨", "cardType": "Standard", "class": "Neutral", "subtypes": ["Standard"], "description": "Bewege 1 feindliche figur um 1 feld in eine beliebige gerade richtung.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/049.jpg"}, {"id": "050", "number": "50/110", "name": "Gedankentfaltung", "icon": "✨", "cardType": "Standard", "class": "Neutral", "subtypes": ["Standard"], "description": "Ziehe 3 karten und wirf anschliessend 2 handkarten ab. Du kannst diese karte nur 2 mal im deck besitzen.", "cost": null, "penalty": null, "trigger": null, "deckLimit": 2, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/050.jpg"}, {"id": "051", "number": "51/110", "name": "Gorgonen-trank", "icon": "✨", "cardType": "Standard", "class": "Neutral", "subtypes": ["Standard"], "description": "Bis zu deinem nächsten zug können deine figuren nicht geschnappt werden. Du kannst diese karte nur 2 mal im deck besitzen.", "cost": null, "penalty": null, "trigger": null, "deckLimit": 2, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/051.jpg"}, {"id": "052", "number": "52/110", "name": "Himmelsbruch", "icon": "✨", "cardType": "Standard", "class": "Neutral", "subtypes": ["Standard"], "description": "Platziere eine wolke mit einem umkreis von 1 feld auf ein beliebiges feld. Befindet sich zu beginn deines nächsten zuges eine gegnerische figur in der wolke, setzt dessen besitzer seinen nächsten zug aus. Nach beginn des zuges verschwindet die wolke. Du kannst diese karte nur 2 mal im deck besitzen.", "cost": null, "penalty": null, "trigger": null, "deckLimit": 2, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/052.jpg"}, {"id": "053", "number": "53/110", "name": "Katapultgriff", "icon": "✨", "cardType": "Standard", "class": "Neutral", "subtypes": ["Standard"], "description": "Wähle eine angrenzende figur in freier sichtlinie: Teleportiere sie um 1 feld in eine beliebige richtung.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": null}, {"id": "054", "number": "54/110", "name": "Eilsamensaat", "icon": "🔥", "cardType": "Ultimate", "class": "Neutral", "subtypes": ["Ultimate"], "description": "Alle Figuren, die angrenzend zu deiner Heldenfigur stehen, können sich in ihrem nächsten Zug um 2 zusätzliche Felder bewegen. Dieser Effekt wird durch Schattenklone nicht verdoppelt.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/054.jpg"}, {"id": "055", "number": "55/110", "name": "Resonanzkristall", "icon": "🔥", "cardType": "Ultimate", "class": "Neutral", "subtypes": ["Ultimate"], "description": "Wirf 1 münze. Kopf: Spiele nach diesem zug anschliessend 1 weiteren zug. Zahl: Beende deinen zug sofort.", "cost": "Wirf 1 münze. Kopf", "penalty": "Zahl: Beende deinen Zug sofort.", "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/055.jpg"}, {"id": "056", "number": "56/110", "name": "Riftklingen-resonanz", "icon": "🔥", "cardType": "Ultimate", "class": "Neutral", "subtypes": ["Ultimate", "Konter"], "description": "• Bedingung: In deinem zug - gegner spielt eine konterkarte • Negiere den effekt und lege die karte auf den ablagestapel.", "cost": null, "penalty": null, "trigger": "In deinem zug - gegner spielt eine konterkarte", "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/056.jpg"}, {"id": "057", "number": "57/110", "name": "Impuls des ring des Äon", "icon": "✨", "cardType": "Standard", "class": "Neutral", "subtypes": ["Standard"], "description": "Wirf 1 handkarte ab: Wähle 1 karte aus deinem ablagestapel, zeige sie und nimm sie auf die hand.", "cost": "Wirf 1 handkarte ab", "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/057.jpg"}, {"id": "058", "number": "58/110", "name": "Eilsamenbeutel", "icon": "✨", "cardType": "Standard", "class": "Neutral", "subtypes": ["Standard"], "description": "Suche in deinem Deck nach bis zu 3 Karten mit \"Eilsamen\" im Namen. Zeige sie vor und nimm sie auf deine Hand. Mische dein Deck. Du kannst in diesem Zug 1 zusätzliche Karte spielen.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/058.jpg"}, {"id": "059", "number": "59/110", "name": "Schleierphiole", "icon": "✨", "cardType": "Standard", "class": "Neutral", "subtypes": ["Standard"], "description": "Diese karte kann nicht gekontert werden. In diesem zug können keine konterkarten mehr gespielt werden. Du kannst diese karte nur 2 mal im deck besitzen.", "cost": null, "penalty": null, "trigger": null, "deckLimit": 2, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": true, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/059.jpg"}, {"id": "060", "number": "60/110", "name": "Seelenkompass", "icon": "✨", "cardType": "Standard", "class": "Neutral", "subtypes": ["Standard"], "description": "Ziehe 2 karten.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/060.jpg"}, {"id": "061", "number": "61/110", "name": "Siegel des bannamuletts", "icon": "🛡️", "cardType": "Konter", "class": "Neutral", "subtypes": ["Konter"], "description": "• Bedingung: Gegner spielt eine klassenkarte • Wirf 2 karten ab: Negiere den effekt und lege die karte auf den ablagestapel. Du kannst diese karte nur 2 mal im deck besitzen.", "cost": null, "penalty": null, "trigger": "Gegner spielt eine klassenkarte", "deckLimit": 2, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/061.jpg"}, {"id": "062", "number": "62/110", "name": "Sprengladung", "icon": "✨", "cardType": "Standard", "class": "Neutral", "subtypes": ["Standard"], "description": "Wirf 1 karte ab: Zerstöre 1 wand, die an deine figur angrenzt. Du kannst diese karte nur 2 mal im deck besitzen.", "cost": "Wirf 1 karte ab", "penalty": null, "trigger": null, "deckLimit": 2, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/062.jpg"}, {"id": "063", "number": "63/110", "name": "Transfusionsspiegel", "icon": "🔥", "cardType": "Ultimate", "class": "Neutral", "subtypes": ["Ultimate"], "description": "Wähle 1 ultimate-karte im gegnerischen ablagestapel. Es darf keine konterkarte sein. Spiele diese karte sofort als kopie der gewählten karte.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": null}, {"id": "064", "number": "64/110", "name": "Tauschkristall", "icon": "✨", "cardType": "Standard", "class": "Neutral", "subtypes": ["Standard"], "description": "Wirf 2 karten ab: Tausche deine position durch teleportation mit einer figur im umkreis von 2 feldern. Du kannst diese karte nur 2 mal im deck besitzen.", "cost": "Wirf 2 karten ab", "penalty": null, "trigger": null, "deckLimit": 2, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/064.jpg"}, {"id": "065", "number": "65/110", "name": "Winziger eilsamen", "icon": "✨", "cardType": "Standard", "class": "Neutral", "subtypes": ["Standard"], "description": "Bewege dich um 1 zusätzliches feld.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/065.jpg"}, {"id": "066", "number": "66/110", "name": "Begleiter: Fährtenwolf", "icon": "🔥", "cardType": "Ultimate", "class": "Ranger", "subtypes": ["Begleiter", "Ultimate"], "description": "Beschwöre den begleiter \"fährtenwolf\" angrenzend zu deiner figur. Der wolf kann sich ab deinem nächsten zug in jedem deiner züge bis zu 2 felder bewegen und gegner schnappen. Er kann keine flaggen tragen und du kannst keine karten vom wolf aus spielen. Wird der wolf geschnappt, entferne ihn aus dem spiel. Du kannst nur 1 begleiter im deck besitzen.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/066.jpg"}, {"id": "067", "number": "67/110", "name": "Bruchschuss", "icon": "🔥", "cardType": "Ultimate", "class": "Ranger", "subtypes": ["Ultimate"], "description": "Zerstöre alle wände in einer geraden richtung von deiner figur aus, die deine sichtlinie blockieren.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/067.jpg"}, {"id": "068", "number": "68/110", "name": "Doppelschuss", "icon": "🔥", "cardType": "Ultimate", "class": "Ranger", "subtypes": ["Ultimate"], "description": "Wähle eines: • Du kannst in diesem zug 2 weitere karten spielen. • Ziehe 2 karten.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/068.jpg"}, {"id": "069", "number": "69/110", "name": "Eilsamen", "icon": "⚡", "cardType": "Klasse", "class": "Ranger", "subtypes": ["Klasse"], "description": "Wähle eines: • Deine Heldenfigur oder dein Begleiter kann sich in diesem Zug um 1 zusätzliches Feld bewegen. • Wähle eine befreundete Figur: Sie kann sich in ihrem nächsten Zug um 1 zusätzliches Feld bewegen.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/069.jpg"}, {"id": "070", "number": "70/110", "name": "Falle: Ätherfalle", "icon": "🎯", "cardType": "Falle", "class": "Ranger", "subtypes": ["Falle"], "description": "Lege die falle verdeckt auf ein freies feld. Betritt eine gegnerische figur das feld, muss dessen besitzer 3 handkarten abwerfen. Die falle wird danach zerstört. Du kannst diese karte nur 1 mal im deck besitzen. Du kannst max. 5 fallen im deck besitzen.", "cost": null, "penalty": null, "trigger": null, "deckLimit": 1, "trapDeckLimit": 5, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/070.jpg"}, {"id": "071", "number": "71/110", "name": "Falle: Explosivfalle", "icon": "🎯", "cardType": "Falle", "class": "Ranger", "subtypes": ["Falle"], "description": "Lege die falle verdeckt auf ein freies feld. Betritt eine gegnerische figur das feld, teleportiere sie um bis zu 2 felder in eine beliebige richtung. Die falle wird danach zerstört. Du kannst diese karte nur 1 mal im deck besitzen. Du kannst max. 5 fallen im deck besitzen.", "cost": null, "penalty": null, "trigger": null, "deckLimit": 1, "trapDeckLimit": 5, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/071.jpg"}, {"id": "072", "number": "72/110", "name": "Falle: Frostfalle", "icon": "🎯", "cardType": "Falle", "class": "Ranger", "subtypes": ["Falle"], "description": "Lege die falle verdeckt auf ein freies feld. Betritt eine gegnerische figur das feld, setzt dessen besitzer seinen nächsten zug aus. Die falle wird danach zerstört. Du kannst diese karte nur 1 mal im deck besitzen. Du kannst max. 5 fallen im deck besitzen.", "cost": null, "penalty": null, "trigger": null, "deckLimit": 1, "trapDeckLimit": 5, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/072.jpg"}, {"id": "073", "number": "73/110", "name": "Falle: Rabenfalle", "icon": "🎯", "cardType": "Falle", "class": "Ranger", "subtypes": ["Falle"], "description": "Lege die falle verdeckt auf ein freies feld. Betritt eine gegnerische figur das feld, wähle eines: • Der besitzer der figur muss dir seine handkarten zeigen. • Siehe die obersten 5 karten seines decks an und lege sie in derselben reihenfolge zurück. Die falle wird danach zerstört. Du kannst diese karte nur 1 mal im deck besitzen. Diese karte ersetzt \"auge des raben\". Du kannst max. 5 fallen im deck besitzen.", "cost": null, "penalty": null, "trigger": null, "deckLimit": 1, "trapDeckLimit": 5, "replacesCard": ["auge des raben"], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/073.jpg"}, {"id": "074", "number": "74/110", "name": "Falle: Wurzelfalle", "icon": "🎯", "cardType": "Falle", "class": "Ranger", "subtypes": ["Falle"], "description": "Lege die falle verdeckt auf ein freies feld. Betritt eine gegnerische figur das feld, kann sie sich in diesem und in ihrem nächsten zug nicht bewegen. Die falle wird danach zerstört. Du kannst diese karte nur 1 mal im deck besitzen. Du kannst max. 5 fallen im deck besitzen. Diese karte ersetzt \"falle: Fangeisen\".", "cost": null, "penalty": null, "trigger": null, "deckLimit": 1, "trapDeckLimit": 5, "replacesCard": ["falle: Fangeisen"], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/074.jpg"}, {"id": "075", "number": "75/110", "name": "Fass!", "icon": "⚡", "cardType": "Klasse", "class": "Ranger", "subtypes": ["Klasse"], "description": "Du und dein wolf können sich diesen zug um 1 zusätzliches feld bewegen.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/075.jpg"}, {"id": "076", "number": "76/110", "name": "Felsensprung", "icon": "⚡", "cardType": "Klasse", "class": "Ranger", "subtypes": ["Klasse"], "description": "Du kannst dich diesen zug durch wände bewegen.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/076.jpg"}, {"id": "077", "number": "77/110", "name": "Fernschuss", "icon": "🛡️", "cardType": "Konter", "class": "Ranger", "subtypes": ["Konter", "Klasse"], "description": "• Bedingung: Nach einer bewegung - gegnerische figur befindet sich in freier gerader sichtlinie, genau 3 felder entfernt • Wirf 1 karte ab: Die gegnerische figur wird geschnappt. Diese karte kann nicht von einem schattenklon aus gespielt werden. Du kannst diese karte nur 2 mal im deck besitzen.", "cost": null, "penalty": null, "trigger": "Nach einer bewegung - gegnerische figur befindet sich in freier gerader sichtlinie, genau 3 felder entfernt", "deckLimit": 2, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/077.jpg"}, {"id": "078", "number": "78/110", "name": "Fesselsprung", "icon": "🛡️", "cardType": "Konter", "class": "Ranger", "subtypes": ["Konter", "Klasse"], "description": "• Bedingung: Deine figur wird von einem gegnerischen karteneffekt betroffen, der bewegungsunfähigkeit verursacht oder dich min. 1 zug aussetzen lässt • Deine figur wird von dem effekt nicht betroffen.", "cost": null, "penalty": null, "trigger": "Deine figur wird von einem gegnerischen karteneffekt betroffen, der bewegungsunfähigkeit verursacht oder dich min. 1 zug aussetzen lässt", "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/078.jpg"}, {"id": "079", "number": "79/110", "name": "Gleitschritt", "icon": "⚡", "cardType": "Klasse", "class": "Ranger", "subtypes": ["Klasse"], "description": "Du und dein wolf können sich diesen zug um 1 zusätzliches feld diagonal bewegen.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/079.jpg"}, {"id": "080", "number": "80/110", "name": "Rückschritt", "icon": "🛡️", "cardType": "Konter", "class": "Ranger", "subtypes": ["Konter", "Klasse"], "description": "• Konter: Nach einer bewegung - gegnerische figur befindet sich in freier gerader sichtlinie zu deiner figur • Wirf 1 karte ab: Bewege dich um 1 feld in eine beliebige richtung. Du kannst mit dieser bewegung keine gegner schnappen. Du kannst diese karte nur 2 mal im deck besitzen.", "cost": null, "penalty": null, "trigger": "Nach einer bewegung - gegnerische figur befindet sich in freier gerader sichtlinie zu deiner figur", "deckLimit": 2, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/080.jpg"}, {"id": "081", "number": "81/110", "name": "Spurenleser", "icon": "⚡", "cardType": "Klasse", "class": "Ranger", "subtypes": ["Klasse"], "description": "Ziehe 3 karten und wirf anschliessend 1 handkarte ab. Du kannst diese karte nur 2 mal im deck besitzen. Diese karte ersetzt \"gedankentfaltung\".", "cost": null, "penalty": "Wirf anschliessend 1 Handkarte ab.", "trigger": null, "deckLimit": 2, "trapDeckLimit": null, "replacesCard": ["gedankentfaltung"], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/081.jpg"}, {"id": "082", "number": "82/110", "name": "Tarnmantel", "icon": "⚡", "cardType": "Klasse", "class": "Ranger", "subtypes": ["Klasse"], "description": "Erstelle 1 schattenklon angrenzend zu deiner figur. Bestimme neu, welche die heldenfigur ist. Nachdem du eine karte gespielt hast, verschwindet der klon. Nicht spielbar während du die flagge trägst. Zu bewegende felder dürfen die heldenfigur und auch der klon fahren. Karten können auch vom klon aus gespielt werden, jedoch kann er keine flaggen tragen oder gegner schnappen. Wird deine heldenfigur oder der klon geschnappt, entferne den klon aus dem spiel.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": true, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/082.jpg"}, {"id": "083", "number": "83/110", "name": "Toxinschuss", "icon": "🛡️", "cardType": "Konter", "class": "Ranger", "subtypes": ["Klasse", "Konter"], "description": "• Bedingung: Nach einer bewegung - gegnerische figur befindet sich in freier gerader sichtlinie, min. 3 felder entfernt • Die gegnerische figur kann sich in diesem und ihrem nächsten zug nicht mehr bewegen.", "cost": null, "penalty": null, "trigger": "Nach einer bewegung - gegnerische figur befindet sich in freier gerader sichtlinie, min. 3 felder entfernt", "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/083.jpg"}, {"id": "084", "number": "84/110", "name": "Waffenarsenal", "icon": "⚡", "cardType": "Klasse", "class": "Ranger", "subtypes": ["Klasse"], "description": "Suche in deinem deck nach 1 falle: Zeige sie und nimm sie auf die hand. Mische dein deck. Du kannst 1 weitere karte spielen.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/084.jpg"}, {"id": "085", "number": "85/110", "name": "Waldsegen", "icon": "⚡", "cardType": "Klasse", "class": "Ranger", "subtypes": ["Klasse"], "description": "Wähle eines: • Du kannst dich in diesem zug um 2 zusätzliche horizontale felder bewegen. • Wähle einen befreundeten spieler: Seine heldenfigur kann sich in seinem nächsten zug um 2 zusätzliche horizontale felder bewegen.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": null}, {"id": "086", "number": "86/110", "name": "Wolfmodus", "icon": "🔥", "cardType": "Ultimate", "class": "Ranger", "subtypes": ["Ultimate"], "description": "Diese karte aktiviert den wolfmodus: In jedem deiner züge kann sich deine heldenfigur 1 zusätzliches feld bewegen, sie kann jedoch im umkreis von 1 feld geschnappt werden. Du kannst den wolfmodus jederzeit in deinem zug deaktivieren. Auf einer figur kann immer nur 1 wolfmodus aktiv sein. Du kannst diese karte nur 2 mal im deck besitzen.", "cost": null, "penalty": "Deine Figur kann im Umkreis von 1 Feld geschnappt werden.", "trigger": null, "deckLimit": 2, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/086.jpg"}, {"id": "087", "number": "87/110", "name": "Zweite jagd", "icon": "🔥", "cardType": "Ultimate", "class": "Ranger", "subtypes": ["Ultimate"], "description": "Du kannst diese karte nur spielen, wenn dein begleiter bereits geschnappt wurde. Wirf 1 karte ab und beschwöre ihn auf ein angrenzendes feld.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": null}, {"id": "088", "number": "88/110", "name": "Arkane sperre", "icon": "🛡️", "cardType": "Konter", "class": "Zauberer", "subtypes": ["Klasse", "Konter"], "description": "• Bedingung: Gegner spielt eine klassenkarte • Wirf 1 karte ab: Negiere den effekt und lege die karte auf den ablagestapel. Du kannst diese karte nur 2 mal im deck besitzen. Diese karte ersetzt „siegel des bannamuletts“.", "cost": null, "penalty": null, "trigger": "Gegner spielt eine klassenkarte", "deckLimit": 2, "trapDeckLimit": null, "replacesCard": ["siegel des bannamuletts"], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/088.jpg"}, {"id": "089", "number": "89/110", "name": "Arkaner zeitriss", "icon": "🔥", "cardType": "Ultimate", "class": "Zauberer", "subtypes": ["Ultimate"], "description": "Setze alle figuren und flaggen im spiel auf ihre startpositionen zurück. Diese karte kann nicht gekontert werden. In diesem zug können keine konterkarten mehr gespielt werden. Der zug wird sofort beendet. Setze deinen nächsten zug aus.", "cost": null, "penalty": "Du kannst dich in den nächsten 2 Zügen nicht bewegen.", "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": true, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/089.jpg"}, {"id": "090", "number": "90/110", "name": "Astralregen", "icon": "⚡", "cardType": "Klasse", "class": "Zauberer", "subtypes": ["Klasse"], "description": "Wähle eine gerade richtung: Alle figuren werden um 1 feld in diese richtung teleportiert. Bereits angrenzende figuren gelten nicht als neu angrenzend. Du kannst 1 weitere karte spielen.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/090.jpg"}, {"id": "091", "number": "91/110", "name": "Astralreise", "icon": "🔥", "cardType": "Ultimate", "class": "Zauberer", "subtypes": ["Ultimate"], "description": "Wirf 2 karten ab: Teleportiere dich auf eines deiner portale. Beende deinen zug sofort. Nicht spielbar während du die flagge trägst.", "cost": "Wirf 2 karten ab", "penalty": "Beende deinen Zug sofort.", "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": true, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/091.jpg"}, {"id": "092", "number": "92/110", "name": "Ätherraub", "icon": "⚡", "cardType": "Klasse", "class": "Zauberer", "subtypes": ["Klasse"], "description": "Sieh dir 1 beliebige handkarte deines gegners an. Ist es eine klassenkarte, darfst du sie in diesem zug spielen, als wäre sie deine eigene, oder sie abwerfen. Ist es eine andere karte, gib sie ihrem besitzer zurück und ziehe 1 karte aus deinem deck. Konterkarten können auf diese weise nicht gespielt werden.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/092.jpg"}, {"id": "093", "number": "93/110", "name": "Äthersprung", "icon": "⚡", "cardType": "Klasse", "class": "Zauberer", "subtypes": ["Klasse"], "description": "Wirf 1 karte ab: Teleportiere dich bis zu 2 felder in dieselbe gerade oder diagonale richtung. Beende deinen zug sofort.", "cost": "Wirf 1 karte ab", "penalty": "Beende deinen Zug sofort.", "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/093.jpg"}, {"id": "094", "number": "94/110", "name": "Ätherstoss", "icon": "🔥", "cardType": "Ultimate", "class": "Zauberer", "subtypes": ["Ultimate"], "description": "Wähle eine gegnerische figur in freier gerader sichtlinie. Der besitzer der figur setzt seinen nächsten zug aus.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/094.jpg"}, {"id": "095", "number": "95/110", "name": "Blitzstoss", "icon": "🛡️", "cardType": "Konter", "class": "Zauberer", "subtypes": ["Klasse", "Konter"], "description": "• Bedingung: Gegnerische figur betritt ein feld in freier gerader sichtlinie • Bewege die gegnerische figur um 1 feld in eine beliebige richtung.", "cost": null, "penalty": null, "trigger": "Gegnerische figur betritt ein feld in freier gerader sichtlinie", "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/095.jpg"}, {"id": "096", "number": "96/110", "name": "Dimensionstor", "icon": "🔥", "cardType": "Ultimate", "class": "Zauberer", "subtypes": ["Ultimate"], "description": "Platziere deine portale neu - sie müssen horizontal zueinander ausgerichtet sein.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/096.jpg"}, {"id": "097", "number": "97/110", "name": "Eisfessel", "icon": "⚡", "cardType": "Klasse", "class": "Zauberer", "subtypes": ["Klasse"], "description": "Wähle eine gegnerische figur in freier gerader sichtlinie. Sie kann sich in ihrem nächsten zug nicht bewegen.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/097.jpg"}, {"id": "098", "number": "98/110", "name": "Eiswall", "icon": "⚡", "cardType": "Klasse", "class": "Zauberer", "subtypes": ["Klasse"], "description": "Wirf 1 karte ab: Du kannst bis zu 3 beliebige wände auf dem spielfeld neu positionieren.", "cost": "Wirf 1 karte ab", "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/098.jpg"}, {"id": "099", "number": "99/110", "name": "Finsterniswende", "icon": "🔥", "cardType": "Ultimate", "class": "Zauberer", "subtypes": ["Ultimate"], "description": "Wähle eine uhrzeigerrichtung: Das ganze spielfeld wird um 90° in diese richtung gedreht. Die figuren, portale, gelände und missionsobjekte bleiben jedoch auf ihren positionen stehen. Beende deinen zug sofort.", "cost": null, "penalty": "Beende deinen Zug sofort.", "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": null}, {"id": "100", "number": "100/110", "name": "Frostzirkel", "icon": "⚡", "cardType": "Klasse", "class": "Zauberer", "subtypes": ["Klasse"], "description": "Alle gegnerische figuren im umkreis von 2 feldern zu deiner figur können sich in ihrem nächsten zug nicht bewegen.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/100.jpg"}, {"id": "101", "number": "101/110", "name": "Magischer impuls", "icon": "⚡", "cardType": "Klasse", "class": "Zauberer", "subtypes": ["Klasse"], "description": "Bewege 1 wand um bis zu 2 felder in dieselbe gerade richtung.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/101.jpg"}, {"id": "102", "number": "102/110", "name": "Nullpunkt", "icon": "🔥", "cardType": "Ultimate", "class": "Zauberer", "subtypes": ["Ultimate"], "description": "Alle wände werden zurückgesetzt (auch zerstörte). Jeder spieler setzt anschliessend 1 wand an eine beliebige stelle. Beende deinen zug sofort.", "cost": null, "penalty": "Beende deinen Zug sofort.", "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/102.jpg"}, {"id": "103", "number": "103/110", "name": "Spiegeltransposition", "icon": "⚡", "cardType": "Klasse", "class": "Zauberer", "subtypes": ["Klasse"], "description": "Bewege 1 figur und 1 wand gleichzeitig um 1 feld in dieselbe gerade richtung.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/103.jpg"}, {"id": "104", "number": "104/110", "name": "Spiegelverdoppelung", "icon": "⚡", "cardType": "Klasse", "class": "Zauberer", "subtypes": ["Klasse"], "description": "Erstelle 2 schattenklone angrenzend zu deiner figur. Bestimme neu, welche die heldenfigur ist. Diese klone verschwinden zu beginn deines nächsten zuges. Nicht spielbar während du die flagge trägst. Zu bewegende felder dürfen die heldenfigur und auch der klon fahren. Karten können auch vom klon aus gespielt werden, jedoch kann er keine flaggen tragen oder gegner schnappen. Wird deine heldenfigur oder der klon geschnappt, entferne den klon aus dem spiel.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": true, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": null}, {"id": "105", "number": "105/110", "name": "Umkehrsphäre", "icon": "⚡", "cardType": "Klasse", "class": "Zauberer", "subtypes": ["Klasse"], "description": "Wirf 1 handkarte ab: Wähle 2 beliebige figuren mit einer entfernung von bis zu 2 feldern zueinander. Tausche ihre positionen durch teleportation. Diese karte ersetzt \"tauschkristall\".", "cost": "Wirf 1 handkarte ab", "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": ["tauschkristall"], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/105.jpg"}, {"id": "106", "number": "106/110", "name": "Zeitkrümmung", "icon": "🔥", "cardType": "Ultimate", "class": "Zauberer", "subtypes": ["Ultimate", "Konter"], "description": "• Bedingung: Gegner betritt ein angrenzendes feld zu deiner figur • Setze alle figuren auf das feld zurück, auf dem sie zu beginn des zuges standen. Erzielte punkte bleiben jedoch bestehen. Diese karte kann nicht gekontert werden. In diesem zug können keine konterkarten mehr gespielt werden. Der zug wird sofort beendet.", "cost": null, "penalty": null, "trigger": "Gegner betritt ein angrenzendes feld zu deiner figur", "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": true, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/106.jpg"}, {"id": "107", "number": "107/110", "name": "Flaggenwechsel", "icon": "🤝", "cardType": "Team", "class": "Team", "subtypes": [], "description": "Wähle einen angrenzenden befreundeten spieler in freier gerader sichtlinie: Übernimm seine flagge, oder übergib ihm die flagge falls du sie trägst.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/107.jpg"}, {"id": "108", "number": "108/110", "name": "Göttliches eingreifen", "icon": "🤝", "cardType": "Team", "class": "Team", "subtypes": ["Ultimate", "Konter"], "description": "• Bedingung: Gegnerische figur betritt ein angrenzendes feld zu einer befreundeten figur, die sich im umkreis von max. 3 feldern zu deiner figur befindet • Teleportiere die befreundete figur an ein angrenzendes feld zu der figur, von der diese karte gespielt wurde. Die teleportierte figur kann während ihres nächsten zuges keine gegner schnappen.", "cost": null, "penalty": null, "trigger": "Gegnerische figur betritt ein angrenzendes feld zu einer befreundeten figur, die sich im umkreis von max. 3 feldern zu deiner figur befindet", "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/108.jpg"}, {"id": "109", "number": "109/110", "name": "Hand des Ätherschöpfers", "icon": "🤝", "cardType": "Team", "class": "Team", "subtypes": ["Ultimate"], "description": "Wähle einen befreundeten spieler. Dieser darf in diesem zug ebenfalls 1 karte spielen. Du kannst 1 zusätzliche karte spielen.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/109.jpg"}, {"id": "110", "number": "110/110", "name": "Klingenpakt", "icon": "🤝", "cardType": "Team", "class": "Team", "subtypes": [], "description": "Wähle einen befreundeten spieler. Du und der gewählte spieler wählen jeweils 1 eigene handkarte. Tauscht diese handkarten aus.", "cost": null, "penalty": null, "trigger": null, "deckLimit": null, "trapDeckLimit": null, "replacesCard": [], "notPlayableWithFlag": false, "notCounterable": false, "tts": {"deckId": null, "spriteIndex": null}, "image": "images/110.jpg"}];
+
+const firebaseConfig = {
+  apiKey: "HIER_DEINEN_API_KEY_EINFUEGEN",
+  authDomain: "HIER_DEINE_AUTH_DOMAIN_EINFUEGEN",
+  projectId: "HIER_DEINE_PROJECT_ID_EINFUEGEN",
+  storageBucket: "HIER_DEIN_STORAGE_BUCKET_EINFUEGEN",
+  messagingSenderId: "HIER_DEINE_SENDER_ID_EINFUEGEN",
+  appId: "HIER_DEINE_APP_ID_EINFUEGEN",
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+</script>
+<script type="text/babel">
+const { useState, useEffect, useMemo, useRef } = React;
+
+const DEFAULT_CARD_LIMIT = 3; // Standardlimit, falls Karte kein eigenes Limit hat. Bei Bedarf anpassen.
+const CLASSES = ['Alle', 'Assassine', 'Ritter', 'Ranger', 'Zauberer', 'Neutral', 'Team'];
+
+const CLASS_THEME = {
+  Assassine: { from: '#3b1d5e', to: '#150a24' },
+  Ritter:    { from: '#1d3a6e', to: '#0a1626' },
+  Ranger:    { from: '#1d5e33', to: '#0a2415' },
+  Zauberer:  { from: '#5e1d5a', to: '#240a22' },
+  Neutral:   { from: '#3a3f4b', to: '#15171c' },
+  Team:      { from: '#5e4d1d', to: '#241d0a' },
+};
+
+function themeFor(card) {
+  return CLASS_THEME[card.class] || CLASS_THEME.Neutral;
+}
+
+// ---------- CardVisual: stylisierte Karte (Platzhalter-Artwork oder echtes Bild) ----------
+function CardVisual({ card, size = 'large' }) {
+  const theme = themeFor(card);
+  const style = { background: `linear-gradient(160deg, ${theme.from}, ${theme.to})` };
+  return (
+    <div className={`card-visual card-visual-${size}`} style={style}>
+      <div className="card-visual-header">
+        <span>{card.icon} {card.name}</span>
+      </div>
+      <div className="card-visual-art">
+        {card.image
+          ? <img src={card.image} alt={card.name} />
+          : <span className="icon-big">{card.icon}</span>}
+      </div>
+      {size === 'large' && (
+        <div className="card-visual-footer">
+          {card.class} · {card.cardType}
+          {card.deckLimit ? ` · max. ${card.deckLimit}x` : ''}
+          <div>{card.description}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------- HoverPreview: floating groessere Kartenvorschau am Mauszeiger ----------
+function useHoverPreview() {
+  const [hovered, setHovered] = useState(null);
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+
+  function bind(card) {
+    return {
+      onMouseEnter: () => setHovered(card),
+      onMouseMove: (e) => {
+        let x = e.clientX + 24;
+        let y = e.clientY + 24;
+        if (x + 260 > window.innerWidth) x = e.clientX - 284;
+        if (y + 360 > window.innerHeight) y = window.innerHeight - 370;
+        setPos({ x, y });
+      },
+      onMouseLeave: () => setHovered(null),
+    };
+  }
+
+  const preview = hovered ? (
+    <div className="hover-preview" style={{ left: pos.x, top: pos.y }}>
+      <CardVisual card={hovered} size="large" />
+    </div>
+  ) : null;
+
+  return { bind, preview };
+}
+
+// ---------- Login-Button ----------
+function AuthBar({ user }) {
+  async function signIn() {
+    try {
+      await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+    } catch (err) {
+      alert('Anmeldung fehlgeschlagen: ' + err.message);
+    }
+  }
+  async function signOutUser() {
+    await auth.signOut();
+  }
+
+  if (user) {
+    return (
+      <div className="user-badge">
+        {user.photoURL && <img src={user.photoURL} alt={user.displayName} />}
+        <span>{user.displayName}</span>
+        <button className="secondary" onClick={signOutUser}>Abmelden</button>
+      </div>
+    );
+  }
+  return <button className="btn-google" onClick={signIn}>Mit Google anmelden</button>;
+}
+
+// ---------- Karten-Tab ----------
+function CardList() {
+  const [search, setSearch] = useState('');
+  const [classFilter, setClassFilter] = useState('Alle');
+  const [viewMode, setViewMode] = useState('list');
+  const { bind, preview } = useHoverPreview();
+
+  const filteredCards = useMemo(() => {
+    return CARDS_DATA.filter((card) => {
+      const matchesClass = classFilter === 'Alle' || card.class === classFilter;
+      const matchesSearch = search.trim() === '' || card.name.toLowerCase().includes(search.trim().toLowerCase());
+      return matchesClass && matchesSearch;
+    });
+  }, [search, classFilter]);
+
+  return (
+    <div className="panel">
+      <h2>Karten ({filteredCards.length} von {CARDS_DATA.length})</h2>
+      <div className="filters">
+        <input type="text" placeholder="Karte suchen..." value={search} onChange={(e) => setSearch(e.target.value)} />
+        <select value={classFilter} onChange={(e) => setClassFilter(e.target.value)}>
+          {CLASSES.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+        <div className="view-toggle">
+          <button className={viewMode === 'list' ? 'active' : ''} onClick={() => setViewMode('list')}>Liste</button>
+          <button className={viewMode === 'grid' ? 'active' : ''} onClick={() => setViewMode('grid')}>Kartenansicht</button>
+        </div>
+      </div>
+
+      {viewMode === 'list' && (
+        <div className="card-grid">
+          {filteredCards.map((card) => (
+            <div key={card.id} className="card-tile" {...bind(card)}>
+              <div className="card-tile-header">
+                <span>{card.icon}</span>
+                <span className="card-name">{card.name}</span>
+              </div>
+              <div className="card-meta">
+                {card.class} · {card.cardType}
+                {card.deckLimit ? ` · max. ${card.deckLimit}x im Deck` : ''}
+              </div>
+              <p className="card-description">{card.description}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {viewMode === 'grid' && (
+        <div className="grid-of-cards-large">
+          {filteredCards.map((card) => (
+            <CardVisual key={card.id} card={card} size="large" />
+          ))}
+        </div>
+      )}
+
+      {preview}
+    </div>
+  );
+}
+
+// ---------- Deckbuilder-Tab ----------
+function DeckBuilder({ user }) {
+  const [heroId, setHeroId] = useState('');
+  const [deckName, setDeckName] = useState('');
+  const [isPublic, setIsPublic] = useState(false);
+  const [deckCounts, setDeckCounts] = useState({});
+  const [saveStatus, setSaveStatus] = useState('');
+  const [deckViewMode, setDeckViewMode] = useState('list');
+  const { bind, preview } = useHoverPreview();
+
+  const heroes = useMemo(() => CARDS_DATA.filter((c) => c.cardType === 'Held'), []);
+  const nonHeroCards = useMemo(() => CARDS_DATA.filter((c) => c.cardType !== 'Held'), []);
+  const selectedHero = heroes.find((h) => h.id === heroId);
+
+  const playableCards = useMemo(() => {
+    if (!selectedHero) return [];
+    return nonHeroCards.filter((c) => c.class === selectedHero.class || c.class === 'Neutral' || c.class === 'Team');
+  }, [nonHeroCards, selectedHero]);
+
+  const totalCardsInDeck = Object.values(deckCounts).reduce((a, b) => a + b, 0);
+  const totalTraps = playableCards.filter((c) => c.cardType === 'Falle').reduce((sum, c) => sum + (deckCounts[c.id] || 0), 0);
+
+  function getLimitFor(card) {
+    return card.deckLimit || DEFAULT_CARD_LIMIT;
+  }
+
+  function addCard(card) {
+    const current = deckCounts[card.id] || 0;
+    const limit = getLimitFor(card);
+    if (current >= limit) return;
+    if (card.cardType === 'Falle' && card.trapDeckLimit && totalTraps >= card.trapDeckLimit) {
+      alert(`Fallen-Limit erreicht (max. ${card.trapDeckLimit} Fallen im Deck).`);
+      return;
+    }
+    setDeckCounts((prev) => ({ ...prev, [card.id]: current + 1 }));
+  }
+
+  function removeCard(card) {
+    const current = deckCounts[card.id] || 0;
+    if (current <= 1) {
+      const rest = { ...deckCounts };
+      delete rest[card.id];
+      setDeckCounts(rest);
+    } else {
+      setDeckCounts((prev) => ({ ...prev, [card.id]: current - 1 }));
+    }
+  }
+
+  async function saveDeck() {
+    if (!user) { alert('Bitte melde dich zuerst mit Google an.'); return; }
+    if (!selectedHero) { alert('Bitte waehle zuerst einen Helden.'); return; }
+    if (!deckName.trim()) { alert('Bitte gib deinem Deck einen Namen.'); return; }
+
+    setSaveStatus('Speichere...');
+    try {
+      const deckCards = Object.entries(deckCounts).map(([cardId, count]) => {
+        const card = CARDS_DATA.find((c) => c.id === cardId);
+        return { cardId, name: card ? card.name : cardId, count };
+      });
+
+      await db.collection('decks').add({
+        name: deckName.trim(),
+        ownerId: user.uid,
+        ownerName: user.displayName,
+        heroId: selectedHero.id,
+        heroName: selectedHero.name,
+        heroClass: selectedHero.class,
+        cards: deckCards,
+        totalCards: totalCardsInDeck,
+        isPublic,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+
+      setSaveStatus('Deck gespeichert! Du findest es unter "Meine Decks".');
+      setDeckName('');
+      setDeckCounts({});
+    } catch (err) {
+      setSaveStatus('Fehler beim Speichern: ' + err.message);
+    }
+  }
+
+  if (!user) {
+    return (
+      <div className="panel">
+        <h2>Deckbuilder</h2>
+        <p>Bitte melde dich oben rechts mit Google an, um ein Deck zu bauen und zu speichern.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="panel">
+      <h2>Deckbuilder</h2>
+      <div className="form-row">
+        <label>Held / Klasse waehlen</label>
+        <select value={heroId} onChange={(e) => { setHeroId(e.target.value); setDeckCounts({}); }}>
+          <option value="">-- Held waehlen --</option>
+          {heroes.map((h) => <option key={h.id} value={h.id}>{h.name} ({h.class})</option>)}
+        </select>
+      </div>
+
+      {selectedHero && (
+        <React.Fragment>
+          <div className="form-row">
+            <label>Deckname</label>
+            <input type="text" placeholder="z.B. Aggro Assassine" value={deckName} onChange={(e) => setDeckName(e.target.value)} />
+          </div>
+          <div className="form-row checkbox-row">
+            <label>
+              <input type="checkbox" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} />
+              Als Meta-Deck oeffentlich teilen
+            </label>
+          </div>
+
+          <div className="filters">
+            <p style={{margin: 0}}>Karten im Deck: <strong>{totalCardsInDeck}</strong></p>
+            <div className="view-toggle">
+              <button className={deckViewMode === 'list' ? 'active' : ''} onClick={() => setDeckViewMode('list')}>Liste</button>
+              <button className={deckViewMode === 'grid' ? 'active' : ''} onClick={() => setDeckViewMode('grid')}>Kartenansicht</button>
+            </div>
+          </div>
+
+          <div className="deck-columns">
+            <div>
+              <h3>Verfuegbare Karten ({selectedHero.class} + Neutral + Team)</h3>
+              {deckViewMode === 'list' && (
+                <div className="card-list-compact">
+                  {playableCards.map((card) => {
+                    const count = deckCounts[card.id] || 0;
+                    const limit = getLimitFor(card);
+                    return (
+                      <div key={card.id} className="card-row" {...bind(card)}>
+                        <span>{card.icon}</span>
+                        <span className="card-row-name">{card.name}</span>
+                        <span className="card-row-count">{count}/{limit}</span>
+                        <button onClick={() => addCard(card)} disabled={count >= limit}>+</button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {deckViewMode === 'grid' && (
+                <div className="grid-of-cards" style={{maxHeight: 460, overflowY: 'auto'}}>
+                  {playableCards.map((card) => {
+                    const count = deckCounts[card.id] || 0;
+                    const limit = getLimitFor(card);
+                    return (
+                      <div key={card.id} onClick={() => addCard(card)} style={{cursor: count >= limit ? 'not-allowed' : 'pointer', opacity: count >= limit ? 0.5 : 1}} {...bind(card)}>
+                        <CardVisual card={card} size="small" />
+                        <div style={{textAlign: 'center', fontSize: '0.75rem', color: '#9aa0ab'}}>{count}/{limit}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <h3>Dein Deck</h3>
+              {deckViewMode === 'list' && (
+                <div className="card-list-compact">
+                  {Object.entries(deckCounts).length === 0 && <p>Noch keine Karten gewaehlt.</p>}
+                  {Object.entries(deckCounts).map(([cardId, count]) => {
+                    const card = CARDS_DATA.find((c) => c.id === cardId);
+                    if (!card) return null;
+                    return (
+                      <div key={cardId} className="card-row" {...bind(card)}>
+                        <span>{card.icon}</span>
+                        <span className="card-row-name">{card.name}</span>
+                        <span className="card-row-count">x{count}</span>
+                        <button onClick={() => removeCard(card)}>-</button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {deckViewMode === 'grid' && (
+                <div className="grid-of-cards" style={{maxHeight: 460, overflowY: 'auto'}}>
+                  {Object.entries(deckCounts).map(([cardId, count]) => {
+                    const card = CARDS_DATA.find((c) => c.id === cardId);
+                    if (!card) return null;
+                    return (
+                      <div key={cardId} onClick={() => removeCard(card)} style={{cursor: 'pointer'}} {...bind(card)}>
+                        <CardVisual card={card} size="small" />
+                        <div style={{textAlign: 'center', fontSize: '0.75rem', color: '#9aa0ab'}}>x{count}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <button className="save-button" onClick={saveDeck}>Deck speichern</button>
+          {saveStatus && <p className="status">{saveStatus}</p>}
+        </React.Fragment>
+      )}
+      {preview}
+    </div>
+  );
+}
+
+function DeckGrid({ decks, emptyText }) {
+  if (decks.length === 0) return <p>{emptyText}</p>;
+  return (
+    <div className="deck-grid">
+      {decks.map((deck) => (
+        <div key={deck.id} className="deck-tile">
+          <h3>{deck.name}</h3>
+          <p className="card-meta">{deck.heroName} ({deck.heroClass}) · {deck.totalCards} Karten</p>
+          <p className="card-meta">von {deck.ownerName}</p>
+          <ul className="deck-card-list">
+            {deck.cards && deck.cards.map((c) => <li key={c.cardId}>{c.name} x{c.count}</li>)}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ---------- Meine Decks-Tab ----------
+function MyDecks({ user }) {
+  const [myDecks, setMyDecks] = useState([]);
+  const [publicDecks, setPublicDecks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    async function loadDecks() {
+      try {
+        if (user) {
+          const mineSnap = await db.collection('decks').where('ownerId', '==', user.uid).get();
+          setMyDecks(mineSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        } else {
+          setMyDecks([]);
+        }
+        const publicSnap = await db.collection('decks').where('isPublic', '==', true).get();
+        setPublicDecks(publicSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      } catch (err) {
+        setError('Konnte Decks nicht laden: ' + err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadDecks();
+  }, [user]);
+
+  if (loading) return <div className="panel">Lade Decks...</div>;
+  if (error) return <div className="panel error">{error}</div>;
+
+  return (
+    <div className="panel">
+      <h2>Meine Decks {user ? `(${user.displayName})` : ''}</h2>
+      {!user && <p>Melde dich mit Google an, um deine eigenen Decks zu sehen.</p>}
+      <DeckGrid decks={myDecks} emptyText="Du hast noch keine Decks gespeichert." />
+      <h2>Oeffentliche Meta-Decks</h2>
+      <DeckGrid decks={publicDecks} emptyText="Es wurden noch keine Decks oeffentlich geteilt." />
+    </div>
+  );
+}
+
+// ---------- Admin: Import-Tab ----------
+function ImportCards() {
+  const [status, setStatus] = useState('');
+  const [running, setRunning] = useState(false);
+
+  async function handleImport() {
+    setRunning(true);
+    setStatus(`Importiere ${CARDS_DATA.length} Karten...`);
+    let count = 0;
+    for (const card of CARDS_DATA) {
+      try {
+        await db.collection('cards').doc(card.id).set(card);
+        count += 1;
+        setStatus(`Importiere... ${count} / ${CARDS_DATA.length}`);
+      } catch (err) {
+        setStatus(`Fehler bei Karte ${card.name}: ${err.message}`);
+        setRunning(false);
+        return;
+      }
+    }
+    setStatus(`Fertig! ${count} Karten wurden nach Firestore importiert.`);
+    setRunning(false);
+  }
+
+  return (
+    <div className="panel">
+      <h2>Admin: Karten importieren</h2>
+      <p>Schreibt alle {CARDS_DATA.length} Karten in deine Firestore-Collection <code>cards</code>.</p>
+      <p>Nur einmal noetig (oder erneut, falls sich Kartendaten aendern).</p>
+      <button onClick={handleImport} disabled={running}>{running ? 'Importiere...' : 'Karten jetzt importieren'}</button>
+      {status && <p className="status">{status}</p>}
+    </div>
+  );
+}
+
+const TABS = [
+  { id: 'cards', label: 'Karten' },
+  { id: 'builder', label: 'Deckbuilder' },
+  { id: 'decks', label: 'Meine Decks' },
+  { id: 'admin', label: 'Admin: Import' },
+];
+
+function App() {
+  const [activeTab, setActiveTab] = useState('cards');
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((u) => {
+      setUser(u);
+      setAuthLoading(false);
+    });
+    return unsubscribe;
+  }, []);
+
+  return (
+    <div className="app">
+      <header className="app-header">
+        <div className="app-header-top">
+          <h1>Flagged Deckbuilder</h1>
+          {!authLoading && <AuthBar user={user} />}
+        </div>
+        <nav className="tabs">
+          {TABS.map((tab) => (
+            <button key={tab.id} className={activeTab === tab.id ? 'tab active' : 'tab'} onClick={() => setActiveTab(tab.id)}>
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+      </header>
+      <main className="app-content">
+        {activeTab === 'cards' && <CardList />}
+        {activeTab === 'builder' && <DeckBuilder user={user} />}
+        {activeTab === 'decks' && <MyDecks user={user} />}
+        {activeTab === 'admin' && <ImportCards />}
+      </main>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>
