@@ -1,0 +1,2612 @@
+[
+  {
+    "id": "001",
+    "name": "Assassin",
+    "cardType": "Held",
+    "class": "Assassine",
+    "trigger": {
+      "event": "game_start_or_respawn"
+    },
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "create_shadow_clone",
+        "target": "self",
+        "position": "adjacent_to_figure_on_start_line",
+        "count": 1
+      },
+      {
+        "action": "reassign_hero_figure",
+        "target": "self"
+      }
+    ],
+    "flags": {
+      "clone_can_be_moved": true,
+      "clone_can_play_cards": true,
+      "clone_cannot_carry_flag": true,
+      "clone_cannot_capture": true,
+      "on_clone_or_hero_captured": "remove_clone_from_game"
+    },
+    "parse_confidence": "manual",
+    "parse_notes": null,
+    "raw_description": "Zu Spielbeginn oder bei Wiedergeburt: Erstelle 1 Schattenklon angrenzend zu deiner Figur auf der Startlinie. Bestimme neu, welches die Heldenfigur ist. Zu bewegende Felder duerfen die Heldenfigur und auch der Klon fahren. Karten koennen auch vom Klon aus gespielt werden, jedoch kann er keine Flaggen tragen oder Gegner schnappen. Wird deine Heldenfigur oder der Klon geschnappt, entferne den Klon aus dem Spiel."
+  },
+  {
+    "id": "002",
+    "name": "Ritter",
+    "cardType": "Held",
+    "class": "Ritter",
+    "trigger": {
+      "event": "game_start_or_respawn"
+    },
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "grant_extra_action",
+        "target": "self",
+        "uses": 1,
+        "scope": "any_single_future_turn",
+        "options": [
+          {
+            "action": "draw_card",
+            "count": 1
+          },
+          {
+            "action": "play_additional_card",
+            "count": 1
+          },
+          {
+            "action": "move",
+            "fields": 1
+          },
+          {
+            "action": "place_wall",
+            "count": 1
+          }
+        ]
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "manual",
+    "parse_notes": null,
+    "raw_description": "Zu Spielbeginn oder bei Wiedergeburt: Du kannst 1 Mal in einem beliebigen Spielzug eines der folgenden Aktionen zusaetzlich ausfuehren: 1 Karte ziehen / 1 Karte spielen / 1 Feld bewegen / 1 Wand setzen"
+  },
+  {
+    "id": "003",
+    "name": "Waldläufer",
+    "cardType": "Held",
+    "class": "Ranger",
+    "trigger": {
+      "event": "game_start_or_respawn"
+    },
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "grant_extra_action",
+        "target": "self",
+        "uses": 1,
+        "scope": "any_single_future_turn",
+        "options": [
+          {
+            "action": "search_deck",
+            "count": 1,
+            "then": "shuffle_deck"
+          }
+        ]
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "manual",
+    "parse_notes": null,
+    "raw_description": "Ab Spielbeginn sowie nach Wiedergeburt: Du kannst 1 Mal in einem beliebigen Spielzug dein Deck nach 1 Karte durchsuchen und auf die Hand nehmen. Mische dein Deck anschliessend."
+  },
+  {
+    "id": "004",
+    "name": "Zauberer",
+    "cardType": "Held",
+    "class": "Zauberer",
+    "trigger": {
+      "event": "game_start"
+    },
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "place_portal_pair",
+        "target": "self",
+        "constraint": "same_horizontal_line"
+      }
+    ],
+    "flags": {
+      "portals_usable_by": "self_and_allies"
+    },
+    "parse_confidence": "manual",
+    "parse_notes": null,
+    "raw_description": "Zu Spielbeginn: Platziere 2 Portale auf derselben horizontalen Linie. Betrittst du ein Portal, erscheinst du beim anderen. Die Portale koennen nur von dir und befreundete Spieler benutzt werden."
+  },
+  {
+    "id": "005",
+    "name": "Dämmertritt",
+    "cardType": "Klasse",
+    "class": "Assassine",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "grant_movement_mode",
+        "target": "self",
+        "mode": "diagonal"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Du kannst dich diesen zug diagonal bewegen."
+  },
+  {
+    "id": "006",
+    "name": "Echobruch",
+    "cardType": "Konter",
+    "class": "Assassine",
+    "trigger": {
+      "event": "enemy_moves_extra_field",
+      "params": {
+        "min_fields": 1
+      }
+    },
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "grant_bonus_movement",
+        "target": "self",
+        "fields": 2,
+        "timing": "next_turn"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "manual",
+    "parse_notes": null,
+    "raw_description": "• Bedingung: Gegnerische figur bewegt sich min. Um 1 zusätzliches feld • In deinem nächsten zug kannst du dich 2 zusätzliche felder bewegen."
+  },
+  {
+    "id": "007",
+    "name": "Flüsterschritt",
+    "cardType": "Klasse",
+    "class": "Assassine",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "move",
+        "target": "self",
+        "fields": 1
+      },
+      {
+        "action": "play_additional_card",
+        "target": "self",
+        "count": 1
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Du kannst dich diesen zug um 1 zusätzliches feld bewegen. Du kannst 1 zusätzliche karte spielen."
+  },
+  {
+    "id": "008",
+    "name": "Rauchbombe",
+    "cardType": "Klasse",
+    "class": "Assassine",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "prevent_card_play",
+        "target": "context"
+      },
+      {
+        "action": "place_area_object"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Platziere auf deiner position eine rauchwolke mit umkreis von 2 feldern. Gegnerische figuren können die wolke weder durch bewegung noch durch teleportation verlassen. Gegnerische spieler, deren figur sich in der wolke befindet, können keine karten spielen. Die wolke endet zu beginn deines nächsten zuges."
+  },
+  {
+    "id": "009",
+    "name": "Schattenmanifest",
+    "cardType": "Ultimate",
+    "class": "Assassine",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "set_flag",
+        "flag": "clone_can_capture",
+        "scope": "this_turn"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "manual",
+    "parse_notes": null,
+    "raw_description": "Deine schattenklone dürfen in diesem zug gegner schnappen."
+  },
+  {
+    "id": "010",
+    "name": "Schattenreflexe",
+    "cardType": "Ultimate",
+    "class": "Assassine",
+    "trigger": null,
+    "condition": null,
+    "cost": [
+      {
+        "action": "discard_card",
+        "target": "self",
+        "count": "any",
+        "id": "discarded"
+      }
+    ],
+    "effects": [
+      {
+        "action": "move",
+        "target": "self",
+        "fields": "1 + count(discarded)"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "manual",
+    "parse_notes": null,
+    "raw_description": "Wirf eine beliebige Anzahl Handkarten ab: Du kannst dich in diesem zug um 1 zusätzliches feld bewegen. Für jede durch schattenreflexe abgeworfene karte kannst du dich in diesem zug um 1 weiteres feld bewegen."
+  },
+  {
+    "id": "011",
+    "name": "Schattenriss",
+    "cardType": "Klasse",
+    "class": "Assassine",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "grant_movement_mode",
+        "target": "self",
+        "mode": "through_walls"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Du kannst dich diesen zug durch wände bewegen."
+  },
+  {
+    "id": "012",
+    "name": "Schattenwechsel",
+    "cardType": "Ultimate",
+    "class": "Assassine",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "reassign_hero_figure"
+      }
+    ],
+    "flags": {
+      "not_playable_with_flag": true
+    },
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Bestimme neu, welche deiner figuren die heldenfigur ist. Du kannst dich bis zum ende des zuges nicht mehr bewegen. Nicht spielbar während du die flagge trägst."
+  },
+  {
+    "id": "013",
+    "name": "Schleierflucht",
+    "cardType": "Ultimate",
+    "class": "Assassine",
+    "trigger": {
+      "event": "custom",
+      "text_de": "Gegner betritt ein angrenzendes feld"
+    },
+    "condition": "Gegner betritt ein angrenzendes feld",
+    "cost": null,
+    "effects": [
+      {
+        "action": "discard_card",
+        "target": "self",
+        "count": 1
+      },
+      {
+        "action": "teleport",
+        "target": "context"
+      },
+      {
+        "action": "remove_shadow_clone"
+      },
+      {
+        "action": "reassign_hero_figure"
+      }
+    ],
+    "flags": {
+      "not_playable_with_flag": true
+    },
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "• Bedingung: Gegner betritt ein angrenzendes feld • Wirf 1 karte ab: Enthülle deine heldenfigur und teleportiere sie um 1 feld in eine beliebige richtung. Entferne deine schattenklone und erstelle einen neuen angrenzend zur heldenfigur. Bestimme neu, welche die heldenfigur ist. Nicht spielbar während du die flagge trägst."
+  },
+  {
+    "id": "014",
+    "name": "Schleierhülle",
+    "cardType": "Klasse",
+    "class": "Assassine",
+    "trigger": null,
+    "condition": null,
+    "cost": [
+      {
+        "action": "discard_card",
+        "target": "self",
+        "count": 1
+      }
+    ],
+    "effects": [
+      {
+        "action": "discard_card",
+        "target": "self",
+        "count": 1
+      },
+      {
+        "action": "remove_shadow_clone"
+      },
+      {
+        "action": "reassign_hero_figure"
+      }
+    ],
+    "flags": {
+      "not_playable_with_flag": true
+    },
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Wirf 1 karte ab: Enthülle deine heldenfigur. Entferne deine schattenklone und erstelle einen neuen angrenzend zur heldenfigur. Bestimme neu, welche die heldenfigur ist. Nicht spielbar während du die flagge trägst."
+  },
+  {
+    "id": "015",
+    "name": "Seelentausch",
+    "cardType": "Klasse",
+    "class": "Assassine",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "teleport_swap",
+        "target": "context"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Tausche die position durch teleportation mit einer anderen befreundeten figur im umkreis von 3 feldern. Diese karte ersetzt \"tauschkristall\"."
+  },
+  {
+    "id": "016",
+    "name": "Spiegeltausch",
+    "cardType": "Konter",
+    "class": "Assassine",
+    "trigger": {
+      "event": "own_figure_targeted_by_enemy_effect"
+    },
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "teleport_swap",
+        "target": "affected_figure",
+        "with": "chosen_ally_in_radius",
+        "radius": 3
+      },
+      {
+        "action": "redirect_effect",
+        "new_target": "swapped_ally"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "manual",
+    "parse_notes": null,
+    "raw_description": "• Bedingung: Eine deiner figuren wird von einem gegnerischen karteneffekt betroffen • Tausche die position der figur durch teleportation mit einer anderen befreundeten figur im umkreis von 3 feldern. Die andere figur wird nun das neue ziel des karteneffekts."
+  },
+  {
+    "id": "017",
+    "name": "Todesstoss",
+    "cardType": "Konter",
+    "class": "Assassine",
+    "trigger": {
+      "event": "custom",
+      "text_de": "In deinem zug - nach einer bewegung - gegnerische figur steht in freier gerader sichtlinie angrenzend zu deiner figur"
+    },
+    "condition": "In deinem zug - nach einer bewegung - gegnerische figur steht in freier gerader sichtlinie angrenzend zu deiner figur",
+    "cost": null,
+    "effects": [
+      {
+        "action": "capture_figure",
+        "target": "context"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "• Bedingung: In deinem zug - nach einer bewegung - gegnerische figur steht in freier gerader sichtlinie angrenzend zu deiner figur • Die figur wird sofort geschnappt. Diese karte kann nicht von einem schattenklon aus gespielt werden, ausser durch schattenmanifest."
+  },
+  {
+    "id": "018",
+    "name": "Tödliche ruhe",
+    "cardType": "Klasse",
+    "class": "Assassine",
+    "trigger": null,
+    "condition": null,
+    "cost": [
+      {
+        "action": "discard_card",
+        "target": "self",
+        "count": 1
+      }
+    ],
+    "effects": [
+      {
+        "action": "discard_card",
+        "target": "self",
+        "count": 1
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Wirf 1 karte ab: In deinem nächsten zug kannst du 1 zusätzliche karte spielen."
+  },
+  {
+    "id": "019",
+    "name": "Toxinstoss",
+    "cardType": "Konter",
+    "class": "Assassine",
+    "trigger": {
+      "event": "custom",
+      "text_de": "Gegnerische figur betritt ein angrenzendes feld zu deiner figur"
+    },
+    "condition": "Gegnerische figur betritt ein angrenzendes feld zu deiner figur",
+    "cost": null,
+    "effects": [
+      {
+        "action": "prevent_movement",
+        "target": "context",
+        "duration": "this_turn"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "• Bedingung: Gegnerische figur betritt ein angrenzendes feld zu deiner figur • Die gegnerische figur kann sich bis zum anfang ihres nächsten zuges nicht mehr bewegen. Du kannst in deinem nächsten zug keine karten spielen."
+  },
+  {
+    "id": "020",
+    "name": "Umbrafaden",
+    "cardType": "Ultimate",
+    "class": "Assassine",
+    "trigger": {
+      "event": "custom",
+      "text_de": "Nach einer bewegung – min. 1 gegnerische figur steht auf derselben geraden linie zwischen deiner heldenfigur und einem befreundeten schattenklon"
+    },
+    "condition": "Nach einer bewegung – min. 1 gegnerische figur steht auf derselben geraden linie zwischen deiner heldenfigur und einem befreundeten schattenklon",
+    "cost": null,
+    "effects": [
+      {
+        "action": "skip_turn",
+        "target": "enemy",
+        "count": 2
+      },
+      {
+        "action": "prevent_movement",
+        "target": "context",
+        "duration": "this_turn"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "• Bedingung: Nach einer bewegung – min. 1 gegnerische figur steht auf derselben geraden linie zwischen deiner heldenfigur und einem befreundeten schattenklon • Enthülle deine heldenfigur. Alle gegnerische figuren zwischen deiner heldenfigur und dem klon können sich in diesem zug nicht mehr bewegen und ihre besitzer setzen ihre nächsten 2 züge aus (team modus: 1 zug)."
+  },
+  {
+    "id": "021",
+    "name": "Schattenverzehr",
+    "cardType": "Klasse",
+    "class": "Assassine",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "remove_shadow_clone",
+        "count": "all",
+        "id": "removed_clones"
+      },
+      {
+        "action": "move",
+        "target": "self",
+        "fields": "1 + count(removed_clones)"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "manual",
+    "parse_notes": null,
+    "raw_description": "Entferne alle deine schattenklone. Du kannst dich in diesem zug um 1 zusätzliches feld bewegen. Außerdem kannst du dich in diesem zug für jeden durch schattenverzehr entfernten schattenklon um 1 zusätzliches feld bewegen."
+  },
+  {
+    "id": "022",
+    "name": "Ätherdeflektion",
+    "cardType": "Ultimate",
+    "class": "Ritter",
+    "trigger": {
+      "event": "own_figure_targeted_by_enemy_effect"
+    },
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "redirect_effect",
+        "new_target": "chosen_any_figure"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "manual",
+    "parse_notes": null,
+    "raw_description": "• Bedingung: Eine deiner figuren wird von einem gegnerischen karteneffekt betroffen • Wähle eine beliebige figur: Die gewählte figur wird stattdessen vom effekt betroffen. Diese karte ersetzt \"riftklingen-resonanz\"."
+  },
+  {
+    "id": "023",
+    "name": "Donnerbrüller",
+    "cardType": "Klasse",
+    "class": "Ritter",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "prevent_movement",
+        "target": "context",
+        "duration": "this_turn"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Gegnerische figuren im umkreis von 2 feldern können sich in ihrem nächsten zug nicht bewegen."
+  },
+  {
+    "id": "024",
+    "name": "Eisenruf",
+    "cardType": "Klasse",
+    "class": "Ritter",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "prevent_card_play",
+        "target": "enemies_in_radius",
+        "radius": 2,
+        "duration": "next_turn"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "manual",
+    "parse_notes": null,
+    "raw_description": "Gegnerische spieler, deren figur sich im umkreis von 2 feldern um deine figur befindet, können in ihrem nächsten zug keine karten spielen."
+  },
+  {
+    "id": "025",
+    "name": "Entwaffnungsgriff",
+    "cardType": "Klasse",
+    "class": "Ritter",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "reveal_hand_cards",
+        "target": "enemy",
+        "count": 2,
+        "id": "revealed"
+      },
+      {
+        "action": "choose_card",
+        "from": "revealed_plus_one_facedown",
+        "filter": {
+          "exclude_type": "Ultimate"
+        },
+        "id": "chosen"
+      },
+      {
+        "action": "force_discard",
+        "target": "enemy",
+        "card": "chosen"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "manual",
+    "parse_notes": null,
+    "raw_description": "Schaue dir 2 handkarten des gegners an. Wähle anschließend 1 dieser beiden karten, die keine Ultimate-Karte ist, oder 1 verdeckte handkarte. Der gegner muss die gewählte karte ablegen."
+  },
+  {
+    "id": "026",
+    "name": "Festungsbrecher",
+    "cardType": "Ultimate",
+    "class": "Ritter",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "destroy_wall",
+        "target": "chosen_or_area"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Zerstöre alle wände im umkreis von 1 feld um deine figur."
+  },
+  {
+    "id": "027",
+    "name": "Flankenstoss",
+    "cardType": "Klasse",
+    "class": "Ritter",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "move",
+        "target": "self",
+        "fields": 2,
+        "direction": "horizontal"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Du kannst dich diesen zug um 2 zusätzliche felder horizontal bewegen."
+  },
+  {
+    "id": "028",
+    "name": "Herausforderung",
+    "cardType": "Klasse",
+    "class": "Ritter",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "forced_move",
+        "target": "chosen_enemy_figure",
+        "fields": 2,
+        "direction": "away_from_caster_figure",
+        "straight": true
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "manual",
+    "parse_notes": null,
+    "raw_description": "Wähle eine gegnerische figur. Sie muss sich 2 gerade Felder in die richtung der figur bewegen, von der diese karte gespielt wurde. Diese karte ersetzt \"flüstergift\"."
+  },
+  {
+    "id": "029",
+    "name": "Kampfvorbereitung",
+    "cardType": "Klasse",
+    "class": "Ritter",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "draw_card",
+        "target": "self",
+        "count": 1
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "In deinem nächsten zug kannst du 1 zusätzliche karte spielen. Ziehe 1 karte."
+  },
+  {
+    "id": "030",
+    "name": "Königszug",
+    "cardType": "Ultimate",
+    "class": "Ritter",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "move",
+        "target": "self",
+        "fields": 1,
+        "optional": false
+      }
+    ],
+    "flags": {
+      "cannot_be_countered": true,
+      "blocks_further_counters_this_turn": true
+    },
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Bewege dich um 1 zusätzliches feld. Gegner dürfen in ihrem nächsten zug keine karten spielen. Diese karte kann nicht gekontert werden. In diesem zug können keine konterkarten mehr gespielt werden."
+  },
+  {
+    "id": "031",
+    "name": "Letzter stand",
+    "cardType": "Klasse",
+    "class": "Ritter",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "move",
+        "target": "self",
+        "fields": 1,
+        "optional": false
+      }
+    ],
+    "flags": {
+      "cannot_be_countered": true,
+      "deck_limit": 2,
+      "blocks_further_counters_this_turn": true
+    },
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Bewege dich um 1 zusätzliches feld. Diese karte kann nicht gekontert werden. In diesem zug können keine konterkarten mehr gespielt werden. Du kannst diese karte nur 2 mal im deck besitzen. Diese karte kann im teammodus nicht verwendet werden."
+  },
+  {
+    "id": "032",
+    "name": "Ritterschritt",
+    "cardType": "Klasse",
+    "class": "Ritter",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "move",
+        "target": "self",
+        "fields": 2,
+        "optional": true
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Bewege dich um bis zu 2 zusätzliche felder."
+  },
+  {
+    "id": "033",
+    "name": "Runenbann",
+    "cardType": "Klasse",
+    "class": "Ritter",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "play_additional_card",
+        "target": "self",
+        "count": 1
+      }
+    ],
+    "flags": {
+      "cannot_be_countered": true,
+      "deck_limit": 2,
+      "blocks_further_counters_this_turn": true
+    },
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Diese karte kann nicht gekontert werden. In diesem zug können keine konterkarten mehr gespielt werden. Du kannst 1 weitere karte spielen. Du kannst diese karte nur 2 mal im deck besitzen. Diese karte ersetzt \"schleierphiole\"."
+  },
+  {
+    "id": "034",
+    "name": "Schildkonter",
+    "cardType": "Konter",
+    "class": "Ritter",
+    "trigger": {
+      "event": "custom",
+      "text_de": "Gegner betritt ein angrenzendes feld zu deiner figur"
+    },
+    "condition": "Gegner betritt ein angrenzendes feld zu deiner figur",
+    "cost": null,
+    "effects": [
+      {
+        "action": "place_wall",
+        "count": 1
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "• Bedingung: Gegner betritt ein angrenzendes feld zu deiner figur • Setze 1 wand direkt an deine figur. Sind keine wände mehr verfügbar, repositioniere stattdessen 1 wand auf dem spielfeld an deine figur. Du kannst ihre ausrichtung ändern."
+  },
+  {
+    "id": "035",
+    "name": "Schildmodus",
+    "cardType": "Klasse",
+    "class": "Ritter",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "set_movement_cap",
+        "target": "self_all_figures",
+        "max_fields": 2,
+        "scope": "this_turn"
+      },
+      {
+        "action": "prevent_capture",
+        "target": "self_all_figures",
+        "duration": "until_next_turn_start"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "manual",
+    "parse_notes": null,
+    "raw_description": "In diesem zug können sich alle deine figuren max. 2 felder bewegen. Bis zu beginn deines nächsten zuges können deine figuren nicht geschnappt werden."
+  },
+  {
+    "id": "036",
+    "name": "Schlachtbanner",
+    "cardType": "Klasse",
+    "class": "Ritter",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "play_additional_card",
+        "target": "self",
+        "count": 1
+      },
+      {
+        "action": "place_area_object"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Platziere 1 banner auf einem feld. Es kann nicht mehr ziel von wänden oder fallen werden. Fallen darauf werden zerstört. Du kannst 1 weitere karte spielen. Diese karte ersetzt \"ehrenbanner\"."
+  },
+  {
+    "id": "037",
+    "name": "Klang des singenden schwertes",
+    "cardType": "Ultimate",
+    "class": "Ritter",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "play_additional_card",
+        "target": "self",
+        "count": 2
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "manual",
+    "parse_notes": null,
+    "raw_description": "Du kannst in diesem zug 2 weitere karten spielen."
+  },
+  {
+    "id": "038",
+    "name": "Wandbrecher",
+    "cardType": "Klasse",
+    "class": "Ritter",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "destroy_wall",
+        "target": "chosen",
+        "count": 1
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Zerstöre 1 wand deiner wahl."
+  },
+  {
+    "id": "039",
+    "name": "Wirbelklinge",
+    "cardType": "Ultimate",
+    "class": "Ritter",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "capture_figure",
+        "target": "context"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Alle figuren im umkreis von 1 feld um deine heldenfigur werden geschnappt."
+  },
+  {
+    "id": "040",
+    "name": "Wirbelwurf",
+    "cardType": "Klasse",
+    "class": "Ritter",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "teleport",
+        "target": "context"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Wähle eine angrenzende figur in freier sichtlinie: Teleportiere sie von deiner figur aus um bis zu 2 felder in eine gerade richtung. Diese karte ersetzt \"katapultgriff\"."
+  },
+  {
+    "id": "041",
+    "name": "Ausweichrolle",
+    "cardType": "Standard",
+    "class": "Neutral",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "move",
+        "target": "self",
+        "fields": 1,
+        "optional": false,
+        "direction": "diagonal"
+      },
+      {
+        "action": "move",
+        "target": "self",
+        "fields": 1,
+        "direction": "diagonal"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Bewege dich um 1 zusätzliches feld diagonal."
+  },
+  {
+    "id": "042",
+    "name": "Bannkreis",
+    "cardType": "Standard",
+    "class": "Neutral",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "draw_card",
+        "target": "self",
+        "count": 1
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Wähle 1 feld. Gegner können es bis zu deinem nächsten zug nicht betreten. Ziehe 1 karte."
+  },
+  {
+    "id": "043",
+    "name": "Blockstellung",
+    "cardType": "Standard",
+    "class": "Neutral",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "draw_card",
+        "target": "self",
+        "count": 1
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Wähle 2 angrenzende felder. Gegner können diese felder bis zu deinem nächsten zug nicht betreten. Ziehe 1 karte."
+  },
+  {
+    "id": "044",
+    "name": "Ehrenbanner",
+    "cardType": "Standard",
+    "class": "Neutral",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "place_area_object"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Platziere 1 banner auf einem feld. Es kann nicht mehr ziel von wänden oder fallen werden. Fallen darauf werden zerstört."
+  },
+  {
+    "id": "045",
+    "name": "Elixier der geschwindigkeit",
+    "cardType": "Standard",
+    "class": "Neutral",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "move",
+        "target": "self",
+        "fields": 2,
+        "optional": true
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Bewege dich um bis zu 2 zusätzliche felder."
+  },
+  {
+    "id": "046",
+    "name": "Falle: Auge des raben",
+    "cardType": "Falle",
+    "class": "Neutral",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "place_trap"
+      }
+    ],
+    "flags": {
+      "deck_limit": 1,
+      "trap_deck_limit": 5
+    },
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Lege die falle verdeckt auf ein freies feld. Betritt eine gegnerische figur das feld, muss dessen besitzer dir seine handkarten zeigen. Die falle wird danach zerstört. Du kannst diese karte nur 1 mal im deck besitzen. Du kannst max. 5 fallen im deck besitzen."
+  },
+  {
+    "id": "047",
+    "name": "Falle: Fangeisen",
+    "cardType": "Falle",
+    "class": "Neutral",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "place_trap"
+      }
+    ],
+    "flags": {
+      "deck_limit": 1,
+      "trap_deck_limit": 5
+    },
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Lege die falle verdeckt auf ein freies feld. Betritt eine gegnerische figur das feld, kann sie sich in diesem zug nicht mehr bewegen und dessen besitzer muss 1 karte abwerfen. Die falle wird danach zerstört. Du kannst diese karte nur 1 mal im deck besitzen. Du kannst max. 5 fallen im deck besitzen."
+  },
+  {
+    "id": "048",
+    "name": "Felsverschiebung",
+    "cardType": "Standard",
+    "class": "Neutral",
+    "trigger": null,
+    "condition": null,
+    "cost": [
+      {
+        "action": "discard_card",
+        "target": "self",
+        "count": 1
+      }
+    ],
+    "effects": [
+      {
+        "action": "discard_card",
+        "target": "self",
+        "count": 1
+      },
+      {
+        "action": "move_wall",
+        "count": 1
+      }
+    ],
+    "flags": {
+      "deck_limit": 2
+    },
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Wirf 1 karte ab: Verschiebe 1 wand um 1 feld in eine beliebige gerade richtung. Du kannst diese karte nur 2 mal im deck besitzen."
+  },
+  {
+    "id": "049",
+    "name": "Flüstergift",
+    "cardType": "Standard",
+    "class": "Neutral",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "move_enemy_figure",
+        "count": 1,
+        "fields": 1
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Bewege 1 feindliche figur um 1 feld in eine beliebige gerade richtung."
+  },
+  {
+    "id": "050",
+    "name": "Gedankentfaltung",
+    "cardType": "Standard",
+    "class": "Neutral",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "draw_card",
+        "target": "self",
+        "count": 3
+      }
+    ],
+    "flags": {
+      "deck_limit": 2
+    },
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Ziehe 3 karten und wirf anschliessend 2 handkarten ab. Du kannst diese karte nur 2 mal im deck besitzen."
+  },
+  {
+    "id": "051",
+    "name": "Gorgonen-trank",
+    "cardType": "Standard",
+    "class": "Neutral",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "prevent_capture",
+        "target": "context"
+      }
+    ],
+    "flags": {
+      "deck_limit": 2
+    },
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Bis zu deinem nächsten zug können deine figuren nicht geschnappt werden. Du kannst diese karte nur 2 mal im deck besitzen."
+  },
+  {
+    "id": "052",
+    "name": "Himmelsbruch",
+    "cardType": "Standard",
+    "class": "Neutral",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "place_area_object"
+      }
+    ],
+    "flags": {
+      "deck_limit": 2
+    },
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Platziere eine wolke mit einem umkreis von 1 feld auf ein beliebiges feld. Befindet sich zu beginn deines nächsten zuges eine gegnerische figur in der wolke, setzt dessen besitzer seinen nächsten zug aus. Nach beginn des zuges verschwindet die wolke. Du kannst diese karte nur 2 mal im deck besitzen."
+  },
+  {
+    "id": "053",
+    "name": "Katapultgriff",
+    "cardType": "Standard",
+    "class": "Neutral",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "teleport",
+        "target": "context"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Wähle eine angrenzende figur in freier sichtlinie: Teleportiere sie um 1 feld in eine beliebige richtung."
+  },
+  {
+    "id": "054",
+    "name": "Eilsamensaat",
+    "cardType": "Ultimate",
+    "class": "Neutral",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "grant_bonus_movement",
+        "target": "figures_adjacent_to_own_hero",
+        "fields": 2,
+        "timing": "next_turn"
+      }
+    ],
+    "flags": {
+      "no_clone_stacking": true
+    },
+    "parse_confidence": "manual",
+    "parse_notes": null,
+    "raw_description": "Alle Figuren, die angrenzend zu deiner Heldenfigur stehen, können sich in ihrem nächsten Zug um 2 zusätzliche Felder bewegen. Dieser Effekt wird durch Schattenklone nicht verdoppelt."
+  },
+  {
+    "id": "055",
+    "name": "Resonanzkristall",
+    "cardType": "Ultimate",
+    "class": "Neutral",
+    "trigger": null,
+    "condition": null,
+    "cost": [
+      {
+        "action": "flip_coin"
+      }
+    ],
+    "effects": [
+      {
+        "action": "flip_coin"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Wirf 1 münze. Kopf: Spiele nach diesem zug anschliessend 1 weiteren zug. Zahl: Beende deinen zug sofort."
+  },
+  {
+    "id": "056",
+    "name": "Riftklingen-resonanz",
+    "cardType": "Ultimate",
+    "class": "Neutral",
+    "trigger": {
+      "event": "custom",
+      "text_de": "In deinem zug - gegner spielt eine konterkarte"
+    },
+    "condition": "In deinem zug - gegner spielt eine konterkarte",
+    "cost": null,
+    "effects": [
+      {
+        "action": "negate_effect",
+        "target": "triggering_card"
+      },
+      {
+        "action": "discard_to_pile",
+        "target": "triggering_card"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "• Bedingung: In deinem zug - gegner spielt eine konterkarte • Negiere den effekt und lege die karte auf den ablagestapel."
+  },
+  {
+    "id": "057",
+    "name": "Impuls des ring des Äon",
+    "cardType": "Standard",
+    "class": "Neutral",
+    "trigger": null,
+    "condition": null,
+    "cost": [
+      {
+        "action": "discard_card",
+        "target": "self",
+        "count": 1
+      }
+    ],
+    "effects": [
+      {
+        "action": "discard_card",
+        "target": "self",
+        "count": 1
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Wirf 1 handkarte ab: Wähle 1 karte aus deinem ablagestapel, zeige sie und nimm sie auf die hand."
+  },
+  {
+    "id": "058",
+    "name": "Eilsamenbeutel",
+    "cardType": "Standard",
+    "class": "Neutral",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "search_deck",
+        "count": 3
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Suche in deinem Deck nach bis zu 3 Karten mit \"Eilsamen\" im Namen. Zeige sie vor und nimm sie auf deine Hand. Mische dein Deck. Du kannst in diesem Zug 1 zusätzliche Karte spielen."
+  },
+  {
+    "id": "059",
+    "name": "Schleierphiole",
+    "cardType": "Standard",
+    "class": "Neutral",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [],
+    "flags": {
+      "cannot_be_countered": true,
+      "deck_limit": 2,
+      "blocks_further_counters_this_turn": true
+    },
+    "parse_confidence": "manual",
+    "parse_notes": null,
+    "raw_description": "Diese karte kann nicht gekontert werden. In diesem zug können keine konterkarten mehr gespielt werden. Du kannst diese karte nur 2 mal im deck besitzen."
+  },
+  {
+    "id": "060",
+    "name": "Seelenkompass",
+    "cardType": "Standard",
+    "class": "Neutral",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "draw_card",
+        "target": "self",
+        "count": 2
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Ziehe 2 karten."
+  },
+  {
+    "id": "061",
+    "name": "Siegel des bannamuletts",
+    "cardType": "Konter",
+    "class": "Neutral",
+    "trigger": {
+      "event": "custom",
+      "text_de": "Gegner spielt eine klassenkarte"
+    },
+    "condition": "Gegner spielt eine klassenkarte",
+    "cost": null,
+    "effects": [
+      {
+        "action": "discard_card",
+        "target": "self",
+        "count": 2
+      },
+      {
+        "action": "negate_effect",
+        "target": "triggering_card"
+      },
+      {
+        "action": "discard_to_pile",
+        "target": "triggering_card"
+      }
+    ],
+    "flags": {
+      "deck_limit": 2
+    },
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "• Bedingung: Gegner spielt eine klassenkarte • Wirf 2 karten ab: Negiere den effekt und lege die karte auf den ablagestapel. Du kannst diese karte nur 2 mal im deck besitzen."
+  },
+  {
+    "id": "062",
+    "name": "Sprengladung",
+    "cardType": "Standard",
+    "class": "Neutral",
+    "trigger": null,
+    "condition": null,
+    "cost": [
+      {
+        "action": "discard_card",
+        "target": "self",
+        "count": 1
+      }
+    ],
+    "effects": [
+      {
+        "action": "discard_card",
+        "target": "self",
+        "count": 1
+      },
+      {
+        "action": "destroy_wall",
+        "target": "chosen",
+        "count": 1
+      }
+    ],
+    "flags": {
+      "deck_limit": 2
+    },
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Wirf 1 karte ab: Zerstöre 1 wand, die an deine figur angrenzt. Du kannst diese karte nur 2 mal im deck besitzen."
+  },
+  {
+    "id": "063",
+    "name": "Transfusionsspiegel",
+    "cardType": "Ultimate",
+    "class": "Neutral",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "copy_card"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Wähle 1 ultimate-karte im gegnerischen ablagestapel. Es darf keine konterkarte sein. Spiele diese karte sofort als kopie der gewählten karte."
+  },
+  {
+    "id": "064",
+    "name": "Tauschkristall",
+    "cardType": "Standard",
+    "class": "Neutral",
+    "trigger": null,
+    "condition": null,
+    "cost": [
+      {
+        "action": "discard_card",
+        "target": "self",
+        "count": 2
+      }
+    ],
+    "effects": [
+      {
+        "action": "discard_card",
+        "target": "self",
+        "count": 2
+      },
+      {
+        "action": "teleport_swap",
+        "target": "context"
+      }
+    ],
+    "flags": {
+      "deck_limit": 2
+    },
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Wirf 2 karten ab: Tausche deine position durch teleportation mit einer figur im umkreis von 2 feldern. Du kannst diese karte nur 2 mal im deck besitzen."
+  },
+  {
+    "id": "065",
+    "name": "Winziger eilsamen",
+    "cardType": "Standard",
+    "class": "Neutral",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "move",
+        "target": "self",
+        "fields": 1
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "manual",
+    "parse_notes": null,
+    "raw_description": "Bewege dich um 1 zusätzliches feld."
+  },
+  {
+    "id": "066",
+    "name": "Begleiter: Fährtenwolf",
+    "cardType": "Ultimate",
+    "class": "Ranger",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "summon_companion"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Beschwöre den begleiter \"fährtenwolf\" angrenzend zu deiner figur. Der wolf kann sich ab deinem nächsten zug in jedem deiner züge bis zu 2 felder bewegen und gegner schnappen. Er kann keine flaggen tragen und du kannst keine karten vom wolf aus spielen. Wird der wolf geschnappt, entferne ihn aus dem spiel. Du kannst nur 1 begleiter im deck besitzen."
+  },
+  {
+    "id": "067",
+    "name": "Bruchschuss",
+    "cardType": "Ultimate",
+    "class": "Ranger",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "destroy_wall",
+        "target": "chosen_or_area"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Zerstöre alle wände in einer geraden richtung von deiner figur aus, die deine sichtlinie blockieren."
+  },
+  {
+    "id": "068",
+    "name": "Doppelschuss",
+    "cardType": "Ultimate",
+    "class": "Ranger",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "choose_one",
+        "options": [
+          [
+            {
+              "action": "play_additional_card",
+              "target": "self",
+              "count": 2
+            }
+          ],
+          [
+            {
+              "action": "draw_card",
+              "target": "self",
+              "count": 2
+            }
+          ]
+        ]
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "manual",
+    "parse_notes": null,
+    "raw_description": "Wähle eines: • Du kannst in diesem zug 2 weitere karten spielen. • Ziehe 2 karten."
+  },
+  {
+    "id": "069",
+    "name": "Eilsamen",
+    "cardType": "Klasse",
+    "class": "Ranger",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "choose_one",
+        "options": [
+          [
+            {
+              "action": "move",
+              "target": "self_hero_or_companion",
+              "fields": 1
+            }
+          ],
+          [
+            {
+              "action": "grant_bonus_movement",
+              "target": "chosen_ally_figure",
+              "fields": 1,
+              "timing": "next_turn"
+            }
+          ]
+        ]
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "manual",
+    "parse_notes": null,
+    "raw_description": "Wähle eines: • Deine Heldenfigur oder dein Begleiter kann sich in diesem Zug um 1 zusätzliches Feld bewegen. • Wähle eine befreundete Figur: Sie kann sich in ihrem nächsten Zug um 1 zusätzliches Feld bewegen."
+  },
+  {
+    "id": "070",
+    "name": "Falle: Ätherfalle",
+    "cardType": "Falle",
+    "class": "Ranger",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "place_trap"
+      }
+    ],
+    "flags": {
+      "deck_limit": 1,
+      "trap_deck_limit": 5
+    },
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Lege die falle verdeckt auf ein freies feld. Betritt eine gegnerische figur das feld, muss dessen besitzer 3 handkarten abwerfen. Die falle wird danach zerstört. Du kannst diese karte nur 1 mal im deck besitzen. Du kannst max. 5 fallen im deck besitzen."
+  },
+  {
+    "id": "071",
+    "name": "Falle: Explosivfalle",
+    "cardType": "Falle",
+    "class": "Ranger",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "teleport",
+        "target": "context"
+      },
+      {
+        "action": "place_trap"
+      }
+    ],
+    "flags": {
+      "deck_limit": 1,
+      "trap_deck_limit": 5
+    },
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Lege die falle verdeckt auf ein freies feld. Betritt eine gegnerische figur das feld, teleportiere sie um bis zu 2 felder in eine beliebige richtung. Die falle wird danach zerstört. Du kannst diese karte nur 1 mal im deck besitzen. Du kannst max. 5 fallen im deck besitzen."
+  },
+  {
+    "id": "072",
+    "name": "Falle: Frostfalle",
+    "cardType": "Falle",
+    "class": "Ranger",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "place_trap"
+      }
+    ],
+    "flags": {
+      "deck_limit": 1,
+      "trap_deck_limit": 5
+    },
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Lege die falle verdeckt auf ein freies feld. Betritt eine gegnerische figur das feld, setzt dessen besitzer seinen nächsten zug aus. Die falle wird danach zerstört. Du kannst diese karte nur 1 mal im deck besitzen. Du kannst max. 5 fallen im deck besitzen."
+  },
+  {
+    "id": "073",
+    "name": "Falle: Rabenfalle",
+    "cardType": "Falle",
+    "class": "Ranger",
+    "trigger": {
+      "event": "enemy_figure_enters_trap_field"
+    },
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "place_trap",
+        "id": "this_trap"
+      },
+      {
+        "action": "choose_one",
+        "options": [
+          [
+            {
+              "action": "reveal_hand_cards",
+              "target": "trap_owner_enemy"
+            }
+          ],
+          [
+            {
+              "action": "peek_deck_top",
+              "target": "trap_owner_enemy",
+              "count": 5,
+              "then": "return_in_same_order"
+            }
+          ]
+        ]
+      },
+      {
+        "action": "destroy_trap",
+        "target": "this_trap"
+      }
+    ],
+    "flags": {
+      "deck_limit": 1,
+      "trap_deck_limit": 5
+    },
+    "parse_confidence": "manual",
+    "parse_notes": null,
+    "raw_description": "Lege die falle verdeckt auf ein freies feld. Betritt eine gegnerische figur das feld, wähle eines: • Der besitzer der figur muss dir seine handkarten zeigen. • Siehe die obersten 5 karten seines decks an und lege sie in derselben reihenfolge zurück. Die falle wird danach zerstört. Du kannst diese karte nur 1 mal im deck besitzen. Diese karte ersetzt \"auge des raben\". Du kannst max. 5 fallen im deck besitzen."
+  },
+  {
+    "id": "074",
+    "name": "Falle: Wurzelfalle",
+    "cardType": "Falle",
+    "class": "Ranger",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "place_trap"
+      }
+    ],
+    "flags": {
+      "deck_limit": 1,
+      "trap_deck_limit": 5
+    },
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Lege die falle verdeckt auf ein freies feld. Betritt eine gegnerische figur das feld, kann sie sich in diesem und in ihrem nächsten zug nicht bewegen. Die falle wird danach zerstört. Du kannst diese karte nur 1 mal im deck besitzen. Du kannst max. 5 fallen im deck besitzen. Diese karte ersetzt \"falle: Fangeisen\"."
+  },
+  {
+    "id": "075",
+    "name": "Fass!",
+    "cardType": "Klasse",
+    "class": "Ranger",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "move",
+        "target": "self_and_companion",
+        "fields": 1
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "manual",
+    "parse_notes": null,
+    "raw_description": "Du und dein wolf können sich diesen zug um 1 zusätzliches feld bewegen."
+  },
+  {
+    "id": "076",
+    "name": "Felsensprung",
+    "cardType": "Klasse",
+    "class": "Ranger",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "grant_movement_mode",
+        "target": "self",
+        "mode": "through_walls"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Du kannst dich diesen zug durch wände bewegen."
+  },
+  {
+    "id": "077",
+    "name": "Fernschuss",
+    "cardType": "Konter",
+    "class": "Ranger",
+    "trigger": {
+      "event": "custom",
+      "text_de": "Nach einer bewegung - gegnerische figur befindet sich in freier gerader sichtlinie, genau 3 felder entfernt"
+    },
+    "condition": "Nach einer bewegung - gegnerische figur befindet sich in freier gerader sichtlinie, genau 3 felder entfernt",
+    "cost": null,
+    "effects": [
+      {
+        "action": "discard_card",
+        "target": "self",
+        "count": 1
+      }
+    ],
+    "flags": {
+      "deck_limit": 2
+    },
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "• Bedingung: Nach einer bewegung - gegnerische figur befindet sich in freier gerader sichtlinie, genau 3 felder entfernt • Wirf 1 karte ab: Die gegnerische figur wird geschnappt. Diese karte kann nicht von einem schattenklon aus gespielt werden. Du kannst diese karte nur 2 mal im deck besitzen."
+  },
+  {
+    "id": "078",
+    "name": "Fesselsprung",
+    "cardType": "Konter",
+    "class": "Ranger",
+    "trigger": {
+      "event": "own_figure_targeted_by_enemy_effect",
+      "filter": {
+        "effect_type": [
+          "prevent_movement",
+          "skip_turn"
+        ]
+      }
+    },
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "negate_effect",
+        "target": "self_figure_only"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "manual",
+    "parse_notes": null,
+    "raw_description": "• Bedingung: Deine figur wird von einem gegnerischen karteneffekt betroffen, der bewegungsunfähigkeit verursacht oder dich min. 1 zug aussetzen lässt • Deine figur wird von dem effekt nicht betroffen."
+  },
+  {
+    "id": "079",
+    "name": "Gleitschritt",
+    "cardType": "Klasse",
+    "class": "Ranger",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "move",
+        "target": "self_and_companion",
+        "fields": 1,
+        "direction": "diagonal"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "manual",
+    "parse_notes": null,
+    "raw_description": "Du und dein wolf können sich diesen zug um 1 zusätzliches feld diagonal bewegen."
+  },
+  {
+    "id": "080",
+    "name": "Rückschritt",
+    "cardType": "Konter",
+    "class": "Ranger",
+    "trigger": {
+      "event": "custom",
+      "text_de": "Nach einer bewegung - gegnerische figur befindet sich in freier gerader sichtlinie zu deiner figur"
+    },
+    "condition": "Nach einer bewegung - gegnerische figur befindet sich in freier gerader sichtlinie zu deiner figur",
+    "cost": null,
+    "effects": [
+      {
+        "action": "discard_card",
+        "target": "self",
+        "count": 1
+      }
+    ],
+    "flags": {
+      "deck_limit": 2
+    },
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "• Konter: Nach einer bewegung - gegnerische figur befindet sich in freier gerader sichtlinie zu deiner figur • Wirf 1 karte ab: Bewege dich um 1 feld in eine beliebige richtung. Du kannst mit dieser bewegung keine gegner schnappen. Du kannst diese karte nur 2 mal im deck besitzen."
+  },
+  {
+    "id": "081",
+    "name": "Spurenleser",
+    "cardType": "Klasse",
+    "class": "Ranger",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "draw_card",
+        "target": "self",
+        "count": 3
+      }
+    ],
+    "flags": {
+      "deck_limit": 2
+    },
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Ziehe 3 karten und wirf anschliessend 1 handkarte ab. Du kannst diese karte nur 2 mal im deck besitzen. Diese karte ersetzt \"gedankentfaltung\"."
+  },
+  {
+    "id": "082",
+    "name": "Tarnmantel",
+    "cardType": "Klasse",
+    "class": "Ranger",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "create_shadow_clone",
+        "count": 1
+      },
+      {
+        "action": "reassign_hero_figure"
+      }
+    ],
+    "flags": {
+      "not_playable_with_flag": true
+    },
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Erstelle 1 schattenklon angrenzend zu deiner figur. Bestimme neu, welche die heldenfigur ist. Nachdem du eine karte gespielt hast, verschwindet der klon. Nicht spielbar während du die flagge trägst. Zu bewegende felder dürfen die heldenfigur und auch der klon fahren. Karten können auch vom klon aus gespielt werden, jedoch kann er keine flaggen tragen oder gegner schnappen. Wird deine heldenfigur oder der klon geschnappt, entferne den klon aus dem spiel."
+  },
+  {
+    "id": "083",
+    "name": "Toxinschuss",
+    "cardType": "Konter",
+    "class": "Ranger",
+    "trigger": {
+      "event": "custom",
+      "text_de": "Nach einer bewegung - gegnerische figur befindet sich in freier gerader sichtlinie, min. 3 felder entfernt"
+    },
+    "condition": "Nach einer bewegung - gegnerische figur befindet sich in freier gerader sichtlinie, min. 3 felder entfernt",
+    "cost": null,
+    "effects": [
+      {
+        "action": "prevent_movement",
+        "target": "context",
+        "duration": "this_turn"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "• Bedingung: Nach einer bewegung - gegnerische figur befindet sich in freier gerader sichtlinie, min. 3 felder entfernt • Die gegnerische figur kann sich in diesem und ihrem nächsten zug nicht mehr bewegen."
+  },
+  {
+    "id": "084",
+    "name": "Waffenarsenal",
+    "cardType": "Klasse",
+    "class": "Ranger",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "play_additional_card",
+        "target": "self",
+        "count": 1
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Suche in deinem deck nach 1 falle: Zeige sie und nimm sie auf die hand. Mische dein deck. Du kannst 1 weitere karte spielen."
+  },
+  {
+    "id": "085",
+    "name": "Waldsegen",
+    "cardType": "Klasse",
+    "class": "Ranger",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "choose_one",
+        "options": [
+          [
+            {
+              "action": "move",
+              "target": "self",
+              "fields": 2,
+              "direction": "horizontal"
+            }
+          ],
+          [
+            {
+              "action": "grant_bonus_movement",
+              "target": "chosen_ally_hero",
+              "fields": 2,
+              "direction": "horizontal",
+              "timing": "next_turn"
+            }
+          ]
+        ]
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "manual",
+    "parse_notes": null,
+    "raw_description": "Wähle eines: • Du kannst dich in diesem zug um 2 zusätzliche horizontale felder bewegen. • Wähle einen befreundeten spieler: Seine heldenfigur kann sich in seinem nächsten zug um 2 zusätzliche horizontale felder bewegen."
+  },
+  {
+    "id": "086",
+    "name": "Wolfmodus",
+    "cardType": "Ultimate",
+    "class": "Ranger",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "toggle_wolf_mode"
+      }
+    ],
+    "flags": {
+      "deck_limit": 2
+    },
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Diese karte aktiviert den wolfmodus: In jedem deiner züge kann sich deine heldenfigur 1 zusätzliches feld bewegen, sie kann jedoch im umkreis von 1 feld geschnappt werden. Du kannst den wolfmodus jederzeit in deinem zug deaktivieren. Auf einer figur kann immer nur 1 wolfmodus aktiv sein. Du kannst diese karte nur 2 mal im deck besitzen."
+  },
+  {
+    "id": "087",
+    "name": "Zweite jagd",
+    "cardType": "Ultimate",
+    "class": "Ranger",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "discard_card",
+        "target": "self",
+        "count": 1
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Du kannst diese karte nur spielen, wenn dein begleiter bereits geschnappt wurde. Wirf 1 karte ab und beschwöre ihn auf ein angrenzendes feld."
+  },
+  {
+    "id": "088",
+    "name": "Arkane sperre",
+    "cardType": "Konter",
+    "class": "Zauberer",
+    "trigger": {
+      "event": "custom",
+      "text_de": "Gegner spielt eine klassenkarte"
+    },
+    "condition": "Gegner spielt eine klassenkarte",
+    "cost": null,
+    "effects": [
+      {
+        "action": "discard_card",
+        "target": "self",
+        "count": 1
+      },
+      {
+        "action": "negate_effect",
+        "target": "triggering_card"
+      },
+      {
+        "action": "discard_to_pile",
+        "target": "triggering_card"
+      }
+    ],
+    "flags": {
+      "deck_limit": 2
+    },
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "• Bedingung: Gegner spielt eine klassenkarte • Wirf 1 karte ab: Negiere den effekt und lege die karte auf den ablagestapel. Du kannst diese karte nur 2 mal im deck besitzen. Diese karte ersetzt „siegel des bannamuletts“."
+  },
+  {
+    "id": "089",
+    "name": "Arkaner zeitriss",
+    "cardType": "Ultimate",
+    "class": "Zauberer",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "reset_state"
+      }
+    ],
+    "flags": {
+      "cannot_be_countered": true,
+      "blocks_further_counters_this_turn": true
+    },
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Setze alle figuren und flaggen im spiel auf ihre startpositionen zurück. Diese karte kann nicht gekontert werden. In diesem zug können keine konterkarten mehr gespielt werden. Der zug wird sofort beendet. Setze deinen nächsten zug aus."
+  },
+  {
+    "id": "090",
+    "name": "Astralregen",
+    "cardType": "Klasse",
+    "class": "Zauberer",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "play_additional_card",
+        "target": "self",
+        "count": 1
+      },
+      {
+        "action": "teleport",
+        "target": "context"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Wähle eine gerade richtung: Alle figuren werden um 1 feld in diese richtung teleportiert. Bereits angrenzende figuren gelten nicht als neu angrenzend. Du kannst 1 weitere karte spielen."
+  },
+  {
+    "id": "091",
+    "name": "Astralreise",
+    "cardType": "Ultimate",
+    "class": "Zauberer",
+    "trigger": null,
+    "condition": null,
+    "cost": [
+      {
+        "action": "discard_card",
+        "target": "self",
+        "count": 2
+      }
+    ],
+    "effects": [
+      {
+        "action": "discard_card",
+        "target": "self",
+        "count": 2
+      },
+      {
+        "action": "teleport",
+        "target": "context"
+      }
+    ],
+    "flags": {
+      "not_playable_with_flag": true
+    },
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Wirf 2 karten ab: Teleportiere dich auf eines deiner portale. Beende deinen zug sofort. Nicht spielbar während du die flagge trägst."
+  },
+  {
+    "id": "092",
+    "name": "Ätherraub",
+    "cardType": "Klasse",
+    "class": "Zauberer",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "draw_card",
+        "target": "self",
+        "count": 1
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Sieh dir 1 beliebige handkarte deines gegners an. Ist es eine klassenkarte, darfst du sie in diesem zug spielen, als wäre sie deine eigene, oder sie abwerfen. Ist es eine andere karte, gib sie ihrem besitzer zurück und ziehe 1 karte aus deinem deck. Konterkarten können auf diese weise nicht gespielt werden."
+  },
+  {
+    "id": "093",
+    "name": "Äthersprung",
+    "cardType": "Klasse",
+    "class": "Zauberer",
+    "trigger": null,
+    "condition": null,
+    "cost": [
+      {
+        "action": "discard_card",
+        "target": "self",
+        "count": 1
+      }
+    ],
+    "effects": [
+      {
+        "action": "discard_card",
+        "target": "self",
+        "count": 1
+      },
+      {
+        "action": "teleport",
+        "target": "context"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Wirf 1 karte ab: Teleportiere dich bis zu 2 felder in dieselbe gerade oder diagonale richtung. Beende deinen zug sofort."
+  },
+  {
+    "id": "094",
+    "name": "Ätherstoss",
+    "cardType": "Ultimate",
+    "class": "Zauberer",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "skip_turn",
+        "target": "enemy",
+        "count": 1
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Wähle eine gegnerische figur in freier gerader sichtlinie. Der besitzer der figur setzt seinen nächsten zug aus."
+  },
+  {
+    "id": "095",
+    "name": "Blitzstoss",
+    "cardType": "Konter",
+    "class": "Zauberer",
+    "trigger": {
+      "event": "enemy_enters_line_of_sight"
+    },
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "move_enemy_figure",
+        "target": "triggering_figure",
+        "fields": 1,
+        "direction": "any"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "manual",
+    "parse_notes": null,
+    "raw_description": "• Bedingung: Gegnerische figur betritt ein feld in freier gerader sichtlinie • Bewege die gegnerische figur um 1 feld in eine beliebige richtung."
+  },
+  {
+    "id": "096",
+    "name": "Dimensionstor",
+    "cardType": "Ultimate",
+    "class": "Zauberer",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "reposition_portals",
+        "target": "self",
+        "constraint": "horizontal_alignment"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "manual",
+    "parse_notes": null,
+    "raw_description": "Platziere deine portale neu - sie müssen horizontal zueinander ausgerichtet sein."
+  },
+  {
+    "id": "097",
+    "name": "Eisfessel",
+    "cardType": "Klasse",
+    "class": "Zauberer",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "prevent_movement",
+        "target": "context",
+        "duration": "this_turn"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Wähle eine gegnerische figur in freier gerader sichtlinie. Sie kann sich in ihrem nächsten zug nicht bewegen."
+  },
+  {
+    "id": "098",
+    "name": "Eiswall",
+    "cardType": "Klasse",
+    "class": "Zauberer",
+    "trigger": null,
+    "condition": null,
+    "cost": [
+      {
+        "action": "discard_card",
+        "target": "self",
+        "count": 1
+      }
+    ],
+    "effects": [
+      {
+        "action": "discard_card",
+        "target": "self",
+        "count": 1
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Wirf 1 karte ab: Du kannst bis zu 3 beliebige wände auf dem spielfeld neu positionieren."
+  },
+  {
+    "id": "099",
+    "name": "Finsterniswende",
+    "cardType": "Ultimate",
+    "class": "Zauberer",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "rotate_board",
+        "degrees": 90,
+        "direction": "chosen_clockwise_or_counterclockwise"
+      },
+      {
+        "action": "end_turn_immediately"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "manual",
+    "parse_notes": null,
+    "raw_description": "Wähle eine uhrzeigerrichtung: Das ganze spielfeld wird um 90° in diese richtung gedreht. Die figuren, portale, gelände und missionsobjekte bleiben jedoch auf ihren positionen stehen. Beende deinen zug sofort.",
+    "notes": "Figuren/Portale/Gelaende/Missionsobjekte behalten ihre Koordinaten; nur die Bewegungsachsen des Feldes rotieren."
+  },
+  {
+    "id": "100",
+    "name": "Frostzirkel",
+    "cardType": "Klasse",
+    "class": "Zauberer",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "prevent_movement",
+        "target": "context",
+        "duration": "this_turn"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Alle gegnerische figuren im umkreis von 2 feldern zu deiner figur können sich in ihrem nächsten zug nicht bewegen."
+  },
+  {
+    "id": "101",
+    "name": "Magischer impuls",
+    "cardType": "Klasse",
+    "class": "Zauberer",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "move_wall",
+        "count": 1
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Bewege 1 wand um bis zu 2 felder in dieselbe gerade richtung."
+  },
+  {
+    "id": "102",
+    "name": "Nullpunkt",
+    "cardType": "Ultimate",
+    "class": "Zauberer",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "reset_state"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Alle wände werden zurückgesetzt (auch zerstörte). Jeder spieler setzt anschliessend 1 wand an eine beliebige stelle. Beende deinen zug sofort."
+  },
+  {
+    "id": "103",
+    "name": "Spiegeltransposition",
+    "cardType": "Klasse",
+    "class": "Zauberer",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "move_figure_and_wall_together",
+        "fields": 1,
+        "direction": "chosen_straight"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "manual",
+    "parse_notes": null,
+    "raw_description": "Bewege 1 figur und 1 wand gleichzeitig um 1 feld in dieselbe gerade richtung."
+  },
+  {
+    "id": "104",
+    "name": "Spiegelverdoppelung",
+    "cardType": "Klasse",
+    "class": "Zauberer",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "reassign_hero_figure"
+      }
+    ],
+    "flags": {
+      "not_playable_with_flag": true
+    },
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Erstelle 2 schattenklone angrenzend zu deiner figur. Bestimme neu, welche die heldenfigur ist. Diese klone verschwinden zu beginn deines nächsten zuges. Nicht spielbar während du die flagge trägst. Zu bewegende felder dürfen die heldenfigur und auch der klon fahren. Karten können auch vom klon aus gespielt werden, jedoch kann er keine flaggen tragen oder gegner schnappen. Wird deine heldenfigur oder der klon geschnappt, entferne den klon aus dem spiel."
+  },
+  {
+    "id": "105",
+    "name": "Umkehrsphäre",
+    "cardType": "Klasse",
+    "class": "Zauberer",
+    "trigger": null,
+    "condition": null,
+    "cost": [
+      {
+        "action": "discard_card",
+        "target": "self",
+        "count": 1
+      }
+    ],
+    "effects": [
+      {
+        "action": "discard_card",
+        "target": "self",
+        "count": 1
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Wirf 1 handkarte ab: Wähle 2 beliebige figuren mit einer entfernung von bis zu 2 feldern zueinander. Tausche ihre positionen durch teleportation. Diese karte ersetzt \"tauschkristall\"."
+  },
+  {
+    "id": "106",
+    "name": "Zeitkrümmung",
+    "cardType": "Ultimate",
+    "class": "Zauberer",
+    "trigger": {
+      "event": "custom",
+      "text_de": "Gegner betritt ein angrenzendes feld zu deiner figur"
+    },
+    "condition": "Gegner betritt ein angrenzendes feld zu deiner figur",
+    "cost": null,
+    "effects": [
+      {
+        "action": "reset_state"
+      }
+    ],
+    "flags": {
+      "cannot_be_countered": true,
+      "blocks_further_counters_this_turn": true
+    },
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "• Bedingung: Gegner betritt ein angrenzendes feld zu deiner figur • Setze alle figuren auf das feld zurück, auf dem sie zu beginn des zuges standen. Erzielte punkte bleiben jedoch bestehen. Diese karte kann nicht gekontert werden. In diesem zug können keine konterkarten mehr gespielt werden. Der zug wird sofort beendet."
+  },
+  {
+    "id": "107",
+    "name": "Flaggenwechsel",
+    "cardType": "Team",
+    "class": "Team",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "transfer_flag",
+        "target": "chosen_adjacent_ally_in_los",
+        "mode": "take_or_give"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "manual",
+    "parse_notes": null,
+    "raw_description": "Wähle einen angrenzenden befreundeten spieler in freier gerader sichtlinie: Übernimm seine flagge, oder übergib ihm die flagge falls du sie trägst."
+  },
+  {
+    "id": "108",
+    "name": "Göttliches eingreifen",
+    "cardType": "Team",
+    "class": "Team",
+    "trigger": {
+      "event": "custom",
+      "text_de": "Gegnerische figur betritt ein angrenzendes feld zu einer befreundeten figur, die sich im umkreis von max. 3 feldern zu deiner figur befindet"
+    },
+    "condition": "Gegnerische figur betritt ein angrenzendes feld zu einer befreundeten figur, die sich im umkreis von max. 3 feldern zu deiner figur befindet",
+    "cost": null,
+    "effects": [
+      {
+        "action": "teleport",
+        "target": "context"
+      },
+      {
+        "action": "teleport",
+        "target": "context"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "• Bedingung: Gegnerische figur betritt ein angrenzendes feld zu einer befreundeten figur, die sich im umkreis von max. 3 feldern zu deiner figur befindet • Teleportiere die befreundete figur an ein angrenzendes feld zu der figur, von der diese karte gespielt wurde. Die teleportierte figur kann während ihres nächsten zuges keine gegner schnappen."
+  },
+  {
+    "id": "109",
+    "name": "Hand des Ätherschöpfers",
+    "cardType": "Team",
+    "class": "Team",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "play_additional_card",
+        "target": "self",
+        "count": 1
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Wähle einen befreundeten spieler. Dieser darf in diesem zug ebenfalls 1 karte spielen. Du kannst 1 zusätzliche karte spielen."
+  },
+  {
+    "id": "110",
+    "name": "Klingenpakt",
+    "cardType": "Team",
+    "class": "Team",
+    "trigger": null,
+    "condition": null,
+    "cost": null,
+    "effects": [
+      {
+        "action": "swap_hand_card"
+      }
+    ],
+    "flags": null,
+    "parse_confidence": "high",
+    "parse_notes": null,
+    "raw_description": "Wähle einen befreundeten spieler. Du und der gewählte spieler wählen jeweils 1 eigene handkarte. Tauscht diese handkarten aus."
+  }
+]
