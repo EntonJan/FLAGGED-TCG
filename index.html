@@ -48,23 +48,92 @@
 }
 * { box-sizing: border-box; }
 body { margin: 0; font-family: 'Cinzel', serif; background: #000000; color: #e6e6e6; }
+
+/* ---------------------------------------------------------------------
+   Tab-Hintergruende (Aiora-Staedte)
+   -----------------------------------------------------------------
+   Jeder Haupt-Tab bekommt eine eigene Stadt aus der Aiora-Welt als
+   atmosphaerischen Seitenhintergrund. Technik: fuer JEDEN Tab liegt ein
+   eigener, volles-Viewport-fixed Layer uebereinander im DOM (nicht nur
+   einer, dessen background-image per JS getauscht wird) -- so kann der
+   Wechsel rein per CSS-opacity-transition ueberblendet werden, ohne dass
+   man den Bildwechsel selbst animieren muesste (background-image laesst
+   sich nicht sauber crossfaden). Nur der Layer des aktiven Tabs bekommt
+   .active (opacity 1), alle anderen faden auf 0 -- der Browser
+   uebergangsanimiert beide gleichzeitig, das ergibt die Ueberblendung.
+   Darueber liegt IMMER dieselbe dunkle Vignette (unabhaengig vom Tab),
+   damit Vordergrund-Text ueberall lesbar bleibt -- die eigentlichen
+   Inhalts-Panels (.panel) sind zusaetzlich halbtransparent+geblurrt (Frosted
+   Glass), damit auch dahinter noch etwas Stadt-Atmosphaere durchscheint, ohne
+   die Lesbarkeit zu gefaehrden. Die Vignette wirkt zusaetzlich in den
+   Zwischenraeumen (Kopfbereich/Abstaende)
+   und sorgt fuer eine einheitliche, warme Farbstimmung ueber allen 6
+   sehr unterschiedlich belichteten Fotos hinweg.
+   --------------------------------------------------------------------- */
+.tab-bg-layer {
+  position: fixed; inset: 0;
+  background-size: cover; background-position: center;
+  opacity: 0; transition: opacity 0.8s ease;
+  will-change: opacity;
+}
+/* Bei Breiten, deren Seitenverhaeltnis nah am der Quellfotos (~3:2) liegt,
+   liesse "cover" kaum vertikalen Crop-Spielraum -- background-position
+   haette dann fast keine Wirkung. Erzwungener Extra-Zoom schafft echten
+   Spielraum, damit sich das Wahrzeichen gezielt in den sichtbaren Bereich
+   ueber dem Panel schieben laesst. */
+@media (min-width: 900px) {
+  .tab-bg-layer { background-size: auto 175%; }
+  .bg-city-eldinvale { background-position: center 68%; }
+  .bg-city-frostwood { background-position: center 32%; }
+  .bg-city-kelvarg { background-position: center 18%; }
+  .bg-city-wornwood { background-position: center 38%; }
+  .bg-city-arrenspire { background-position: center 38%; }
+  .bg-city-iskmar { background-position: center 28%; }
+}
+/* Auf schmalen Hochkant-Screens deckt "cover" die Bildhoehe 1:1 auf die
+   volle (fixed, viewport-hohe) Layer-Flaeche ab -- der sichtbare Streifen
+   ueber dem Panel ist aber nur ein kleiner Bruchteil davon, d.h. ohne
+   Extra-Zoom zeigt er praktisch immer nur den obersten Bildrand (Himmel/
+   Bergspitzen), egal welche background-position man setzt. Deutlich
+   staerkerer Zoom + Position weiter unten schiebt das Wahrzeichen gezielt
+   in diesen sichtbaren Streifen. */
+@media (max-width: 899px) {
+  .tab-bg-layer { background-size: auto 150%; }
+  .bg-city-eldinvale { background-position: 22% 55%; }
+  .bg-city-frostwood { background-position: center 12%; }
+  .bg-city-kelvarg { background-position: center 4%; }
+  .bg-city-wornwood { background-position: center 25%; }
+  .bg-city-arrenspire { background-position: center 20%; }
+  .bg-city-iskmar { background-position: 70% 8%; }
+}
+.tab-bg-layer.active { opacity: 1; }
+.tab-bg-vignette {
+  position: fixed; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 40%, rgba(8,6,4,0.32) 0%, rgba(6,4,3,0.72) 68%, rgba(4,3,2,0.9) 100%),
+    linear-gradient(to bottom, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.2) 20%, rgba(0,0,0,0.25) 68%, rgba(0,0,0,0.82) 100%);
+}
 h2, h3 { font-family: 'Cinzel Decorative', serif; font-weight: 700; }
-.app-header { padding: 1.5rem 2rem 0; border-bottom: 1px solid rgba(255,255,255,0.1); background: #000000; }
-.app-header-top { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.1rem; }
-.app-header-brand { display: flex; align-items: baseline; gap: 0.9rem; flex-wrap: wrap; }
-.app-header h1 { margin: 0; font-family: 'Cinzel Decorative', serif; font-weight: 700; font-size: 1.6rem; letter-spacing: -0.02em; color: #e6e6e6; }
-.app-header-wordmark { display: flex; align-items: center; gap: 0.55rem; }
-.app-header-logo-img { height: 34px; width: auto; display: block; filter: drop-shadow(0 1px 3px rgba(0,0,0,0.7)); }
-.app-header-suffix { font-weight: 400; opacity: 0.6; font-size: 0.62em; letter-spacing: 0; }
-.external-site-link { display: inline-flex; align-items: center; gap: 0.4rem; background: #1a1a1a; color: #ffffff; border: 1px solid rgba(255,255,255,0.14); border-radius: 999px; padding: 0.5rem 1.05rem; font-family: 'Cinzel', serif; font-weight: 700; font-size: 0.78rem; letter-spacing: 0.02em; text-decoration: none; white-space: nowrap; transition: background 0.15s ease, border-color 0.15s ease; }
+.app-header { padding: 1.5rem 2rem 0; border-bottom: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.55); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+/* Marke (Logo+Link) steht als eigene Gruppe in der mittleren Spalte eines
+   3-Spalten-Grids -- die leere linke Spalte balanciert die rechte
+   (Login-Button) Spalte aus, dadurch ist die Marke immer wirklich mittig
+   in der Zeile, unabhaengig davon wie breit der Login-Bereich rechts ist. */
+.app-header-top { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 1rem; margin-bottom: 1.1rem; }
+.app-header-brand { grid-column: 2; justify-self: center; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; justify-content: center; }
+.app-header h1 { margin: 0; font-family: 'Cinzel Decorative', serif; font-weight: 700; font-size: 2.1rem; letter-spacing: -0.02em; color: #e6e6e6; }
+.app-header-wordmark { display: flex; align-items: center; gap: 0.6rem; }
+.app-header-logo-img { height: 52px; width: auto; display: block; filter: drop-shadow(0 1px 3px rgba(0,0,0,0.7)); }
+.app-header-suffix { font-weight: 400; opacity: 0.6; font-size: 0.55em; letter-spacing: 0; align-self: center; }
+.external-site-link { display: inline-flex; align-items: center; gap: 0.4rem; background: #1a1a1a; color: #ffffff; border: 1px solid rgba(255,255,255,0.14); border-radius: 999px; padding: 0.55rem 1.15rem; font-family: 'Cinzel', serif; font-weight: 700; font-size: 0.82rem; letter-spacing: 0.02em; text-decoration: none; white-space: nowrap; transition: background 0.15s ease, border-color 0.15s ease; }
 .external-site-link:hover { background: #2a2a2a; border-color: rgba(255,255,255,0.3); }
-.app-header-actions { display: flex; align-items: center; gap: 0.9rem; }
+.app-header-actions { grid-column: 3; justify-self: end; display: flex; align-items: center; gap: 0.9rem; }
 .tabs { display: flex; gap: 1.4rem; flex-wrap: wrap; }
 .tab { background: none; border: none; color: rgba(230,230,230,0.6); padding: 0.75rem 0; cursor: pointer; font-family: 'Cinzel', serif; font-size: 0.85rem; letter-spacing: 0.03em; text-transform: uppercase; border-bottom: 2px solid transparent; transition: color 0.15s ease, border-color 0.15s ease; }
 .tab:hover { color: #e6e6e6; }
 .tab.active { color: #ffffff; border-bottom: 2px solid #ffffff; }
-.app-content { padding: 1.5rem 2rem; max-width: 1300px; margin: 0 auto; }
-.panel { background: #0c0c0c; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 1.5rem; position: relative; }
+.app-content { padding: min(20vh, 12rem) 2rem 1.5rem; max-width: 1300px; margin: 0 auto; }
+.panel { background: rgba(10,10,10,0.72); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 1.5rem; position: relative; }
 .panel.error { color: #ff8080; }
 /* ---------------------------------------------------------------------
    Layout-Architektur des Spielbildschirms
@@ -560,14 +629,18 @@ button.danger:hover { background: rgba(163, 51, 51, 0.15); }
    --------------------------------------------------------------------- */
 @media (max-width: 900px) {
   .app-header { padding: 1rem 1rem 0; }
-  .app-content { padding: 1rem; }
+  .app-content { padding: 40vh 1rem 1rem; }
   .panel { padding: 1rem; }
 }
 
 @media (max-width: 640px) {
-  .app-header-top { flex-wrap: wrap; }
-  .app-header h1 { font-size: 1.15rem; }
-  .app-header-logo-img { height: 26px; }
+  /* Auf schmalen Screens wuerden die zwei leeren 1fr-Balance-Spalten die
+     mittlere Marken-Spalte zu stark einquetschen -- hier stattdessen simpel
+     untereinander stapeln statt nebeneinander zentrieren. */
+  .app-header-top { display: flex; flex-direction: column; align-items: center; gap: 0.7rem; }
+  .app-header-actions { justify-self: unset; }
+  .app-header h1 { font-size: 1.6rem; }
+  .app-header-logo-img { height: 38px; }
   .external-site-link { font-size: 0.72rem; padding: 0.45rem 0.85rem; }
   .tabs { gap: 0.9rem; overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; padding-bottom: 0.2rem; }
   .tab { padding: 0.6rem 0; font-size: 0.75rem; flex-shrink: 0; }
@@ -7213,6 +7286,21 @@ const TABS = [
   { id: 'admin', label: 'Admin: Kartenpflege' },
 ];
 
+// Tab -> Stadt aus der Aiora-Weltkarte (siehe images/backgrounds/bg-<stadt>.jpg).
+// 'admin' hat bewusst keinen Eintrag -- dort bleibt der neutrale Seitenhintergrund.
+// Die eigentliche background-position pro Stadt (unterschiedlich fuer Desktop/
+// Mobile) steckt in den .bg-city-<stadt>-Regeln im <style>-Block, nicht hier --
+// so kann sie responsiv per Media Query variieren (waere ueber ein Inline-
+// style nicht moeglich, das haette jede @media-Regel dafuer uebertrumpft).
+const TAB_BACKGROUNDS = {
+  cards: { city: 'eldinvale' },
+  builder: { city: 'frostwood' },
+  decks: { city: 'kelvarg' },
+  play: { city: 'wornwood' },
+  shop: { city: 'arrenspire' },
+  inventory: { city: 'iskmar' },
+};
+
 function App() {
   const [activeTab, setActiveTab] = useState('cards');
   const [user, setUser] = useState(null);
@@ -7231,6 +7319,14 @@ function App() {
 
   return (
     <div className="app">
+      {Object.entries(TAB_BACKGROUNDS).map(([tabId, bg]) => (
+        <div
+          key={tabId}
+          className={`tab-bg-layer bg-city-${bg.city}` + (activeTab === tabId ? ' active' : '')}
+          style={{ backgroundImage: `url(images/backgrounds/bg-${bg.city}.jpg)` }}
+        />
+      ))}
+      <div className="tab-bg-vignette" />
       <header className="app-header">
         <div className="app-header-top">
           <div className="app-header-brand">
