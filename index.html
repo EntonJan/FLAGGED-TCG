@@ -688,6 +688,118 @@ button.danger:hover { background: rgba(163, 51, 51, 0.15); }
   .chain-window { top: 56px; }
   .grid-of-cards { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 0.6rem; }
 }
+
+/* =======================================================================
+   Adventure-Navigation (Point-and-Click-Szenen statt Tab-Leiste)
+   -----------------------------------------------------------------------
+   WICHTIG: Diese Szenen sind NUR die Praesentationsschicht fuer die
+   Navigation. Die eigentlichen Tab-Inhalte (CardList, ShopTab, DeckBuilder,
+   ...) werden unveraendert weiterverwendet -- siehe App(): im navMode
+   'tab' rendert exakt derselbe Block wie vor diesem Feature, nur dass man
+   jetzt per Hotspot-Klick statt per Tab-Klick dorthin gelangt.
+   ======================================================================= */
+.app-content-scene { padding: 1.2rem 1rem 1.5rem; max-width: 1500px; }
+/* Jeder Szenen-/Tab-Wechsel montiert ein neues Wurzel-Element (andere
+   Bedingung im JSX) -- die Animation greift dadurch automatisch bei jedem
+   Wechsel neu, ganz ohne eigene Transitions-State-Verwaltung. */
+@keyframes scene-fade-in { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+.app-content > * { animation: scene-fade-in 0.4s ease; }
+.adventure-scene { display: flex; flex-direction: column; gap: 0.9rem; align-items: center; }
+.scene-room-title { margin: 0; text-align: center; color: rgba(230,230,230,0.75); font-size: 1rem; letter-spacing: 0.04em; text-transform: uppercase; }
+
+/* -- Wiederverwendbarer Hotspot: gleiche Glow-Sprache wie Nav-Tabs/Karten-Hover -- */
+.scene-hotspot {
+  position: absolute; background: none; border: none; border-radius: 10px;
+  cursor: pointer; padding: 0; outline: none;
+  box-shadow: 0 0 0 0 rgba(224,184,58,0);
+  transition: box-shadow 0.2s ease, background-color 0.2s ease;
+}
+.scene-hotspot:hover, .scene-hotspot:focus-visible {
+  background: rgba(224,184,58,0.08);
+  box-shadow: 0 0 22px 3px rgba(224,184,58,0.55), inset 0 0 0 1px rgba(224,184,58,0.6);
+}
+.scene-hotspot-inert { cursor: default; }
+.scene-hotspot-label {
+  position: absolute; left: 50%; bottom: calc(100% + 8px); transform: translateX(-50%) translateY(4px);
+  white-space: nowrap; background: rgba(13,11,9,0.95); color: #e0b83a; font-family: 'Cinzel', serif;
+  font-weight: 700; font-size: 0.72rem; letter-spacing: 0.02em; padding: 0.3rem 0.65rem; border-radius: 999px;
+  border: 1px solid rgba(224,184,58,0.35); box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+  opacity: 0; pointer-events: none; transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.scene-hotspot:hover .scene-hotspot-label, .scene-hotspot:focus-visible .scene-hotspot-label { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* -- Laden: Panorama mit 2 Kamera-Positionen -- */
+/* width: min(...) leitet aus einer maximalen Hoehe (60vh) eine passende
+   Breiten-Obergrenze ab (60vh * Bildseitenverhaeltnis) -- reines aspect-
+   ratio+max-width haette die Szene bei kurzen Browserfenstern hoeher als
+   der sichtbare Viewport werden lassen (Hotspots im unteren Bilddrittel,
+   z.B. der Rucksack, waren dadurch ohne Scrollen unerreichbar). */
+.shop-scene-viewport { position: relative; width: min(100%, 1100px, 70.7vh); aspect-ratio: 792 / 672; overflow: hidden; border-radius: 14px; box-shadow: 0 14px 44px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.08); touch-action: pan-y; }
+.shop-scene-pano { position: absolute; inset: 0; width: 200%; height: 100%; transition: transform 0.5s cubic-bezier(0.4,0,0.2,1); transform: translateX(0%); }
+.shop-scene-pano.cam-right { transform: translateX(-50%); }
+.shop-scene-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; user-select: none; -webkit-user-drag: none; }
+.scene-pan-arrow {
+  position: absolute; top: 50%; transform: translateY(-50%); z-index: 2;
+  width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  background: rgba(10,10,10,0.6); border: 1px solid rgba(224,184,58,0.4); color: #e0b83a; font-size: 1.3rem;
+  cursor: pointer; outline: none; -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+  transition: box-shadow 0.2s ease, background-color 0.2s ease, opacity 0.2s ease;
+}
+.scene-pan-arrow:hover, .scene-pan-arrow:focus-visible { box-shadow: 0 0 20px 2px rgba(224,184,58,0.6); background: rgba(20,16,10,0.75); }
+.scene-pan-arrow:disabled { opacity: 0.25; cursor: default; box-shadow: none; }
+.scene-pan-arrow-left { left: 10px; }
+.scene-pan-arrow-right { right: 10px; }
+
+/* -- Umkleidezimmer / Spielzimmer: statische Panorama-Szenen -- */
+.static-scene-wrap { position: relative; width: min(100%, 1100px, 141.4vh); }
+.static-scene-viewport { position: relative; width: 100%; aspect-ratio: 1584 / 672; overflow: hidden; border-radius: 14px; box-shadow: 0 14px 44px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.08); }
+.static-scene-inner { position: relative; width: 100%; height: 100%; }
+.static-scene-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; user-select: none; -webkit-user-drag: none; }
+.scene-back-btn {
+  position: absolute; top: 12px; left: 12px; z-index: 3; display: inline-flex; align-items: center; gap: 0.4rem;
+  background: rgba(10,10,10,0.72); color: #ffffff; border: 1px solid rgba(224,184,58,0.4); border-radius: 999px;
+  padding: 0.5rem 1rem; font-family: 'Cinzel', serif; font-weight: 700; font-size: 0.78rem; letter-spacing: 0.02em;
+  cursor: pointer; outline: none; -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+  transition: box-shadow 0.2s ease, background-color 0.2s ease;
+}
+.scene-back-btn:hover, .scene-back-btn:focus-visible { box-shadow: 0 0 20px 2px rgba(224,184,58,0.55); background: rgba(20,16,10,0.85); }
+
+/* -- Direktzugriffs-Menue (Fallback, immer erreichbar) -- */
+.quick-nav-toggle {
+  display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px;
+  background: rgba(26,26,26,0.9); color: #e6e6e6; border: 1px solid rgba(255,255,255,0.14); border-radius: 999px;
+  font-size: 1.1rem; cursor: pointer; outline: none; transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.quick-nav-toggle:hover, .quick-nav-toggle:focus-visible { box-shadow: 0 0 16px 1px rgba(224,184,58,0.5); border-color: rgba(224,184,58,0.6); }
+.quick-nav-wrap { position: relative; }
+.quick-nav-overlay { position: fixed; inset: 0; z-index: 998; background: transparent; border: none; padding: 0; cursor: default; }
+.quick-nav-menu {
+  position: absolute; top: calc(100% + 10px); left: 0; z-index: 999; min-width: 220px;
+  background: rgba(11,10,8,0.97); border: 1px solid rgba(224,184,58,0.3); border-radius: 10px;
+  box-shadow: 0 14px 34px rgba(0,0,0,0.6); padding: 0.5rem; display: flex; flex-direction: column; gap: 0.15rem;
+}
+.quick-nav-item {
+  display: flex; align-items: center; text-align: left; background: none; border: none; border-radius: 6px;
+  color: rgba(230,230,230,0.85); font-family: 'Cinzel', serif; font-size: 0.85rem; padding: 0.55rem 0.7rem;
+  cursor: pointer; outline: none; transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+.quick-nav-item:hover, .quick-nav-item:focus-visible { background: rgba(224,184,58,0.14); color: #e0b83a; box-shadow: inset 0 0 0 1px rgba(224,184,58,0.4); }
+.quick-nav-item.active { color: #e0b83a; }
+
+/* -- "Zur Szene"-Rueckkehr-Button in der Tab-Leiste (nur im navMode 'tab') -- */
+.tab-back-to-scene { margin-left: auto; }
+
+@media (max-width: 900px) {
+  .app-content-scene { padding: 1rem 0.6rem 1.2rem; }
+  .scene-hotspot-label { font-size: 0.66rem; padding: 0.25rem 0.55rem; }
+  .scene-pan-arrow { width: 38px; height: 38px; font-size: 1.1rem; }
+  /* Die statischen Szenen (Umkleide/Spielzimmer) sind im vollen 1584:672-
+     Format auf einem schmalen Screen zu flach fuer bedienbare Hotspots --
+     hier lieber eine feste Mindestbreite + horizontales Schwenken/Scrollen
+     zulassen, statt alles verzerrungsfrei, aber winzig einzupassen. */
+  .static-scene-viewport { aspect-ratio: auto; height: 46vh; min-height: 260px; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .static-scene-inner { width: 760px; height: 100%; }
+}
 </style>
 </head>
 <body>
@@ -7341,6 +7453,152 @@ function InventoryTab({ user }) {
   );
 }
 
+// ============================================================
+// ADVENTURE-NAVIGATION: Point-and-Click-Szenen statt Tab-Leiste
+// ------------------------------------------------------------
+// Ersetzt NUR den Navigations-Einstieg. Alle Tab-Inhalte (CardList,
+// ShopTab, DeckBuilder, MyDecks, PlayTab, InventoryTab) bleiben exakt die
+// bestehenden Komponenten -- siehe App(): im navMode 'tab' wird derselbe
+// Block gerendert wie vor diesem Feature, nur ueber onOpenTab(id) statt
+// per direktem Tab-Klick erreicht.
+// ============================================================
+
+/** Ein einzelner klickbarer (oder rein dekorativer) Bereich auf einem
+ * Szenenbild. x/y/w/h sind Prozentwerte relativ zum jeweiligen Bild. */
+function SceneHotspot({ x, y, w, h, label, onClick, inert }) {
+  return (
+    <button
+      type="button"
+      className={'scene-hotspot' + (inert ? ' scene-hotspot-inert' : '')}
+      style={{ left: x + '%', top: y + '%', width: w + '%', height: h + '%' }}
+      onClick={inert ? undefined : onClick}
+      aria-label={label}
+      tabIndex={inert ? -1 : 0}
+    >
+      <span className="scene-hotspot-label">{label}</span>
+    </button>
+  );
+}
+
+/** Einfache Wisch-/Zieh-Erkennung als Alternative zu den Pfeil-Buttons
+ * (Aufgabenstellung: "probier beides aus, was sich besser bedient" --
+ * beides anzubieten ist die robustere Antwort darauf als sich fuer nur
+ * eine der beiden Bedienweisen zu entscheiden). */
+function usePanDrag(onPanLeft, onPanRight) {
+  const startX = React.useRef(null);
+  return {
+    onPointerDown: (e) => { startX.current = e.clientX; },
+    onPointerUp: (e) => {
+      if (startX.current == null) return;
+      const dx = e.clientX - startX.current;
+      startX.current = null;
+      const THRESHOLD = 50;
+      if (dx > THRESHOLD) onPanLeft();
+      else if (dx < -THRESHOLD) onPanRight();
+    },
+  };
+}
+
+// -- Szene "Laden": ein Panoramabild, per Kamera-Schwenk zwischen 2 Positionen --
+function ShopScene({ cameraPos, onPan, onGoToRoom, onOpenTab }) {
+  const drag = usePanDrag(() => onPan('left'), () => onPan('right'));
+  return (
+    <div className="shop-scene-viewport" {...drag}>
+      <div className={'shop-scene-pano cam-' + cameraPos}>
+        <img src="images/scenes/shop-kelvarg.png" alt="Laden" className="shop-scene-img" draggable="false" />
+
+        {/* Linke Haelfte: Weltkarte + Regal (aktuell reine Deko, siehe Aufgabenstellung),
+            Tuer mit Vorhang -> Umkleidezimmer. */}
+        <SceneHotspot x={14.2} y={25.3} w={16.7} h={35.7} label="Weltkarte" inert />
+        <SceneHotspot x={34.4} y={17.9} w={14.2} h={69.9} label="Bücherregal" inert />
+        <SceneHotspot x={0} y={14.9} w={10.4} h={83.3} label="Tür zum Umkleidezimmer" onClick={() => onGoToRoom('dressing-room')} />
+
+        {/* Rechte Haelfte: Glaskasten -> Shop, Buch -> Kartenbibliothek, Rucksack ->
+            Inventar, Tuer mit Feuerschein -> Spielzimmer. */}
+        <SceneHotspot x={52.1} y={43.9} w={15.8} h={18.6} label="Glaskasten – Shop" onClick={() => onOpenTab('shop')} />
+        <SceneHotspot x={67.5} y={46.5} w={11.5} h={18} label="Buch – Kartenbibliothek" onClick={() => onOpenTab('cards')} />
+        <SceneHotspot x={68.8} y={77.4} w={10.7} h={20.8} label="Rucksack – Inventar" onClick={() => onOpenTab('inventory')} />
+        <SceneHotspot x={87.1} y={14.9} w={12.9} h={83.3} label="Tür zum Spielzimmer" onClick={() => onGoToRoom('game-room')} />
+      </div>
+      <button className="scene-pan-arrow scene-pan-arrow-left" onClick={() => onPan('left')} disabled={cameraPos === 'left'} aria-label="Nach links schwenken (zur Weltkarte)">‹</button>
+      <button className="scene-pan-arrow scene-pan-arrow-right" onClick={() => onPan('right')} disabled={cameraPos === 'right'} aria-label="Nach rechts schwenken (zur Theke)">›</button>
+    </div>
+  );
+}
+
+// -- Wiederverwendbar fuer die beiden statischen Nebenraeume (kein Kamera-Schwenk) --
+function StaticAdventureScene({ image, alt, hotspots, onBack, backLabel }) {
+  return (
+    <div className="static-scene-wrap">
+      {/* .static-scene-viewport ist auf Mobile horizontal scrollbar (siehe CSS) --
+          der Zurueck-Button steht bewusst AUSSERHALB davon (eigener Wrapper),
+          sonst wuerde er beim Scrollen mit aus dem Bild wandern. */}
+      <div className="static-scene-viewport">
+        <div className="static-scene-inner">
+          <img src={image} alt={alt} className="static-scene-img" draggable="false" />
+          {hotspots.map((h, i) => (
+            <SceneHotspot key={i} x={h.x} y={h.y} w={h.w} h={h.h} label={h.label} onClick={h.onClick} inert={h.inert} />
+          ))}
+        </div>
+      </div>
+      <button className="scene-back-btn" onClick={onBack}>↩ {backLabel}</button>
+    </div>
+  );
+}
+
+const SCENE_TITLES = { shop: 'Der Laden', 'dressing-room': 'Umkleidezimmer', 'game-room': 'Spielzimmer' };
+
+function AdventureScene({ room, shopCamera, onPan, onGoToRoom, onOpenTab }) {
+  return (
+    <div className="adventure-scene">
+      <h2 className="scene-room-title">{SCENE_TITLES[room]}</h2>
+      {room === 'shop' && (
+        <ShopScene cameraPos={shopCamera} onPan={onPan} onGoToRoom={onGoToRoom} onOpenTab={onOpenTab} />
+      )}
+      {room === 'dressing-room' && (
+        <StaticAdventureScene
+          image="images/scenes/dressing-room.png" alt="Umkleidezimmer"
+          onBack={() => onGoToRoom('shop', 'left')} backLabel="Zurück zum Laden"
+          hotspots={[
+            { x: 22, y: 14, w: 24, h: 67, label: 'Kleiderschrank – Deckbuilder', onClick: () => onOpenTab('builder') },
+            { x: 75.4, y: 0, w: 24.6, h: 95, label: 'Regal – Meine Decks', onClick: () => onOpenTab('decks') },
+            { x: 18.9, y: 66.2, w: 10.5, h: 23.1, label: 'Rucksack – Inventar', onClick: () => onOpenTab('inventory') },
+          ]}
+        />
+      )}
+      {room === 'game-room' && (
+        <StaticAdventureScene
+          image="images/scenes/game-room.png" alt="Spielzimmer"
+          onBack={() => onGoToRoom('shop', 'right')} backLabel="Zurück zum Laden"
+          hotspots={[
+            { x: 30.3, y: 48, w: 45.5, h: 35.3, label: 'Spieltisch – Spielen', onClick: () => onOpenTab('play') },
+            { x: 13.6, y: 65.5, w: 11.3, h: 26.8, label: 'Rucksack – Inventar', onClick: () => onOpenTab('inventory') },
+          ]}
+        />
+      )}
+    </div>
+  );
+}
+
+// -- Fallback-Direktzugriff: immer sichtbar, umgeht die Szenen komplett --
+function QuickNavMenu({ open, onToggle, onSelect, isAdmin }) {
+  return (
+    <div className="quick-nav-wrap">
+      <button className="quick-nav-toggle" onClick={onToggle} aria-label="Direktzugriff auf alle Bereiche" aria-expanded={open}>☰</button>
+      {open && (
+        <React.Fragment>
+          <button className="quick-nav-overlay" onClick={onToggle} aria-label="Menü schliessen" />
+          <div className="quick-nav-menu" role="menu">
+            {TABS.filter((t) => t.id !== 'admin' || isAdmin).map((t) => (
+              <button key={t.id} className="quick-nav-item" role="menuitem" onClick={() => onSelect(t.id)}>{t.label}</button>
+            ))}
+          </div>
+        </React.Fragment>
+      )}
+    </div>
+  );
+}
+
 const TABS = [
   { id: 'cards', label: 'Karten' },
   { id: 'builder', label: 'Deckbuilder' },
@@ -7368,6 +7626,13 @@ const TAB_BACKGROUNDS = {
 
 function App() {
   const [activeTab, setActiveTab] = useState('cards');
+  // navMode 'scene' = Adventure-Ansicht (Standard-Einstieg), 'tab' = der
+  // bestehende, unveraenderte Tab-Inhaltsbereich. sceneRoom/shopCamera
+  // steuern NUR die Adventure-Praesentation, nie die Tab-Inhalte selbst.
+  const [navMode, setNavMode] = useState('scene');
+  const [sceneRoom, setSceneRoom] = useState('shop');
+  const [shopCamera, setShopCamera] = useState('right');
+  const [quickNavOpen, setQuickNavOpen] = useState(false);
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
 
@@ -7382,12 +7647,27 @@ function App() {
     return unsubscribe;
   }, []);
 
+  function openTab(tabId) {
+    setActiveTab(tabId);
+    setNavMode('tab');
+    setQuickNavOpen(false);
+  }
+  function backToScene() {
+    setNavMode('scene');
+  }
+  function goToRoom(room, cameraPos) {
+    setSceneRoom(room);
+    if (cameraPos) setShopCamera(cameraPos);
+  }
+
+  const isAdmin = isAdminUser(user);
+
   return (
     <div className="app">
       {Object.entries(TAB_BACKGROUNDS).map(([tabId, bg]) => (
         <div
           key={tabId}
-          className={`tab-bg-layer bg-city-${bg.city}` + (activeTab === tabId ? ' active' : '')}
+          className={`tab-bg-layer bg-city-${bg.city}` + (navMode === 'tab' && activeTab === tabId ? ' active' : '')}
           style={{ backgroundImage: `url(images/backgrounds/bg-${bg.city}.jpg)` }}
         />
       ))}
@@ -7404,25 +7684,36 @@ function App() {
             <span className="app-header-suffix"> – Online</span>
           </h1>
           <div className="app-header-actions">
+            <QuickNavMenu open={quickNavOpen} onToggle={() => setQuickNavOpen((v) => !v)} onSelect={openTab} isAdmin={isAdmin} />
             {!authLoading && <AuthBar user={user} />}
           </div>
         </div>
-        <nav className="tabs">
-          {TABS.filter((tab) => tab.id !== 'admin' || isAdminUser(user)).map((tab) => (
-            <button key={tab.id} className={activeTab === tab.id ? 'tab active' : 'tab'} onClick={() => setActiveTab(tab.id)}>
-              {tab.label}
-            </button>
-          ))}
-        </nav>
+        {navMode === 'tab' && (
+          <nav className="tabs">
+            {TABS.filter((tab) => tab.id !== 'admin' || isAdmin).map((tab) => (
+              <button key={tab.id} className={activeTab === tab.id ? 'tab active' : 'tab'} onClick={() => setActiveTab(tab.id)}>
+                {tab.label}
+              </button>
+            ))}
+            <button className="tab tab-back-to-scene" onClick={backToScene}>↩ Zur Szene</button>
+          </nav>
+        )}
       </header>
-      <main className="app-content">
-        {activeTab === 'cards' && <CardList />}
-        {activeTab === 'builder' && <DeckBuilder user={user} />}
-        {activeTab === 'decks' && <MyDecks user={user} />}
-        {activeTab === 'play' && <PlayTab user={user} />}
-        {activeTab === 'shop' && <ShopTab user={user} />}
-        {activeTab === 'inventory' && <InventoryTab user={user} />}
-        {activeTab === 'admin' && isAdminUser(user) && <CardSyncReview user={user} />}
+      <main className={navMode === 'scene' ? 'app-content app-content-scene' : 'app-content'}>
+        {navMode === 'scene' && (
+          <AdventureScene room={sceneRoom} shopCamera={shopCamera} onPan={setShopCamera} onGoToRoom={goToRoom} onOpenTab={openTab} />
+        )}
+        {navMode === 'tab' && (
+          <React.Fragment>
+            {activeTab === 'cards' && <CardList />}
+            {activeTab === 'builder' && <DeckBuilder user={user} />}
+            {activeTab === 'decks' && <MyDecks user={user} />}
+            {activeTab === 'play' && <PlayTab user={user} />}
+            {activeTab === 'shop' && <ShopTab user={user} />}
+            {activeTab === 'inventory' && <InventoryTab user={user} />}
+            {activeTab === 'admin' && isAdmin && <CardSyncReview user={user} />}
+          </React.Fragment>
+        )}
       </main>
     </div>
   );
