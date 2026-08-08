@@ -98,5 +98,39 @@ service cloud.firestore {
       // vom Client -- aus demselben Grund wie bei users/inventory oben.
       allow write: if false;
     }
+
+    // -------------------------------------------------------------
+    // NEU: Admin-Gate fuer Kartenpflege (Base44-Sync-Review im "Admin"-Tab).
+    //
+    // WICHTIG: Das Verstecken des Tabs im UI (siehe index.html, isAdminUser())
+    // ist NUR Komfort, keine Sicherheit -- jeder koennte per Devtools trotzdem
+    // versuchen, direkt gegen Firestore zu schreiben. Die eigentliche Grenze
+    // ist hier: nur genau dieser eine, per E-Mail verifizierte Account darf
+    // schreiben. Bewusst eine feste E-Mail statt einer Rollen-Collection,
+    // weil es aktuell exakt 1 Admin gibt -- eine Rollen-Collection waere hier
+    // nur Komplexitaet ohne Mehrwert.
+    // -------------------------------------------------------------
+    function isCardAdmin() {
+      return request.auth != null
+        && request.auth.token.email == 'jdenkelmann@gmail.com'
+        && request.auth.token.email_verified == true;
+    }
+
+    // cards/{cardId}: vom Admin-Bereich gepflegte Kartendaten (Spiegel der in
+    // index.html fest einkompilierten CARDS_DATA, angereichert um i18n-Felder
+    // aus der Base44-API). Lesen fuer alle eingeloggten Nutzer offen (harmlos,
+    // reine Kartendaten), Schreiben nur fuer den Admin.
+    match /cards/{cardId} {
+      allow read: if request.auth != null;
+      allow write: if isCardAdmin();
+    }
+
+    // adminCardSync/{docId}: Sync-Reports + Review-Entscheidungen aus dem
+    // Admin-Bereich. Komplett admin-only, auch lesend -- das sind interne
+    // Arbeitsdaten (u.a. Rohtexte aus noch ungeprueften Aenderungen), keine
+    // Spieldaten.
+    match /adminCardSync/{docId} {
+      allow read, write: if isCardAdmin();
+    }
   }
 }

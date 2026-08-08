@@ -183,9 +183,10 @@
     "cost": null,
     "effects": [
       {
-        "action": "move",
+        "action": "grant_bonus_movement",
         "target": "self",
-        "fields": 1
+        "fields": 1,
+        "timing": "this_turn"
       },
       {
         "action": "play_additional_card",
@@ -208,16 +209,15 @@
     "cost": null,
     "effects": [
       {
-        "action": "prevent_card_play",
-        "target": "context"
-      },
-      {
-        "action": "place_area_object"
+        "action": "place_area_object",
+        "type": "cloud_containment",
+        "radius": 2,
+        "center": "self"
       }
     ],
     "flags": null,
-    "parse_confidence": "high",
-    "parse_notes": null,
+    "parse_confidence": "manual",
+    "parse_notes": "Vorherige Fassung rief den nicht implementierten Handler 'place_area_object' auf und liess separat ein zu weit gefasstes 'prevent_card_play' laufen (hätte faelschlich ALLE Gegner blockiert, nicht nur die in der Wolke). Jetzt: ein einziger cloud_containment-Handler deckt Verlassen-Verbot UND Kartenspiel-Sperre dynamisch ab (siehe getBlockingCloudContainment in matchState.js).",
     "raw_description": "Platziere auf deiner position eine rauchwolke mit umkreis von 2 feldern. Gegnerische figuren können die wolke weder durch bewegung noch durch teleportation verlassen. Gegnerische spieler, deren figur sich in der wolke befindet, können keine karten spielen. Die wolke endet zu beginn deines nächsten zuges."
   },
   {
@@ -230,9 +230,7 @@
     "cost": null,
     "effects": [
       {
-        "action": "set_flag",
-        "flag": "clone_can_capture",
-        "scope": "this_turn"
+        "action": "grant_clone_capture"
       }
     ],
     "flags": null,
@@ -257,9 +255,10 @@
     ],
     "effects": [
       {
-        "action": "move",
+        "action": "grant_bonus_movement",
         "target": "self",
-        "fields": "1 + count(discarded)"
+        "fields": "1 + count(discarded)",
+        "timing": "this_turn"
       }
     ],
     "flags": null,
@@ -298,6 +297,11 @@
     "effects": [
       {
         "action": "reassign_hero_figure"
+      },
+      {
+        "action": "prevent_movement",
+        "target": "self",
+        "duration": "this_turn"
       }
     ],
     "flags": {
@@ -335,12 +339,10 @@
         "action": "reassign_hero_figure"
       }
     ],
-    "flags": {
-      "not_playable_with_flag": true
-    },
+    "flags": null,
     "parse_confidence": "high",
     "parse_notes": null,
-    "raw_description": "• Bedingung: Gegner betritt ein angrenzendes feld • Wirf 1 karte ab: Enthülle deine heldenfigur und teleportiere sie um 1 feld in eine beliebige richtung. Entferne deine schattenklone und erstelle einen neuen angrenzend zur heldenfigur. Bestimme neu, welche die heldenfigur ist. Nicht spielbar während du die flagge trägst."
+    "raw_description": "• bedingung: gegner betritt ein angrenzendes feld • wirf 1 karte ab: enthülle deine heldenfigur und teleportiere sie um 1 feld in eine beliebige richtung. du kannst durch diese teleportation keine gegner schnappen. entferne deine schattenklone und beschwöre einen neuen angrenzend zur heldenfigur. bestimme neu, welche die heldenfigur ist. nicht spielbar während du die flagge trägst. gegner betritt ein angrenzendes feld"
   },
   {
     "id": "014",
@@ -369,12 +371,10 @@
         "action": "reassign_hero_figure"
       }
     ],
-    "flags": {
-      "not_playable_with_flag": true
-    },
+    "flags": null,
     "parse_confidence": "high",
     "parse_notes": null,
-    "raw_description": "Wirf 1 karte ab: Enthülle deine heldenfigur. Entferne deine schattenklone und erstelle einen neuen angrenzend zur heldenfigur. Bestimme neu, welche die heldenfigur ist. Nicht spielbar während du die flagge trägst."
+    "raw_description": "wirf 1 karte ab: enthülle deine heldenfigur. entferne deine schattenklone und beschwöre einen neuen angrenzend zur heldenfigur. bestimme neu, welche die heldenfigur ist. nicht spielbar während du die flagge trägst."
   },
   {
     "id": "015",
@@ -393,7 +393,7 @@
     "flags": null,
     "parse_confidence": "high",
     "parse_notes": null,
-    "raw_description": "Tausche die position durch teleportation mit einer anderen befreundeten figur im umkreis von 3 feldern. Diese karte ersetzt \"tauschkristall\"."
+    "raw_description": "tausche die position durch teleportation mit einer anderen verbündeten figur im umkreis von 3 feldern. diese karte ersetzt \"tauschkristall\"."
   },
   {
     "id": "016",
@@ -442,7 +442,7 @@
     "flags": null,
     "parse_confidence": "high",
     "parse_notes": null,
-    "raw_description": "• Bedingung: In deinem zug - nach einer bewegung - gegnerische figur steht in freier gerader sichtlinie angrenzend zu deiner figur • Die figur wird sofort geschnappt. Diese karte kann nicht von einem schattenklon aus gespielt werden, ausser durch schattenmanifest."
+    "raw_description": "• bedingung: in deinem zug -nach einer bewegung -gegnerische figur steht in freier gerader sichtlinie angrenzend zu deiner figur • die figur wird sofort geschnappt. diese karte kann nicht von einem schattenklon aus gespielt werden, ausser durch schattenmanifest. in deinem zug -nach einer bewegung -gegnerische figur steht in freier gerader sichtlinie angrenzend zu deiner figur"
   },
   {
     "id": "018",
@@ -468,7 +468,7 @@
     "flags": null,
     "parse_confidence": "high",
     "parse_notes": null,
-    "raw_description": "Wirf 1 karte ab: In deinem nächsten zug kannst du 1 zusätzliche karte spielen."
+    "raw_description": "wirf 1 karte ab: in deinem nächsten zug kannst du 1 zusätzliche karte spielen. Du kannst in deinem nächsten Zug keine Karten spielen."
   },
   {
     "id": "019",
@@ -491,7 +491,7 @@
     "flags": null,
     "parse_confidence": "high",
     "parse_notes": null,
-    "raw_description": "• Bedingung: Gegnerische figur betritt ein angrenzendes feld zu deiner figur • Die gegnerische figur kann sich bis zum anfang ihres nächsten zuges nicht mehr bewegen. Du kannst in deinem nächsten zug keine karten spielen."
+    "raw_description": "• bedingung: gegnerische figur betritt ein angrenzendes feld zu deiner figur • die gegnerische figur kann sich bis zum anfang ihres nächsten zuges nicht mehr bewegen. du kannst in deinem nächsten zug keine karten spielen. gegnerische figur betritt ein angrenzendes feld zu deiner figur"
   },
   {
     "id": "020",
@@ -536,9 +536,10 @@
         "id": "removed_clones"
       },
       {
-        "action": "move",
+        "action": "grant_bonus_movement",
         "target": "self",
-        "fields": "1 + count(removed_clones)"
+        "fields": "1 + count(removed_clones)",
+        "timing": "this_turn"
       }
     ],
     "flags": null,
@@ -578,8 +579,9 @@
     "effects": [
       {
         "action": "prevent_movement",
-        "target": "context",
-        "duration": "this_turn"
+        "target": "enemies_in_radius",
+        "radius": 2,
+        "duration": "next_turn"
       }
     ],
     "flags": null,
@@ -653,12 +655,15 @@
     "effects": [
       {
         "action": "destroy_wall",
-        "target": "chosen_or_area"
+        "target": "walls_in_radius",
+        "radius": 1
       }
     ],
     "flags": null,
     "parse_confidence": "high",
-    "parse_notes": null,
+    "parse_notes": [
+      "text_changed_since_last_sync_needs_manual_review"
+    ],
     "raw_description": "Zerstöre alle wände im umkreis von 1 feld um deine figur."
   },
   {
@@ -671,10 +676,10 @@
     "cost": null,
     "effects": [
       {
-        "action": "move",
+        "action": "grant_bonus_movement",
         "target": "self",
         "fields": 2,
-        "direction": "horizontal"
+        "timing": "this_turn"
       }
     ],
     "flags": null,
@@ -692,17 +697,22 @@
     "cost": null,
     "effects": [
       {
-        "action": "forced_move",
-        "target": "chosen_enemy_figure",
-        "fields": 2,
-        "direction": "away_from_caster_figure",
-        "straight": true
+        "action": "move_enemy_figure",
+        "fields": 1,
+        "optional": false,
+        "id": "first"
+      },
+      {
+        "action": "move_enemy_figure",
+        "fields": 1,
+        "optional": true,
+        "id": "second"
       }
     ],
     "flags": null,
     "parse_confidence": "manual",
     "parse_notes": null,
-    "raw_description": "Wähle eine gegnerische figur. Sie muss sich 2 gerade Felder in die richtung der figur bewegen, von der diese karte gespielt wurde. Diese karte ersetzt \"flüstergift\"."
+    "raw_description": "Bewege bis zu 2 feindliche Figuren jeweils um 1 Feld in eine beliebige Richtung. Diese karte ersetzt \"Flüstergift\"."
   },
   {
     "id": "029",
@@ -713,6 +723,12 @@
     "condition": null,
     "cost": null,
     "effects": [
+      {
+        "action": "play_additional_card",
+        "target": "self",
+        "count": 1,
+        "timing": "next_turn"
+      },
       {
         "action": "draw_card",
         "target": "self",
@@ -736,8 +752,11 @@
       {
         "action": "move",
         "target": "self",
-        "fields": 1,
-        "optional": false
+        "fields": 1
+      },
+      {
+        "action": "prevent_card_play",
+        "target": "context"
       }
     ],
     "flags": {
@@ -746,7 +765,7 @@
     },
     "parse_confidence": "high",
     "parse_notes": null,
-    "raw_description": "Bewege dich um 1 zusätzliches feld. Gegner dürfen in ihrem nächsten zug keine karten spielen. Diese karte kann nicht gekontert werden. In diesem zug können keine konterkarten mehr gespielt werden."
+    "raw_description": "du kannst dich diesen zug um 1 zusätzliches feld bewegen. gegner dürfen in ihrem nächsten zug keine karten spielen. diese karte kann nicht gekontert werden. in diesem zug können keine konterkarten mehr gespielt werden."
   },
   {
     "id": "031",
@@ -760,18 +779,16 @@
       {
         "action": "move",
         "target": "self",
-        "fields": 1,
-        "optional": false
+        "fields": 1
       }
     ],
     "flags": {
       "cannot_be_countered": true,
-      "deck_limit": 2,
       "blocks_further_counters_this_turn": true
     },
     "parse_confidence": "high",
     "parse_notes": null,
-    "raw_description": "Bewege dich um 1 zusätzliches feld. Diese karte kann nicht gekontert werden. In diesem zug können keine konterkarten mehr gespielt werden. Du kannst diese karte nur 2 mal im deck besitzen. Diese karte kann im teammodus nicht verwendet werden."
+    "raw_description": "du kannst dich diesen zug um 1 zusätzliches feld bewegen. diese karte kann nicht gekontert werden. in diesem zug können keine konterkarten mehr gespielt werden. du kannst diese karte nur 2 mal im deck besitzen. diese karte kann im teammodus nicht verwendet werden."
   },
   {
     "id": "032",
@@ -785,14 +802,13 @@
       {
         "action": "move",
         "target": "self",
-        "fields": 2,
-        "optional": true
+        "fields": 2
       }
     ],
     "flags": null,
     "parse_confidence": "high",
     "parse_notes": null,
-    "raw_description": "Bewege dich um bis zu 2 zusätzliche felder."
+    "raw_description": "du kannst dich diesen zug um 2 zusätzliche felder bewegen."
   },
   {
     "id": "033",
@@ -831,13 +847,14 @@
     "cost": null,
     "effects": [
       {
-        "action": "place_wall",
-        "count": 1
+        "action": "place_wall_adjacent_or_reposition"
       }
     ],
     "flags": null,
     "parse_confidence": "high",
-    "parse_notes": null,
+    "parse_notes": [
+      "text_changed_since_last_sync_needs_manual_review"
+    ],
     "raw_description": "• Bedingung: Gegner betritt ein angrenzendes feld zu deiner figur • Setze 1 wand direkt an deine figur. Sind keine wände mehr verfügbar, repositioniere stattdessen 1 wand auf dem spielfeld an deine figur. Du kannst ihre ausrichtung ändern."
   },
   {
@@ -846,7 +863,7 @@
     "cardType": "Klasse",
     "class": "Ritter",
     "trigger": null,
-    "condition": null,
+    "condition": "Du hast deine Figuren in diesem Zug noch nicht bewegt.",
     "cost": null,
     "effects": [
       {
@@ -857,14 +874,13 @@
       },
       {
         "action": "prevent_capture",
-        "target": "self_all_figures",
-        "duration": "until_next_turn_start"
+        "target": "all_own_figures"
       }
     ],
     "flags": null,
     "parse_confidence": "manual",
-    "parse_notes": null,
-    "raw_description": "In diesem zug können sich alle deine figuren max. 2 felder bewegen. Bis zu beginn deines nächsten zuges können deine figuren nicht geschnappt werden."
+    "parse_notes": "prevent_capture nutzte den Wert self_all_figures, der implementierte Handler erwartet aber all_own_figures -- korrigiert. set_movement_cap war der einzige fehlende Handler und ist jetzt implementiert.",
+    "raw_description": "Du kannst diese karte nur spielen, wenn du deine Figuren in diesem Zug noch nicht bewegt hast. In diesem zug kann sich jede deiner figuren max. 2 felder bewegen. Bis zu beginn deines nächsten zuges können deine figuren nicht geschnappt werden."
   },
   {
     "id": "036",
@@ -876,18 +892,24 @@
     "cost": null,
     "effects": [
       {
-        "action": "play_additional_card",
+        "action": "place_area_object",
+        "type": "banner"
+      },
+      {
+        "action": "draw_card",
         "target": "self",
         "count": 1
       },
       {
-        "action": "place_area_object"
+        "action": "play_additional_card",
+        "target": "self",
+        "count": 1
       }
     ],
     "flags": null,
-    "parse_confidence": "high",
-    "parse_notes": null,
-    "raw_description": "Platziere 1 banner auf einem feld. Es kann nicht mehr ziel von wänden oder fallen werden. Fallen darauf werden zerstört. Du kannst 1 weitere karte spielen. Diese karte ersetzt \"ehrenbanner\"."
+    "parse_confidence": "manual",
+    "parse_notes": "Aktion/type waren bereits korrekt benannt, der Handler selbst fehlte aber komplett in der Engine (jetzt implementiert). Verifiziert.",
+    "raw_description": "Platziere 1 Banner auf einem Feld. Es kann nicht mehr Ziel von Wänden oder Fallen werden. Fallen darauf werden zerstört. Ziehe 1 Karte. Du kannst 1 weitere Karte spielen. Diese karte ersetzt \"Ehrenbanner\"."
   },
   {
     "id": "037",
@@ -946,7 +968,7 @@
     "flags": null,
     "parse_confidence": "high",
     "parse_notes": null,
-    "raw_description": "Alle figuren im umkreis von 1 feld um deine heldenfigur werden geschnappt."
+    "raw_description": "alle figuren im umkreis von 1 feld um deine heldenfigur werden geschnappt (auch verbündete)."
   },
   {
     "id": "040",
@@ -965,7 +987,7 @@
     "flags": null,
     "parse_confidence": "high",
     "parse_notes": null,
-    "raw_description": "Wähle eine angrenzende figur in freier sichtlinie: Teleportiere sie von deiner figur aus um bis zu 2 felder in eine gerade richtung. Diese karte ersetzt \"katapultgriff\"."
+    "raw_description": "wähle eine angrenzende figur in freier sichtlinie: teleportiere sie um 1 feld in eine beliebige richtung."
   },
   {
     "id": "041",
@@ -977,22 +999,20 @@
     "cost": null,
     "effects": [
       {
-        "action": "move",
+        "action": "grant_bonus_movement",
         "target": "self",
         "fields": 1,
-        "optional": false,
-        "direction": "diagonal"
+        "timing": "this_turn"
       },
       {
-        "action": "move",
+        "action": "grant_movement_mode",
         "target": "self",
-        "fields": 1,
-        "direction": "diagonal"
+        "mode": "diagonal"
       }
     ],
     "flags": null,
-    "parse_confidence": "high",
-    "parse_notes": null,
+    "parse_confidence": "manual",
+    "parse_notes": "Der Kartentext verlangt explizit, dass das Zusatzfeld DIAGONAL bewegt werden darf -- vorherige Fassung hatte nur den generischen +1-Feld-Bonus (grant_bonus_movement), ohne die dafuer noetige grant_movement_mode(diagonal)-Freigabe. Ohne sie wurde der diagonale Klick clientseitig als ungueltiger Schritt verworfen. Jetzt wie bei 005 Daemmertritt ergaenzt.",
     "raw_description": "Bewege dich um 1 zusätzliches feld diagonal."
   },
   {
@@ -1004,6 +1024,10 @@
     "condition": null,
     "cost": null,
     "effects": [
+      {
+        "action": "place_zone",
+        "zoneType": "no_entry"
+      },
       {
         "action": "draw_card",
         "target": "self",
@@ -1025,6 +1049,12 @@
     "cost": null,
     "effects": [
       {
+        "action": "place_zone",
+        "zoneType": "no_entry",
+        "count": 2,
+        "adjacentToSelf": true
+      },
+      {
         "action": "draw_card",
         "target": "self",
         "count": 1
@@ -1045,12 +1075,13 @@
     "cost": null,
     "effects": [
       {
-        "action": "place_area_object"
+        "action": "place_area_object",
+        "type": "banner"
       }
     ],
     "flags": null,
-    "parse_confidence": "high",
-    "parse_notes": null,
+    "parse_confidence": "manual",
+    "parse_notes": "Vorherige Fassung rief 'place_area_object' ohne type auf (nicht implementierbar, da Banner/Wolke unterschiedliche Semantik haben). Jetzt: type 'banner'.",
     "raw_description": "Platziere 1 banner auf einem feld. Es kann nicht mehr ziel von wänden oder fallen werden. Fallen darauf werden zerstört."
   },
   {
@@ -1065,14 +1096,13 @@
       {
         "action": "move",
         "target": "self",
-        "fields": 2,
-        "optional": true
+        "fields": 2
       }
     ],
     "flags": null,
     "parse_confidence": "high",
     "parse_notes": null,
-    "raw_description": "Bewege dich um bis zu 2 zusätzliche felder."
+    "raw_description": "du kannst dich diesen zug um 2 zusätzliche felder bewegen."
   },
   {
     "id": "046",
@@ -1084,14 +1114,23 @@
     "cost": null,
     "effects": [
       {
-        "action": "place_trap"
+        "action": "place_trap",
+        "id": "this_trap"
+      },
+      {
+        "action": "reveal_hand_cards",
+        "target": "trap_owner_enemy"
+      },
+      {
+        "action": "destroy_trap",
+        "target": "this_trap"
       }
     ],
     "flags": {
       "deck_limit": 1,
       "trap_deck_limit": 5
     },
-    "parse_confidence": "high",
+    "parse_confidence": "manual",
     "parse_notes": null,
     "raw_description": "Lege die falle verdeckt auf ein freies feld. Betritt eine gegnerische figur das feld, muss dessen besitzer dir seine handkarten zeigen. Die falle wird danach zerstört. Du kannst diese karte nur 1 mal im deck besitzen. Du kannst max. 5 fallen im deck besitzen."
   },
@@ -1105,14 +1144,29 @@
     "cost": null,
     "effects": [
       {
-        "action": "place_trap"
+        "action": "place_trap",
+        "id": "this_trap"
+      },
+      {
+        "action": "prevent_movement",
+        "target": "triggering_figure",
+        "duration": "this_turn"
+      },
+      {
+        "action": "discard_card",
+        "target": "trap_owner_enemy",
+        "count": 1
+      },
+      {
+        "action": "destroy_trap",
+        "target": "this_trap"
       }
     ],
     "flags": {
       "deck_limit": 1,
       "trap_deck_limit": 5
     },
-    "parse_confidence": "high",
+    "parse_confidence": "manual",
     "parse_notes": null,
     "raw_description": "Lege die falle verdeckt auf ein freies feld. Betritt eine gegnerische figur das feld, kann sie sich in diesem zug nicht mehr bewegen und dessen besitzer muss 1 karte abwerfen. Die falle wird danach zerstört. Du kannst diese karte nur 1 mal im deck besitzen. Du kannst max. 5 fallen im deck besitzen."
   },
@@ -1132,13 +1186,9 @@
     ],
     "effects": [
       {
-        "action": "discard_card",
-        "target": "self",
-        "count": 1
-      },
-      {
         "action": "move_wall",
-        "count": 1
+        "count": 1,
+        "maxFields": 1
       }
     ],
     "flags": {
@@ -1181,6 +1231,11 @@
         "action": "draw_card",
         "target": "self",
         "count": 3
+      },
+      {
+        "action": "discard_card",
+        "target": "self",
+        "count": 2
       }
     ],
     "flags": {
@@ -1201,7 +1256,7 @@
     "effects": [
       {
         "action": "prevent_capture",
-        "target": "context"
+        "target": "all_own_figures"
       }
     ],
     "flags": {
@@ -1221,14 +1276,16 @@
     "cost": null,
     "effects": [
       {
-        "action": "place_area_object"
+        "action": "place_area_object",
+        "type": "cloud_delayed_skip",
+        "radius": 1
       }
     ],
     "flags": {
       "deck_limit": 2
     },
-    "parse_confidence": "high",
-    "parse_notes": null,
+    "parse_confidence": "manual",
+    "parse_notes": "Vorherige Fassung rief 'place_area_object' ohne type auf. Jetzt: type 'cloud_delayed_skip' (einmalige Pruefung + Rundenaussetzer zu Beginn des eigenen naechsten Zuges, siehe endTurn()).",
     "raw_description": "Platziere eine wolke mit einem umkreis von 1 feld auf ein beliebiges feld. Befindet sich zu beginn deines nächsten zuges eine gegnerische figur in der wolke, setzt dessen besitzer seinen nächsten zug aus. Nach beginn des zuges verschwindet die wolke. Du kannst diese karte nur 2 mal im deck besitzen."
   },
   {
@@ -1248,7 +1305,7 @@
     "flags": null,
     "parse_confidence": "high",
     "parse_notes": null,
-    "raw_description": "Wähle eine angrenzende figur in freier sichtlinie: Teleportiere sie um 1 feld in eine beliebige richtung."
+    "raw_description": "wähle eine angrenzende figur in freier sichtlinie: teleportiere sie von deiner figur aus um bis zu 2 felder in eine gerade richtung. diese karte ersetzt \"katapultgriff\"."
   },
   {
     "id": "054",
@@ -1261,7 +1318,8 @@
     "effects": [
       {
         "action": "grant_bonus_movement",
-        "target": "figures_adjacent_to_own_hero",
+        "target": "self_and_all_figures_in_radius",
+        "radius": 2,
         "fields": 2,
         "timing": "next_turn"
       }
@@ -1271,7 +1329,7 @@
     },
     "parse_confidence": "manual",
     "parse_notes": null,
-    "raw_description": "Alle Figuren, die angrenzend zu deiner Heldenfigur stehen, können sich in ihrem nächsten Zug um 2 zusätzliche Felder bewegen. Dieser Effekt wird durch Schattenklone nicht verdoppelt."
+    "raw_description": "Deine Figur sowie alle Figuren im Umkreis von 2 Feldern um deine Figur können sich in ihrem nächsten Zug um 2 zusätzliche Felder bewegen. Dieser Effekt wird durch Schattenklone nicht verdoppelt."
   },
   {
     "id": "055",
@@ -1287,12 +1345,25 @@
     ],
     "effects": [
       {
-        "action": "flip_coin"
+        "action": "choose_one",
+        "branchOn": "coin_result",
+        "options": [
+          [
+            {
+              "action": "grant_extra_turn"
+            }
+          ],
+          [
+            {
+              "action": "end_turn_immediately"
+            }
+          ]
+        ]
       }
     ],
     "flags": null,
-    "parse_confidence": "high",
-    "parse_notes": null,
+    "parse_confidence": "manual",
+    "parse_notes": "effects[] war komplett leer -- die Karte tat nichts, ausser eine bedeutungslose Muenze zu werfen. flip_coin sowie die Kopf/Zahl-Verzweigung (grant_extra_turn bzw. end_turn_immediately) waren beide nicht implementiert. Jetzt vollstaendig strukturiert und in der Engine umgesetzt.",
     "raw_description": "Wirf 1 münze. Kopf: Spiele nach diesem zug anschliessend 1 weiteren zug. Zahl: Beende deinen zug sofort."
   },
   {
@@ -1319,7 +1390,7 @@
     "flags": null,
     "parse_confidence": "high",
     "parse_notes": null,
-    "raw_description": "• Bedingung: In deinem zug - gegner spielt eine konterkarte • Negiere den effekt und lege die karte auf den ablagestapel."
+    "raw_description": "• bedingung: in deinem zug -gegner spielt eine konterkarte • negiere den effekt und lege die karte auf den ablagestapel. in deinem zug -gegner spielt eine konterkarte"
   },
   {
     "id": "057",
@@ -1337,7 +1408,7 @@
     ],
     "effects": [
       {
-        "action": "discard_card",
+        "action": "search_discard_pile",
         "target": "self",
         "count": 1
       }
@@ -1364,7 +1435,7 @@
     "flags": null,
     "parse_confidence": "high",
     "parse_notes": null,
-    "raw_description": "Suche in deinem Deck nach bis zu 3 Karten mit \"Eilsamen\" im Namen. Zeige sie vor und nimm sie auf deine Hand. Mische dein Deck. Du kannst in diesem Zug 1 zusätzliche Karte spielen."
+    "raw_description": "suche in deinem deck nach bis zu 3 karten mit „eilsamen“ im namen. zeige sie offen vor und nimm sie auf die hand. mische dein deck. du darfst in diesem zug 1 zusätzliche karte spielen."
   },
   {
     "id": "059",
@@ -1430,12 +1501,10 @@
         "target": "triggering_card"
       }
     ],
-    "flags": {
-      "deck_limit": 2
-    },
+    "flags": null,
     "parse_confidence": "high",
     "parse_notes": null,
-    "raw_description": "• Bedingung: Gegner spielt eine klassenkarte • Wirf 2 karten ab: Negiere den effekt und lege die karte auf den ablagestapel. Du kannst diese karte nur 2 mal im deck besitzen."
+    "raw_description": "• bedingung: gegner spielt eine klassenkarte oder eine gegnerische falle des typs klassenkarte wird ausgelöst • wirf 2 karten ab: negiere den effekt und lege die karte auf den ablagestapel. du kannst diese karte nur 2 mal im deck besitzen. gegner spielt eine klassenkarte oder eine gegnerische falle des typs klassenkarte wird ausgelöst"
   },
   {
     "id": "062",
@@ -1453,13 +1522,8 @@
     ],
     "effects": [
       {
-        "action": "discard_card",
-        "target": "self",
-        "count": 1
-      },
-      {
         "action": "destroy_wall",
-        "target": "chosen",
+        "target": "chosen_adjacent",
         "count": 1
       }
     ],
@@ -1504,13 +1568,10 @@
     ],
     "effects": [
       {
-        "action": "discard_card",
-        "target": "self",
-        "count": 2
-      },
-      {
         "action": "teleport_swap",
-        "target": "context"
+        "target": "context",
+        "radius": 2,
+        "filter": "any_other"
       }
     ],
     "flags": {
@@ -1530,9 +1591,10 @@
     "cost": null,
     "effects": [
       {
-        "action": "move",
+        "action": "grant_bonus_movement",
         "target": "self",
-        "fields": 1
+        "fields": 1,
+        "timing": "this_turn"
       }
     ],
     "flags": null,
@@ -1556,7 +1618,7 @@
     "flags": null,
     "parse_confidence": "high",
     "parse_notes": null,
-    "raw_description": "Beschwöre den begleiter \"fährtenwolf\" angrenzend zu deiner figur. Der wolf kann sich ab deinem nächsten zug in jedem deiner züge bis zu 2 felder bewegen und gegner schnappen. Er kann keine flaggen tragen und du kannst keine karten vom wolf aus spielen. Wird der wolf geschnappt, entferne ihn aus dem spiel. Du kannst nur 1 begleiter im deck besitzen."
+    "raw_description": "beschwöre den begleiter \"fährtenwolf\" angrenzend zu deiner figur. der wolf kann sich ab deinem nächsten zug in jedem deiner züge bis zu 2 felder bewegen und gegner schnappen. er kann keine flaggen tragen und du kannst keine karten vom wolf aus spielen. wird deine heldenfigur oder der wolf geschnappt, entferne den wolf aus dem spiel. du kannst nur 1 begleiter im deck besitzen."
   },
   {
     "id": "067",
@@ -1569,7 +1631,7 @@
     "effects": [
       {
         "action": "destroy_wall",
-        "target": "chosen_or_area"
+        "target": "line_of_sight_direction"
       }
     ],
     "flags": null,
@@ -1625,9 +1687,10 @@
         "options": [
           [
             {
-              "action": "move",
+              "action": "grant_bonus_movement",
               "target": "self_hero_or_companion",
-              "fields": 1
+              "fields": 1,
+              "timing": "this_turn"
             }
           ],
           [
@@ -1656,14 +1719,24 @@
     "cost": null,
     "effects": [
       {
-        "action": "place_trap"
+        "action": "place_trap",
+        "id": "this_trap"
+      },
+      {
+        "action": "discard_card",
+        "target": "trap_owner_enemy",
+        "count": 3
+      },
+      {
+        "action": "destroy_trap",
+        "target": "this_trap"
       }
     ],
     "flags": {
       "deck_limit": 1,
       "trap_deck_limit": 5
     },
-    "parse_confidence": "high",
+    "parse_confidence": "manual",
     "parse_notes": null,
     "raw_description": "Lege die falle verdeckt auf ein freies feld. Betritt eine gegnerische figur das feld, muss dessen besitzer 3 handkarten abwerfen. Die falle wird danach zerstört. Du kannst diese karte nur 1 mal im deck besitzen. Du kannst max. 5 fallen im deck besitzen."
   },
@@ -1677,18 +1750,24 @@
     "cost": null,
     "effects": [
       {
-        "action": "teleport",
-        "target": "context"
+        "action": "place_trap",
+        "id": "this_trap"
       },
       {
-        "action": "place_trap"
+        "action": "teleport",
+        "target": "triggering_figure",
+        "maxFields": 2
+      },
+      {
+        "action": "destroy_trap",
+        "target": "this_trap"
       }
     ],
     "flags": {
       "deck_limit": 1,
       "trap_deck_limit": 5
     },
-    "parse_confidence": "high",
+    "parse_confidence": "manual",
     "parse_notes": null,
     "raw_description": "Lege die falle verdeckt auf ein freies feld. Betritt eine gegnerische figur das feld, teleportiere sie um bis zu 2 felder in eine beliebige richtung. Die falle wird danach zerstört. Du kannst diese karte nur 1 mal im deck besitzen. Du kannst max. 5 fallen im deck besitzen."
   },
@@ -1702,14 +1781,24 @@
     "cost": null,
     "effects": [
       {
-        "action": "place_trap"
+        "action": "place_trap",
+        "id": "this_trap"
+      },
+      {
+        "action": "skip_turn",
+        "target": "trap_owner_enemy",
+        "count": 1
+      },
+      {
+        "action": "destroy_trap",
+        "target": "this_trap"
       }
     ],
     "flags": {
       "deck_limit": 1,
       "trap_deck_limit": 5
     },
-    "parse_confidence": "high",
+    "parse_confidence": "manual",
     "parse_notes": null,
     "raw_description": "Lege die falle verdeckt auf ein freies feld. Betritt eine gegnerische figur das feld, setzt dessen besitzer seinen nächsten zug aus. Die falle wird danach zerstört. Du kannst diese karte nur 1 mal im deck besitzen. Du kannst max. 5 fallen im deck besitzen."
   },
@@ -1741,7 +1830,7 @@
             {
               "action": "peek_deck_top",
               "target": "trap_owner_enemy",
-              "count": 5,
+              "count": 3,
               "then": "return_in_same_order"
             }
           ]
@@ -1758,7 +1847,7 @@
     },
     "parse_confidence": "manual",
     "parse_notes": null,
-    "raw_description": "Lege die falle verdeckt auf ein freies feld. Betritt eine gegnerische figur das feld, wähle eines: • Der besitzer der figur muss dir seine handkarten zeigen. • Siehe die obersten 5 karten seines decks an und lege sie in derselben reihenfolge zurück. Die falle wird danach zerstört. Du kannst diese karte nur 1 mal im deck besitzen. Diese karte ersetzt \"auge des raben\". Du kannst max. 5 fallen im deck besitzen."
+    "raw_description": "Lege die falle verdeckt auf ein freies feld. Betritt eine gegnerische figur das feld, wähle eines: • Der besitzer der figur muss dir seine handkarten zeigen. • Siehe die obersten 3 Karten seines decks an und lege sie in derselben reihenfolge zurück. Die falle wird danach zerstört. Du kannst diese karte nur 1 mal im deck besitzen. Diese karte ersetzt \"auge des raben\". Du kannst max. 5 fallen im deck besitzen."
   },
   {
     "id": "074",
@@ -1770,14 +1859,24 @@
     "cost": null,
     "effects": [
       {
-        "action": "place_trap"
+        "action": "place_trap",
+        "id": "this_trap"
+      },
+      {
+        "action": "prevent_movement",
+        "target": "triggering_figure",
+        "duration": "this_and_next_turn"
+      },
+      {
+        "action": "destroy_trap",
+        "target": "this_trap"
       }
     ],
     "flags": {
       "deck_limit": 1,
       "trap_deck_limit": 5
     },
-    "parse_confidence": "high",
+    "parse_confidence": "manual",
     "parse_notes": null,
     "raw_description": "Lege die falle verdeckt auf ein freies feld. Betritt eine gegnerische figur das feld, kann sie sich in diesem und in ihrem nächsten zug nicht bewegen. Die falle wird danach zerstört. Du kannst diese karte nur 1 mal im deck besitzen. Du kannst max. 5 fallen im deck besitzen. Diese karte ersetzt \"falle: Fangeisen\"."
   },
@@ -1791,9 +1890,10 @@
     "cost": null,
     "effects": [
       {
-        "action": "move",
+        "action": "grant_bonus_movement",
         "target": "self_and_companion",
-        "fields": 1
+        "fields": 1,
+        "timing": "this_turn"
       }
     ],
     "flags": null,
@@ -1837,14 +1937,16 @@
         "action": "discard_card",
         "target": "self",
         "count": 1
+      },
+      {
+        "action": "capture_figure",
+        "target": "context"
       }
     ],
-    "flags": {
-      "deck_limit": 2
-    },
+    "flags": null,
     "parse_confidence": "high",
     "parse_notes": null,
-    "raw_description": "• Bedingung: Nach einer bewegung - gegnerische figur befindet sich in freier gerader sichtlinie, genau 3 felder entfernt • Wirf 1 karte ab: Die gegnerische figur wird geschnappt. Diese karte kann nicht von einem schattenklon aus gespielt werden. Du kannst diese karte nur 2 mal im deck besitzen."
+    "raw_description": "• bedingung: nach einer bewegung -gegnerische figur befindet sich in freier gerader sichtlinie, genau 3 felder entfernt • wirf 1 karte ab: die gegnerische figur wird geschnappt. diese karte kann nicht von einem schattenklon aus gespielt werden. du kannst diese karte nur 2 mal im deck besitzen. nach einer bewegung -gegnerische figur befindet sich in freier gerader sichtlinie, genau 3 felder entfernt"
   },
   {
     "id": "078",
@@ -1883,10 +1985,10 @@
     "cost": null,
     "effects": [
       {
-        "action": "move",
+        "action": "grant_bonus_movement",
         "target": "self_and_companion",
         "fields": 1,
-        "direction": "diagonal"
+        "timing": "this_turn"
       }
     ],
     "flags": null,
@@ -1912,12 +2014,10 @@
         "count": 1
       }
     ],
-    "flags": {
-      "deck_limit": 2
-    },
+    "flags": null,
     "parse_confidence": "high",
     "parse_notes": null,
-    "raw_description": "• Konter: Nach einer bewegung - gegnerische figur befindet sich in freier gerader sichtlinie zu deiner figur • Wirf 1 karte ab: Bewege dich um 1 feld in eine beliebige richtung. Du kannst mit dieser bewegung keine gegner schnappen. Du kannst diese karte nur 2 mal im deck besitzen."
+    "raw_description": "• konter: nach einer bewegung -gegnerische figur befindet sich in freier gerader sichtlinie zu deiner figur • wirf 1 karte ab: bewege dich um 1 feld in eine beliebige richtung. du kannst mit dieser bewegung keine gegner schnappen. du kannst diese karte nur 2 mal im deck besitzen."
   },
   {
     "id": "081",
@@ -1932,14 +2032,17 @@
         "action": "draw_card",
         "target": "self",
         "count": 3
+      },
+      {
+        "action": "discard_card",
+        "target": "self",
+        "count": 1
       }
     ],
-    "flags": {
-      "deck_limit": 2
-    },
+    "flags": null,
     "parse_confidence": "high",
     "parse_notes": null,
-    "raw_description": "Ziehe 3 karten und wirf anschliessend 1 handkarte ab. Du kannst diese karte nur 2 mal im deck besitzen. Diese karte ersetzt \"gedankentfaltung\"."
+    "raw_description": "ziehe 3 karten und wirf anschliessend 1 handkarte ab. du kannst diese karte nur 2 mal im deck besitzen. diese karte ersetzt \"gedankentfaltung\". Wirf anschliessend 1 Handkarte ab."
   },
   {
     "id": "082",
@@ -1951,22 +2054,13 @@
     "cost": null,
     "effects": [
       {
-        "action": "create_shadow_clone",
-        "target": "self",
-        "position": "adjacent_to_own_figure",
-        "count": 1,
-        "expires": "after_next_card_played"
-      },
-      {
         "action": "reassign_hero_figure"
       }
     ],
-    "flags": {
-      "not_playable_with_flag": true
-    },
+    "flags": null,
     "parse_confidence": "high",
     "parse_notes": null,
-    "raw_description": "Erstelle 1 schattenklon angrenzend zu deiner figur. Bestimme neu, welche die heldenfigur ist. Nachdem du eine karte gespielt hast, verschwindet der klon. Nicht spielbar während du die flagge trägst. Zu bewegende felder dürfen die heldenfigur und auch der klon fahren. Karten können auch vom klon aus gespielt werden, jedoch kann er keine flaggen tragen oder gegner schnappen. Wird deine heldenfigur oder der klon geschnappt, entferne den klon aus dem spiel."
+    "raw_description": "enthülle deine heldenfigur. beschwöre 1 schattenklon angrenzend zu deiner figur. bestimme neu, welche die heldenfigur ist. nachdem du eine karte gespielt hast, verschwindet der klon. nicht spielbar während du die flagge trägst. (zu bewegende felder dürfen die heldenfigur und auch der klon fahren. karten können auch vom klon aus gespielt werden, jedoch kann er keine flaggen tragen oder gegner schnappen. wird deine heldenfigur oder der klon geschnappt, entferne den klon aus dem spiel.)"
   },
   {
     "id": "083",
@@ -1989,7 +2083,7 @@
     "flags": null,
     "parse_confidence": "high",
     "parse_notes": null,
-    "raw_description": "• Bedingung: Nach einer bewegung - gegnerische figur befindet sich in freier gerader sichtlinie, min. 3 felder entfernt • Die gegnerische figur kann sich in diesem und ihrem nächsten zug nicht mehr bewegen."
+    "raw_description": "• bedingung: nach einer bewegung -gegnerische figur befindet sich in freier gerader sichtlinie, min. 3 felder entfernt • die gegnerische figur kann sich in diesem und ihrem nächsten zug nicht mehr bewegen. nach einer bewegung -gegnerische figur befindet sich in freier gerader sichtlinie, min. 3 felder entfernt"
   },
   {
     "id": "084",
@@ -2000,6 +2094,12 @@
     "condition": null,
     "cost": null,
     "effects": [
+      {
+        "action": "search_deck",
+        "count": 1,
+        "cardTypeFilter": "Falle",
+        "then": "shuffle_deck"
+      },
       {
         "action": "play_additional_card",
         "target": "self",
@@ -2025,10 +2125,10 @@
         "options": [
           [
             {
-              "action": "move",
+              "action": "grant_bonus_movement",
               "target": "self",
               "fields": 2,
-              "direction": "horizontal"
+              "timing": "this_turn"
             }
           ],
           [
@@ -2036,7 +2136,6 @@
               "action": "grant_bonus_movement",
               "target": "chosen_ally_hero",
               "fields": 2,
-              "direction": "horizontal",
               "timing": "next_turn"
             }
           ]
@@ -2061,12 +2160,10 @@
         "action": "toggle_wolf_mode"
       }
     ],
-    "flags": {
-      "deck_limit": 2
-    },
+    "flags": null,
     "parse_confidence": "high",
     "parse_notes": null,
-    "raw_description": "Diese karte aktiviert den wolfmodus: In jedem deiner züge kann sich deine heldenfigur 1 zusätzliches feld bewegen, sie kann jedoch im umkreis von 1 feld geschnappt werden. Du kannst den wolfmodus jederzeit in deinem zug deaktivieren. Auf einer figur kann immer nur 1 wolfmodus aktiv sein. Du kannst diese karte nur 2 mal im deck besitzen."
+    "raw_description": "diese karte aktiviert den wolfmodus: in jedem deiner züge kann sich deine heldenfigur um 1 zusätzliches feld bewegen. sie kann jedoch im umkreis von 1 feld geschnappt werden -auch durch wände. du kannst den wolfmodus jederzeit in deinem zug deaktivieren. auf einer figur kann immer nur 1 wolfmodus aktiv sein. du kannst diese karte nur 2 mal im deck besitzen. Deine Figur kann im Umkreis von 1 Feld geschnappt werden."
   },
   {
     "id": "087",
@@ -2081,12 +2178,15 @@
         "action": "discard_card",
         "target": "self",
         "count": 1
+      },
+      {
+        "action": "copy_card"
       }
     ],
     "flags": null,
     "parse_confidence": "high",
     "parse_notes": null,
-    "raw_description": "Du kannst diese karte nur spielen, wenn dein begleiter bereits geschnappt wurde. Wirf 1 karte ab und beschwöre ihn auf ein angrenzendes feld."
+    "raw_description": "du kannst diese karte nur spielen, wenn dein begleiter bereits geschnappt wurde. wirf 1 karte ab: spiele diese karte als kopie deiner ursprpünglichen Begleiterkarte."
   },
   {
     "id": "088",
@@ -2114,12 +2214,10 @@
         "target": "triggering_card"
       }
     ],
-    "flags": {
-      "deck_limit": 2
-    },
+    "flags": null,
     "parse_confidence": "high",
     "parse_notes": null,
-    "raw_description": "• Bedingung: Gegner spielt eine klassenkarte • Wirf 1 karte ab: Negiere den effekt und lege die karte auf den ablagestapel. Du kannst diese karte nur 2 mal im deck besitzen. Diese karte ersetzt „siegel des bannamuletts“."
+    "raw_description": "• bedingung: gegner spielt eine klassenkarte oder eine gegnerische falle des typs klassenkarte wird ausgelöst • wirf 1 karte ab: negiere den effekt und lege die karte auf den ablagestapel. du kannst diese karte nur 2 mal im deck besitzen. diese karte ersetzt „siegel des bannamuletts“. gegner spielt eine klassenkarte oder eine gegnerische falle des typs klassenkarte wird ausgelöst"
   },
   {
     "id": "089",
@@ -2131,15 +2229,24 @@
     "cost": null,
     "effects": [
       {
-        "action": "reset_state"
+        "action": "reset_state",
+        "scope": "game_start"
+      },
+      {
+        "action": "end_turn_immediately"
+      },
+      {
+        "action": "skip_turn",
+        "target": "self",
+        "count": 1
       }
     ],
     "flags": {
       "cannot_be_countered": true,
       "blocks_further_counters_this_turn": true
     },
-    "parse_confidence": "high",
-    "parse_notes": null,
+    "parse_confidence": "manual",
+    "parse_notes": "Vorherige Fassung rief den nicht implementierten Handler 'reset_state' ohne scope auf und liess 'zug sofort beenden' sowie 'naechsten zug aussetzen' als Effekte ganz weg -- dadurch war die Karte komplett funktionslos. Jetzt: game_start-Reset + Zugende + 1 eigenen Zug aussetzen.",
     "raw_description": "Setze alle figuren und flaggen im spiel auf ihre startpositionen zurück. Diese karte kann nicht gekontert werden. In diesem zug können keine konterkarten mehr gespielt werden. Der zug wird sofort beendet. Setze deinen nächsten zug aus."
   },
   {
@@ -2152,13 +2259,7 @@
     "cost": null,
     "effects": [
       {
-        "action": "play_additional_card",
-        "target": "self",
-        "count": 1
-      },
-      {
-        "action": "teleport",
-        "target": "context"
+        "action": "shift_all_figures"
       }
     ],
     "flags": null,
@@ -2191,12 +2292,10 @@
         "target": "context"
       }
     ],
-    "flags": {
-      "not_playable_with_flag": true
-    },
+    "flags": null,
     "parse_confidence": "high",
     "parse_notes": null,
-    "raw_description": "Wirf 2 karten ab: Teleportiere dich auf eines deiner portale. Beende deinen zug sofort. Nicht spielbar während du die flagge trägst."
+    "raw_description": "wirf 2 karten ab: teleportiere dich auf eines deiner portale. beende deinen zug sofort. nicht spielbar während du die flagge trägst. Beende deinen Zug sofort."
   },
   {
     "id": "092",
@@ -2208,14 +2307,14 @@
     "cost": null,
     "effects": [
       {
-        "action": "draw_card",
-        "target": "self",
-        "count": 1
+        "action": "peek_and_conditionally_take_opponent_card"
       }
     ],
     "flags": null,
     "parse_confidence": "high",
-    "parse_notes": null,
+    "parse_notes": [
+      "text_changed_since_last_sync_needs_manual_review"
+    ],
     "raw_description": "Sieh dir 1 beliebige handkarte deines gegners an. Ist es eine klassenkarte, darfst du sie in diesem zug spielen, als wäre sie deine eigene, oder sie abwerfen. Ist es eine andere karte, gib sie ihrem besitzer zurück und ziehe 1 karte aus deinem deck. Konterkarten können auf diese weise nicht gespielt werden."
   },
   {
@@ -2246,7 +2345,7 @@
     "flags": null,
     "parse_confidence": "high",
     "parse_notes": null,
-    "raw_description": "Wirf 1 karte ab: Teleportiere dich bis zu 2 felder in dieselbe gerade oder diagonale richtung. Beende deinen zug sofort."
+    "raw_description": "wirf 1 karte ab: teleportiere dich bis zu 2 felder in dieselbe gerade oder diagonale richtung. beende deinen zug sofort. Beende deinen Zug sofort."
   },
   {
     "id": "094",
@@ -2323,7 +2422,7 @@
       {
         "action": "prevent_movement",
         "target": "context",
-        "duration": "this_turn"
+        "duration": "next_turn"
       }
     ],
     "flags": null,
@@ -2347,9 +2446,8 @@
     ],
     "effects": [
       {
-        "action": "discard_card",
-        "target": "self",
-        "count": 1
+        "action": "reposition_multiple_walls",
+        "count": 3
       }
     ],
     "flags": null,
@@ -2392,8 +2490,9 @@
     "effects": [
       {
         "action": "prevent_movement",
-        "target": "context",
-        "duration": "this_turn"
+        "target": "enemies_in_radius",
+        "radius": 2,
+        "duration": "next_turn"
       }
     ],
     "flags": null,
@@ -2412,7 +2511,8 @@
     "effects": [
       {
         "action": "move_wall",
-        "count": 1
+        "count": 1,
+        "maxFields": 2
       }
     ],
     "flags": null,
@@ -2430,12 +2530,15 @@
     "cost": null,
     "effects": [
       {
-        "action": "reset_state"
+        "action": "reset_all_walls"
+      },
+      {
+        "action": "end_turn_immediately"
       }
     ],
     "flags": null,
-    "parse_confidence": "high",
-    "parse_notes": null,
+    "parse_confidence": "manual",
+    "parse_notes": "Vorherige Fassung rief den nicht implementierten Handler 'reset_state' auf (der ausserdem fuer Figuren-Resets gedacht ist, nicht fuer Waende) und liess 'Zug sofort beenden' weg. Jetzt: dedizierter reset_all_walls-Handler (setzt zusaetzlich pendingWallPlacement fuer die Pro-Spieler-Wandsetzung) + Zugende.",
     "raw_description": "Alle wände werden zurückgesetzt (auch zerstörte). Jeder spieler setzt anschliessend 1 wand an eine beliebige stelle. Beende deinen zug sofort."
   },
   {
@@ -2468,22 +2571,13 @@
     "cost": null,
     "effects": [
       {
-        "action": "create_shadow_clone",
-        "target": "self",
-        "position": "adjacent_to_own_figure",
-        "count": 2,
-        "expires": "start_of_own_next_turn"
-      },
-      {
         "action": "reassign_hero_figure"
       }
     ],
-    "flags": {
-      "not_playable_with_flag": true
-    },
+    "flags": null,
     "parse_confidence": "high",
     "parse_notes": null,
-    "raw_description": "Erstelle 2 schattenklone angrenzend zu deiner figur. Bestimme neu, welche die heldenfigur ist. Diese klone verschwinden zu beginn deines nächsten zuges. Nicht spielbar während du die flagge trägst. Zu bewegende felder dürfen die heldenfigur und auch der klon fahren. Karten können auch vom klon aus gespielt werden, jedoch kann er keine flaggen tragen oder gegner schnappen. Wird deine heldenfigur oder der klon geschnappt, entferne den klon aus dem spiel."
+    "raw_description": "enthülle deine heldenfigur. beschwöre 2 schattenklone angrenzend zu deiner figur. bestimme neu, welche die heldenfigur ist. diese klone verschwinden zu beginn deines nächsten zuges. nicht spielbar während du die flagge trägst. (zu bewegende felder dürfen die heldenfigur und auch der klon fahren. karten können auch vom klon aus gespielt werden, jedoch kann er keine flaggen tragen oder gegner schnappen. wird deine heldenfigur oder der klon geschnappt, entferne den klon aus dem spiel.)"
   },
   {
     "id": "105",
@@ -2501,14 +2595,16 @@
     ],
     "effects": [
       {
-        "action": "discard_card",
-        "target": "self",
-        "count": 1
+        "action": "teleport_swap",
+        "target": "context",
+        "with": "context",
+        "radius": 2,
+        "filter": "any_two_arbitrary"
       }
     ],
     "flags": null,
-    "parse_confidence": "high",
-    "parse_notes": null,
+    "parse_confidence": "manual",
+    "parse_notes": "Vorherige Fassung erfand die Aktion 'teleport_swap_two_arbitrary_figures', die es in der Engine nie gab -- die Karte war dadurch komplett funktionslos. Der bereits implementierte und getestete Handler 'teleport_swap' unterstuetzt beliebige Figurenpaare bereits nativ (figureAId/figureBId aus choices, kein Default auf die eigene Heldenfigur, sofern beide explizit gesetzt werden), daher reicht eine reine Aktionsnamens-Korrektur ohne Engine-Aenderung.",
     "raw_description": "Wirf 1 handkarte ab: Wähle 2 beliebige figuren mit einer entfernung von bis zu 2 feldern zueinander. Tausche ihre positionen durch teleportation. Diese karte ersetzt \"tauschkristall\"."
   },
   {
@@ -2524,15 +2620,19 @@
     "cost": null,
     "effects": [
       {
-        "action": "reset_state"
+        "action": "reset_state",
+        "scope": "turn_start"
+      },
+      {
+        "action": "end_turn_immediately"
       }
     ],
     "flags": {
       "cannot_be_countered": true,
       "blocks_further_counters_this_turn": true
     },
-    "parse_confidence": "high",
-    "parse_notes": null,
+    "parse_confidence": "manual",
+    "parse_notes": "Vorherige Fassung rief 'reset_state' ohne scope auf (nicht implementierbar, da game_start- und turn_start-Reset grundlegend verschiedene Ziele sind) und liess 'Zug sofort beenden' weg. Jetzt: turn_start-Reset (Punkte bleiben unberuehrt, da flagPoints separat vom Figuren-Reset gefuehrt wird) + Zugende.",
     "raw_description": "• Bedingung: Gegner betritt ein angrenzendes feld zu deiner figur • Setze alle figuren auf das feld zurück, auf dem sie zu beginn des zuges standen. Erzielte punkte bleiben jedoch bestehen. Diese karte kann nicht gekontert werden. In diesem zug können keine konterkarten mehr gespielt werden. Der zug wird sofort beendet."
   },
   {
@@ -2570,16 +2670,12 @@
       {
         "action": "teleport",
         "target": "context"
-      },
-      {
-        "action": "teleport",
-        "target": "context"
       }
     ],
     "flags": null,
     "parse_confidence": "high",
     "parse_notes": null,
-    "raw_description": "• Bedingung: Gegnerische figur betritt ein angrenzendes feld zu einer befreundeten figur, die sich im umkreis von max. 3 feldern zu deiner figur befindet • Teleportiere die befreundete figur an ein angrenzendes feld zu der figur, von der diese karte gespielt wurde. Die teleportierte figur kann während ihres nächsten zuges keine gegner schnappen."
+    "raw_description": "• bedingung: gegnerische figur betritt ein angrenzendes feld zu einer verbündeten figur, die sich im umkreis von max. 3 feldern zu deiner figur befindet • teleportiere die verbündete figur an ein angrenzendes feld zu der figur, von der diese karte gespielt wurde. die teleportierte figur kann während ihres nächsten zuges keine gegner schnappen. gegnerische figur betritt ein angrenzendes feld zu einer verbündeten figur, die sich im umkreis von max. 3 feldern zu deiner figur befindet"
   },
   {
     "id": "109",
@@ -2599,7 +2695,7 @@
     "flags": null,
     "parse_confidence": "high",
     "parse_notes": null,
-    "raw_description": "Wähle einen befreundeten spieler. Dieser darf in diesem zug ebenfalls 1 karte spielen. Du kannst 1 zusätzliche karte spielen."
+    "raw_description": "wähle einen verbündeten spieler. dieser darf in diesem zug ebenfalls 1 karte spielen. du kannst 1 zusätzliche karte spielen."
   },
   {
     "id": "110",
@@ -2617,6 +2713,6 @@
     "flags": null,
     "parse_confidence": "high",
     "parse_notes": null,
-    "raw_description": "Wähle einen befreundeten spieler. Du und der gewählte spieler wählen jeweils 1 eigene handkarte. Tauscht diese handkarten aus."
+    "raw_description": "wähle einen verbündeten spieler. du und der gewählte spieler wählen jeweils 1 eigene handkarte. tauscht diese handkarten aus."
   }
 ]

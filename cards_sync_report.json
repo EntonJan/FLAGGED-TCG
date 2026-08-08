@@ -1,0 +1,924 @@
+{
+  "timestamp": "2026-08-08T02:32:45.896Z",
+  "api_total": 106,
+  "local_total": 110,
+  "new_cards": [],
+  "changed_cards": [
+    {
+      "id": "078",
+      "name": "Fesselsprung",
+      "kind": "manual_preserved",
+      "old_text": "• Bedingung: Deine figur wird von einem gegnerischen karteneffekt betroffen, der bewegungsunfähigkeit verursacht oder dich min. 1 zug aussetzen lässt • Deine figur wird von dem effekt nicht betroffen.",
+      "new_text": "• bedingung: deine figur wird von einem gegnerischen karteneffekt betroffen, der bewegungsunfähigkeit verursacht oder dich min. 1 zug aussetzen lässt • deine figur wird von dem effekt nicht betroffen. deine figur wird von einem gegnerischen karteneffekt betroffen, der bewegungsunfähigkeit verursacht oder dich min. 1 zug aussetzen lässt"
+    },
+    {
+      "id": "099",
+      "name": "Finsterniswende",
+      "kind": "manual_preserved",
+      "old_text": "Wähle eine uhrzeigerrichtung: Das ganze spielfeld wird um 90° in diese richtung gedreht. Die figuren, portale, gelände und missionsobjekte bleiben jedoch auf ihren positionen stehen. Beende deinen zug sofort.",
+      "new_text": "wirf 1 karte ab und wähle eine uhrzeigerrichtung: das ganze spielfeld wird um 90° in diese richtung gedreht. startlinien werden nicht mitgedreht. portale müssen neu gesetzt werden -sie müssen horizontal zueinander ausgerichtet sein. beende deinen zug sofort. nicht spielbar während dein du oder dein team die flagge trägt. Beende deinen Zug sofort."
+    },
+    {
+      "id": "083",
+      "name": "Toxinschuss",
+      "kind": "reclassified",
+      "old_text": "• bedingung: nach einer bewegung - gegnerische figur befindet sich in freier gerader sichtlinie, min. 3 felder entfernt • die gegnerische figur kann sich in diesem und ihrem nächsten zug nicht mehr bewegen.",
+      "new_text": "• bedingung: nach einer bewegung -gegnerische figur befindet sich in freier gerader sichtlinie, min. 3 felder entfernt • die gegnerische figur kann sich in diesem und ihrem nächsten zug nicht mehr bewegen. nach einer bewegung -gegnerische figur befindet sich in freier gerader sichtlinie, min. 3 felder entfernt",
+      "new_actions": [
+        {
+          "action": "prevent_movement",
+          "target": "context",
+          "duration": "this_turn"
+        }
+      ]
+    },
+    {
+      "id": "093",
+      "name": "Äthersprung",
+      "kind": "reclassified",
+      "old_text": "wirf 1 karte ab: teleportiere dich bis zu 2 felder in dieselbe gerade oder diagonale richtung. beende deinen zug sofort.",
+      "new_text": "wirf 1 karte ab: teleportiere dich bis zu 2 felder in dieselbe gerade oder diagonale richtung. beende deinen zug sofort. Beende deinen Zug sofort.",
+      "new_actions": [
+        {
+          "action": "discard_card",
+          "target": "self",
+          "count": 1
+        },
+        {
+          "action": "teleport",
+          "target": "context"
+        }
+      ]
+    },
+    {
+      "id": "088",
+      "name": "Arkane sperre",
+      "kind": "reclassified",
+      "old_text": "• bedingung: gegner spielt eine klassenkarte • wirf 1 karte ab: negiere den effekt und lege die karte auf den ablagestapel. du kannst diese karte nur 2 mal im deck besitzen. diese karte ersetzt „siegel des bannamuletts“.",
+      "new_text": "• bedingung: gegner spielt eine klassenkarte oder eine gegnerische falle des typs klassenkarte wird ausgelöst • wirf 1 karte ab: negiere den effekt und lege die karte auf den ablagestapel. du kannst diese karte nur 2 mal im deck besitzen. diese karte ersetzt „siegel des bannamuletts“. gegner spielt eine klassenkarte oder eine gegnerische falle des typs klassenkarte wird ausgelöst",
+      "new_actions": [
+        {
+          "action": "discard_card",
+          "target": "self",
+          "count": 1
+        },
+        {
+          "action": "negate_effect",
+          "target": "triggering_card"
+        },
+        {
+          "action": "discard_to_pile",
+          "target": "triggering_card"
+        }
+      ]
+    },
+    {
+      "id": "073",
+      "name": "Falle: Rabenfalle",
+      "kind": "manual_preserved",
+      "old_text": "Lege die falle verdeckt auf ein freies feld. Betritt eine gegnerische figur das feld, wähle eines: • Der besitzer der figur muss dir seine handkarten zeigen. • Siehe die obersten 3 Karten seines decks an und lege sie in derselben reihenfolge zurück. Die falle wird danach zerstört. Du kannst diese karte nur 1 mal im deck besitzen. Diese karte ersetzt \"auge des raben\". Du kannst max. 5 fallen im deck besitzen.",
+      "new_text": "lege die falle verdeckt auf ein freies feld. betritt eine gegnerische figur das feld, wähle eines: • der besitzer der figur muss dir seine handkarten zeigen. • siehe die obersten 3 karten seines decks an und lege sie in eine beliebige reihenfolge zurück. die falle wird danach zerstört. du kannst diese karte nur 1 mal im deck besitzen. du kannst max. 5 fallen im deck besitzen. diese karte ersetzt \"auge des raben\"."
+    },
+    {
+      "id": "077",
+      "name": "Fernschuss",
+      "kind": "reclassified",
+      "old_text": "• bedingung: nach einer bewegung - gegnerische figur befindet sich in freier gerader sichtlinie, genau 3 felder entfernt • wirf 1 karte ab: die gegnerische figur wird geschnappt. diese karte kann nicht von einem schattenklon aus gespielt werden. du kannst diese karte nur 2 mal im deck besitzen.",
+      "new_text": "• bedingung: nach einer bewegung -gegnerische figur befindet sich in freier gerader sichtlinie, genau 3 felder entfernt • wirf 1 karte ab: die gegnerische figur wird geschnappt. diese karte kann nicht von einem schattenklon aus gespielt werden. du kannst diese karte nur 2 mal im deck besitzen. nach einer bewegung -gegnerische figur befindet sich in freier gerader sichtlinie, genau 3 felder entfernt",
+      "new_actions": [
+        {
+          "action": "discard_card",
+          "target": "self",
+          "count": 1
+        },
+        {
+          "action": "capture_figure",
+          "target": "context"
+        }
+      ]
+    },
+    {
+      "id": "065",
+      "name": "Winziger eilsamen",
+      "kind": "manual_preserved",
+      "old_text": "Bewege dich um 1 zusätzliches feld.",
+      "new_text": "du kannst dich diesen zug um 1 zusätzliches feld bewegen."
+    },
+    {
+      "id": "110",
+      "name": "Klingenpakt",
+      "kind": "reclassified",
+      "old_text": "wähle einen befreundeten spieler. du und der gewählte spieler wählen jeweils 1 eigene handkarte. tauscht diese handkarten aus.",
+      "new_text": "wähle einen verbündeten spieler. du und der gewählte spieler wählen jeweils 1 eigene handkarte. tauscht diese handkarten aus.",
+      "new_actions": [
+        {
+          "action": "swap_hand_card"
+        }
+      ]
+    },
+    {
+      "id": "069",
+      "name": "Eilsamen",
+      "kind": "manual_preserved",
+      "old_text": "Wähle eines: • Deine Heldenfigur oder dein Begleiter kann sich in diesem Zug um 1 zusätzliches Feld bewegen. • Wähle eine befreundete Figur: Sie kann sich in ihrem nächsten Zug um 1 zusätzliches Feld bewegen.",
+      "new_text": "wähle eines: • deine heldenfigur oder dein begleiter kann sich in diesem zug 1 um zusätzliches feld bewegen. • wähle eine figur eines verbündeten spielers: sie kann sich in ihrem nächsten zug um 1 zusätzliches feld bewegen."
+    },
+    {
+      "id": "080",
+      "name": "Rückschritt",
+      "kind": "reclassified",
+      "old_text": "• konter: nach einer bewegung - gegnerische figur befindet sich in freier gerader sichtlinie zu deiner figur • wirf 1 karte ab: bewege dich um 1 feld in eine beliebige richtung. du kannst mit dieser bewegung keine gegner schnappen. du kannst diese karte nur 2 mal im deck besitzen.",
+      "new_text": "• konter: nach einer bewegung -gegnerische figur befindet sich in freier gerader sichtlinie zu deiner figur • wirf 1 karte ab: bewege dich um 1 feld in eine beliebige richtung. du kannst mit dieser bewegung keine gegner schnappen. du kannst diese karte nur 2 mal im deck besitzen.",
+      "new_actions": [
+        {
+          "action": "discard_card",
+          "target": "self",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "095",
+      "name": "Blitzstoss",
+      "kind": "manual_preserved",
+      "old_text": "• Bedingung: Gegnerische figur betritt ein feld in freier gerader sichtlinie • Bewege die gegnerische figur um 1 feld in eine beliebige richtung.",
+      "new_text": "• bedingung: gegnerische figur betritt ein feld in freier gerader sichtlinie • bewege die gegnerische figur um 1 feld in eine beliebige richtung. gegnerische figur betritt ein feld in freier gerader sichtlinie"
+    },
+    {
+      "id": "106",
+      "name": "Zeitkrümmung",
+      "kind": "manual_preserved",
+      "old_text": "• Bedingung: Gegner betritt ein angrenzendes feld zu deiner figur • Setze alle figuren auf das feld zurück, auf dem sie zu beginn des zuges standen. Erzielte punkte bleiben jedoch bestehen. Diese karte kann nicht gekontert werden. In diesem zug können keine konterkarten mehr gespielt werden. Der zug wird sofort beendet.",
+      "new_text": "• bedingung: gegner betritt ein angrenzendes feld zu deiner figur • setze alle figuren durch teleportation auf das feld zurück, auf dem sie zu beginn des zuges standen. erzielte punkte bleiben jedoch bestehen. diese karte kann nicht gekontert werden. in diesem zug können keine konterkarten mehr gespielt werden. der zug wird sofort beendet. gegner betritt ein angrenzendes feld zu deiner figur"
+    },
+    {
+      "id": "104",
+      "name": "Spiegelverdoppelung",
+      "kind": "reclassified",
+      "old_text": "erstelle 2 schattenklone angrenzend zu deiner figur. bestimme neu, welche die heldenfigur ist. diese klone verschwinden zu beginn deines nächsten zuges. nicht spielbar während du die flagge trägst. zu bewegende felder dürfen die heldenfigur und auch der klon fahren. karten können auch vom klon aus gespielt werden, jedoch kann er keine flaggen tragen oder gegner schnappen. wird deine heldenfigur oder der klon geschnappt, entferne den klon aus dem spiel.",
+      "new_text": "enthülle deine heldenfigur. beschwöre 2 schattenklone angrenzend zu deiner figur. bestimme neu, welche die heldenfigur ist. diese klone verschwinden zu beginn deines nächsten zuges. nicht spielbar während du die flagge trägst. (zu bewegende felder dürfen die heldenfigur und auch der klon fahren. karten können auch vom klon aus gespielt werden, jedoch kann er keine flaggen tragen oder gegner schnappen. wird deine heldenfigur oder der klon geschnappt, entferne den klon aus dem spiel.)",
+      "new_actions": [
+        {
+          "action": "reassign_hero_figure"
+        }
+      ]
+    },
+    {
+      "id": "085",
+      "name": "Waldsegen",
+      "kind": "manual_preserved",
+      "old_text": "Wähle eines: • Du kannst dich in diesem zug um 2 zusätzliche horizontale felder bewegen. • Wähle einen befreundeten spieler: Seine heldenfigur kann sich in seinem nächsten zug um 2 zusätzliche horizontale felder bewegen.",
+      "new_text": "wähle eines: • du kannst dich in diesem zug um 2 zusätzliche felder horizontal bewegen. • wähle einen verbündeten spieler: seine heldenfigur kann sich in seinem nächsten zug um 2 zusätzliche felder horizontal bewegen."
+    },
+    {
+      "id": "102",
+      "name": "Nullpunkt",
+      "kind": "manual_preserved",
+      "old_text": "Alle wände werden zurückgesetzt (auch zerstörte). Jeder spieler setzt anschliessend 1 wand an eine beliebige stelle. Beende deinen zug sofort.",
+      "new_text": "alle wände werden zurückgesetzt (auch zerstörte). jeder spieler setzt anschliessend 1 wand an eine beliebige stelle. beende deinen zug sofort. Beende deinen Zug sofort."
+    },
+    {
+      "id": "089",
+      "name": "Arkaner zeitriss",
+      "kind": "manual_preserved",
+      "old_text": "Setze alle figuren und flaggen im spiel auf ihre startpositionen zurück. Diese karte kann nicht gekontert werden. In diesem zug können keine konterkarten mehr gespielt werden. Der zug wird sofort beendet. Setze deinen nächsten zug aus.",
+      "new_text": "setze alle figuren und flaggen im spiel durch teleportation auf ihre startpositionen zurück. diese karte kann nicht gekontert werden. in diesem zug können keine konterkarten mehr gespielt werden. der zug wird sofort beendet. setze deinen nächsten zug aus. Du kannst dich in den nächsten 2 Zügen nicht bewegen."
+    },
+    {
+      "id": "107",
+      "name": "Flaggenwechsel",
+      "kind": "manual_preserved",
+      "old_text": "Wähle einen angrenzenden befreundeten spieler in freier gerader sichtlinie: Übernimm seine flagge, oder übergib ihm die flagge falls du sie trägst.",
+      "new_text": "wähle eine angrenzende verbündete heldenfigur in freier gerader sichtlinie: übernimm ihre flagge, oder übergib ihr die flagge falls du sie trägst."
+    },
+    {
+      "id": "086",
+      "name": "Wolfmodus",
+      "kind": "reclassified",
+      "old_text": "diese karte aktiviert den wolfmodus: in jedem deiner züge kann sich deine heldenfigur 1 zusätzliches feld bewegen, sie kann jedoch im umkreis von 1 feld geschnappt werden. du kannst den wolfmodus jederzeit in deinem zug deaktivieren. auf einer figur kann immer nur 1 wolfmodus aktiv sein. du kannst diese karte nur 2 mal im deck besitzen.",
+      "new_text": "diese karte aktiviert den wolfmodus: in jedem deiner züge kann sich deine heldenfigur um 1 zusätzliches feld bewegen. sie kann jedoch im umkreis von 1 feld geschnappt werden -auch durch wände. du kannst den wolfmodus jederzeit in deinem zug deaktivieren. auf einer figur kann immer nur 1 wolfmodus aktiv sein. du kannst diese karte nur 2 mal im deck besitzen. Deine Figur kann im Umkreis von 1 Feld geschnappt werden.",
+      "new_actions": [
+        {
+          "action": "toggle_wolf_mode"
+        }
+      ]
+    },
+    {
+      "id": "108",
+      "name": "Göttliches eingreifen",
+      "kind": "reclassified",
+      "old_text": "• bedingung: gegnerische figur betritt ein angrenzendes feld zu einer befreundeten figur, die sich im umkreis von max. 3 feldern zu deiner figur befindet • teleportiere die befreundete figur an ein angrenzendes feld zu der figur, von der diese karte gespielt wurde. die teleportierte figur kann während ihres nächsten zuges keine gegner schnappen.",
+      "new_text": "• bedingung: gegnerische figur betritt ein angrenzendes feld zu einer verbündeten figur, die sich im umkreis von max. 3 feldern zu deiner figur befindet • teleportiere die verbündete figur an ein angrenzendes feld zu der figur, von der diese karte gespielt wurde. die teleportierte figur kann während ihres nächsten zuges keine gegner schnappen. gegnerische figur betritt ein angrenzendes feld zu einer verbündeten figur, die sich im umkreis von max. 3 feldern zu deiner figur befindet",
+      "new_actions": [
+        {
+          "action": "teleport",
+          "target": "context"
+        }
+      ]
+    },
+    {
+      "id": "066",
+      "name": "Begleiter: Fährtenwolf",
+      "kind": "reclassified",
+      "old_text": "beschwöre den begleiter \"fährtenwolf\" angrenzend zu deiner figur. der wolf kann sich ab deinem nächsten zug in jedem deiner züge bis zu 2 felder bewegen und gegner schnappen. er kann keine flaggen tragen und du kannst keine karten vom wolf aus spielen. wird der wolf geschnappt, entferne ihn aus dem spiel. du kannst nur 1 begleiter im deck besitzen.",
+      "new_text": "beschwöre den begleiter \"fährtenwolf\" angrenzend zu deiner figur. der wolf kann sich ab deinem nächsten zug in jedem deiner züge bis zu 2 felder bewegen und gegner schnappen. er kann keine flaggen tragen und du kannst keine karten vom wolf aus spielen. wird deine heldenfigur oder der wolf geschnappt, entferne den wolf aus dem spiel. du kannst nur 1 begleiter im deck besitzen.",
+      "new_actions": [
+        {
+          "action": "summon_companion"
+        }
+      ]
+    },
+    {
+      "id": "109",
+      "name": "Hand des Ätherschöpfers",
+      "kind": "reclassified",
+      "old_text": "wähle einen befreundeten spieler. dieser darf in diesem zug ebenfalls 1 karte spielen. du kannst 1 zusätzliche karte spielen.",
+      "new_text": "wähle einen verbündeten spieler. dieser darf in diesem zug ebenfalls 1 karte spielen. du kannst 1 zusätzliche karte spielen.",
+      "new_actions": [
+        {
+          "action": "play_additional_card",
+          "target": "self",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "081",
+      "name": "Spurenleser",
+      "kind": "reclassified",
+      "old_text": "ziehe 3 karten und wirf anschliessend 1 handkarte ab. du kannst diese karte nur 2 mal im deck besitzen. diese karte ersetzt \"gedankentfaltung\".",
+      "new_text": "ziehe 3 karten und wirf anschliessend 1 handkarte ab. du kannst diese karte nur 2 mal im deck besitzen. diese karte ersetzt \"gedankentfaltung\". Wirf anschliessend 1 Handkarte ab.",
+      "new_actions": [
+        {
+          "action": "draw_card",
+          "target": "self",
+          "count": 3
+        },
+        {
+          "action": "discard_card",
+          "target": "self",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "087",
+      "name": "Zweite jagd",
+      "kind": "reclassified",
+      "old_text": "du kannst diese karte nur spielen, wenn dein begleiter bereits geschnappt wurde. wirf 1 karte ab und beschwöre ihn auf ein angrenzendes feld.",
+      "new_text": "du kannst diese karte nur spielen, wenn dein begleiter bereits geschnappt wurde. wirf 1 karte ab: spiele diese karte als kopie deiner ursprpünglichen Begleiterkarte.",
+      "new_actions": [
+        {
+          "action": "discard_card",
+          "target": "self",
+          "count": 1
+        },
+        {
+          "action": "copy_card"
+        }
+      ]
+    },
+    {
+      "id": "082",
+      "name": "Tarnmantel",
+      "kind": "reclassified",
+      "old_text": "erstelle 1 schattenklon angrenzend zu deiner figur. bestimme neu, welche die heldenfigur ist. nachdem du eine karte gespielt hast, verschwindet der klon. nicht spielbar während du die flagge trägst. zu bewegende felder dürfen die heldenfigur und auch der klon fahren. karten können auch vom klon aus gespielt werden, jedoch kann er keine flaggen tragen oder gegner schnappen. wird deine heldenfigur oder der klon geschnappt, entferne den klon aus dem spiel.",
+      "new_text": "enthülle deine heldenfigur. beschwöre 1 schattenklon angrenzend zu deiner figur. bestimme neu, welche die heldenfigur ist. nachdem du eine karte gespielt hast, verschwindet der klon. nicht spielbar während du die flagge trägst. (zu bewegende felder dürfen die heldenfigur und auch der klon fahren. karten können auch vom klon aus gespielt werden, jedoch kann er keine flaggen tragen oder gegner schnappen. wird deine heldenfigur oder der klon geschnappt, entferne den klon aus dem spiel.)",
+      "new_actions": [
+        {
+          "action": "reassign_hero_figure"
+        }
+      ]
+    },
+    {
+      "id": "096",
+      "name": "Dimensionstor",
+      "kind": "manual_preserved",
+      "old_text": "Platziere deine portale neu - sie müssen horizontal zueinander ausgerichtet sein.",
+      "new_text": "platziere deine portale neu -sie müssen horizontal zueinander ausgerichtet sein."
+    },
+    {
+      "id": "061",
+      "name": "Siegel des bannamuletts",
+      "kind": "reclassified",
+      "old_text": "• bedingung: gegner spielt eine klassenkarte • wirf 2 karten ab: negiere den effekt und lege die karte auf den ablagestapel. du kannst diese karte nur 2 mal im deck besitzen.",
+      "new_text": "• bedingung: gegner spielt eine klassenkarte oder eine gegnerische falle des typs klassenkarte wird ausgelöst • wirf 2 karten ab: negiere den effekt und lege die karte auf den ablagestapel. du kannst diese karte nur 2 mal im deck besitzen. gegner spielt eine klassenkarte oder eine gegnerische falle des typs klassenkarte wird ausgelöst",
+      "new_actions": [
+        {
+          "action": "discard_card",
+          "target": "self",
+          "count": 2
+        },
+        {
+          "action": "negate_effect",
+          "target": "triggering_card"
+        },
+        {
+          "action": "discard_to_pile",
+          "target": "triggering_card"
+        }
+      ]
+    },
+    {
+      "id": "091",
+      "name": "Astralreise",
+      "kind": "reclassified",
+      "old_text": "wirf 2 karten ab: teleportiere dich auf eines deiner portale. beende deinen zug sofort. nicht spielbar während du die flagge trägst.",
+      "new_text": "wirf 2 karten ab: teleportiere dich auf eines deiner portale. beende deinen zug sofort. nicht spielbar während du die flagge trägst. Beende deinen Zug sofort.",
+      "new_actions": [
+        {
+          "action": "discard_card",
+          "target": "self",
+          "count": 2
+        },
+        {
+          "action": "teleport",
+          "target": "context"
+        }
+      ]
+    },
+    {
+      "id": "058",
+      "name": "Eilsamenbeutel",
+      "kind": "reclassified",
+      "old_text": "suche in deinem deck nach bis zu 3 karten mit \"eilsamen\" im namen. zeige sie vor und nimm sie auf deine hand. mische dein deck. du kannst in diesem zug 1 zusätzliche karte spielen.",
+      "new_text": "suche in deinem deck nach bis zu 3 karten mit „eilsamen“ im namen. zeige sie offen vor und nimm sie auf die hand. mische dein deck. du darfst in diesem zug 1 zusätzliche karte spielen.",
+      "new_actions": [
+        {
+          "action": "search_deck",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "id": "032",
+      "name": "Ritterschritt",
+      "kind": "reclassified",
+      "old_text": "bewege dich um bis zu 2 zusätzliche felder.",
+      "new_text": "du kannst dich diesen zug um 2 zusätzliche felder bewegen.",
+      "new_actions": [
+        {
+          "action": "move",
+          "target": "self",
+          "fields": 2
+        }
+      ]
+    },
+    {
+      "id": "006",
+      "name": "Echobruch",
+      "kind": "manual_preserved",
+      "old_text": "• Bedingung: Gegnerische figur bewegt sich min. Um 1 zusätzliches feld • In deinem nächsten zug kannst du dich 2 zusätzliche felder bewegen.",
+      "new_text": "• bedingung: gegnerische figur bewegt sich min. um 1 zusätzliches feld • in deinem nächsten zug kannst du dich um 2 zusätzliche felder bewegen. gegnerische figur bewegt sich min. um 1 zusätzliches feld"
+    },
+    {
+      "id": "055",
+      "name": "Resonanzkristall",
+      "kind": "manual_preserved",
+      "old_text": "Wirf 1 münze. Kopf: Spiele nach diesem zug anschliessend 1 weiteren zug. Zahl: Beende deinen zug sofort.",
+      "new_text": "wirf 1 münze. kopf: spiele nach diesem zug anschliessend 1 weiteren zug. zahl: beende deinen zug sofort. Zahl: Beende deinen Zug sofort."
+    },
+    {
+      "id": "031",
+      "name": "Letzter stand",
+      "kind": "reclassified",
+      "old_text": "bewege dich um 1 zusätzliches feld. diese karte kann nicht gekontert werden. in diesem zug können keine konterkarten mehr gespielt werden. du kannst diese karte nur 2 mal im deck besitzen. diese karte kann im teammodus nicht verwendet werden.",
+      "new_text": "du kannst dich diesen zug um 1 zusätzliches feld bewegen. diese karte kann nicht gekontert werden. in diesem zug können keine konterkarten mehr gespielt werden. du kannst diese karte nur 2 mal im deck besitzen. diese karte kann im teammodus nicht verwendet werden.",
+      "new_actions": [
+        {
+          "action": "move",
+          "target": "self",
+          "fields": 1
+        }
+      ]
+    },
+    {
+      "id": "054",
+      "name": "Eilsamensaat",
+      "kind": "manual_preserved",
+      "old_text": "Deine Figur sowie alle Figuren im Umkreis von 2 Feldern um deine Figur können sich in ihrem nächsten Zug um 2 zusätzliche Felder bewegen. Dieser Effekt wird durch Schattenklone nicht verdoppelt.",
+      "new_text": "deine figur sowie alle figuren (auch feindliche) im umkreis von 2 feldern um deine figur können sich in ihrem nächsten zug um 2 zusätzliche felder bewegen. dieser effekt wird durch schattenkloneffekte nicht auf dieselbe figur vervielfacht. ziehe 1 karte."
+    },
+    {
+      "id": "041",
+      "name": "Ausweichrolle",
+      "kind": "manual_preserved",
+      "old_text": "Bewege dich um 1 zusätzliches feld diagonal.",
+      "new_text": "du kannst dich diesen zug um 1 zusätzliches feld diagonal bewegen."
+    },
+    {
+      "id": "025",
+      "name": "Entwaffnungsgriff",
+      "kind": "manual_preserved",
+      "old_text": "Schaue dir 2 handkarten des gegners an. Wähle anschließend 1 dieser beiden karten, die keine Ultimate-Karte ist, oder 1 verdeckte handkarte. Der gegner muss die gewählte karte ablegen.",
+      "new_text": "sieh dir bis zu 2 beliebige handkarten eines gegners an. wähle anschließend 1 dieser beiden karten, die keine Ultimate-Karte ist, oder 1 verdeckte handkarte. der gegner muss die gewählte karte ablegen."
+    },
+    {
+      "id": "022",
+      "name": "Ätherdeflektion",
+      "kind": "manual_preserved",
+      "old_text": "• Bedingung: Eine deiner figuren wird von einem gegnerischen karteneffekt betroffen • Wähle eine beliebige figur: Die gewählte figur wird stattdessen vom effekt betroffen. Diese karte ersetzt \"riftklingen-resonanz\".",
+      "new_text": "• bedingung: eine deiner figuren wird von einem gegnerischen karteneffekt betroffen • wähle eine beliebige figur: die gewählte figur wird stattdessen vom effekt betroffen. diese karte ersetzt \"riftklingen-resonanz\". eine deiner figuren wird von einem gegnerischen karteneffekt betroffen"
+    },
+    {
+      "id": "016",
+      "name": "Spiegeltausch",
+      "kind": "manual_preserved",
+      "old_text": "• Bedingung: Eine deiner figuren wird von einem gegnerischen karteneffekt betroffen • Tausche die position der figur durch teleportation mit einer anderen befreundeten figur im umkreis von 3 feldern. Die andere figur wird nun das neue ziel des karteneffekts.",
+      "new_text": "• bedingung: eine deiner figuren wird von einem gegnerischen karteneffekt betroffen • tausche die position der figur durch teleportation mit einer anderen verbündeten figur im umkreis von 3 feldern. die andere figur wird nun das neue ziel des karteneffekts. eine deiner figuren wird von einem gegnerischen karteneffekt betroffen"
+    },
+    {
+      "id": "053",
+      "name": "Katapultgriff",
+      "kind": "reclassified",
+      "old_text": "wähle eine angrenzende figur in freier sichtlinie: teleportiere sie um 1 feld in eine beliebige richtung.",
+      "new_text": "wähle eine angrenzende figur in freier sichtlinie: teleportiere sie von deiner figur aus um bis zu 2 felder in eine gerade richtung. diese karte ersetzt \"katapultgriff\".",
+      "new_actions": [
+        {
+          "action": "teleport",
+          "target": "context"
+        }
+      ]
+    },
+    {
+      "id": "045",
+      "name": "Elixier der geschwindigkeit",
+      "kind": "reclassified",
+      "old_text": "bewege dich um bis zu 2 zusätzliche felder.",
+      "new_text": "du kannst dich diesen zug um 2 zusätzliche felder bewegen.",
+      "new_actions": [
+        {
+          "action": "move",
+          "target": "self",
+          "fields": 2
+        }
+      ]
+    },
+    {
+      "id": "018",
+      "name": "Tödliche ruhe",
+      "kind": "reclassified",
+      "old_text": "wirf 1 karte ab: in deinem nächsten zug kannst du 1 zusätzliche karte spielen.",
+      "new_text": "wirf 1 karte ab: in deinem nächsten zug kannst du 1 zusätzliche karte spielen. Du kannst in deinem nächsten Zug keine Karten spielen.",
+      "new_actions": [
+        {
+          "action": "discard_card",
+          "target": "self",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "017",
+      "name": "Todesstoss",
+      "kind": "reclassified",
+      "old_text": "• bedingung: in deinem zug - nach einer bewegung - gegnerische figur steht in freier gerader sichtlinie angrenzend zu deiner figur • die figur wird sofort geschnappt. diese karte kann nicht von einem schattenklon aus gespielt werden, ausser durch schattenmanifest.",
+      "new_text": "• bedingung: in deinem zug -nach einer bewegung -gegnerische figur steht in freier gerader sichtlinie angrenzend zu deiner figur • die figur wird sofort geschnappt. diese karte kann nicht von einem schattenklon aus gespielt werden, ausser durch schattenmanifest. in deinem zug -nach einer bewegung -gegnerische figur steht in freier gerader sichtlinie angrenzend zu deiner figur",
+      "new_actions": [
+        {
+          "action": "capture_figure",
+          "target": "context"
+        }
+      ]
+    },
+    {
+      "id": "039",
+      "name": "Wirbelklinge",
+      "kind": "reclassified",
+      "old_text": "alle figuren im umkreis von 1 feld um deine heldenfigur werden geschnappt.",
+      "new_text": "alle figuren im umkreis von 1 feld um deine heldenfigur werden geschnappt (auch verbündete).",
+      "new_actions": [
+        {
+          "action": "capture_figure",
+          "target": "context"
+        }
+      ]
+    },
+    {
+      "id": "019",
+      "name": "Toxinstoss",
+      "kind": "reclassified",
+      "old_text": "• bedingung: gegnerische figur betritt ein angrenzendes feld zu deiner figur • die gegnerische figur kann sich bis zum anfang ihres nächsten zuges nicht mehr bewegen. du kannst in deinem nächsten zug keine karten spielen.",
+      "new_text": "• bedingung: gegnerische figur betritt ein angrenzendes feld zu deiner figur • die gegnerische figur kann sich bis zum anfang ihres nächsten zuges nicht mehr bewegen. du kannst in deinem nächsten zug keine karten spielen. gegnerische figur betritt ein angrenzendes feld zu deiner figur",
+      "new_actions": [
+        {
+          "action": "prevent_movement",
+          "target": "context",
+          "duration": "this_turn"
+        }
+      ]
+    },
+    {
+      "id": "040",
+      "name": "Wirbelwurf",
+      "kind": "reclassified",
+      "old_text": "wähle eine angrenzende figur in freier sichtlinie: teleportiere sie von deiner figur aus um bis zu 2 felder in eine gerade richtung. diese karte ersetzt \"katapultgriff\".",
+      "new_text": "wähle eine angrenzende figur in freier sichtlinie: teleportiere sie um 1 feld in eine beliebige richtung.",
+      "new_actions": [
+        {
+          "action": "teleport",
+          "target": "context"
+        }
+      ]
+    },
+    {
+      "id": "013",
+      "name": "Schleierflucht",
+      "kind": "reclassified",
+      "old_text": "• bedingung: gegner betritt ein angrenzendes feld • wirf 1 karte ab: enthülle deine heldenfigur und teleportiere sie um 1 feld in eine beliebige richtung. entferne deine schattenklone und erstelle einen neuen angrenzend zur heldenfigur. bestimme neu, welche die heldenfigur ist. nicht spielbar während du die flagge trägst.",
+      "new_text": "• bedingung: gegner betritt ein angrenzendes feld • wirf 1 karte ab: enthülle deine heldenfigur und teleportiere sie um 1 feld in eine beliebige richtung. du kannst durch diese teleportation keine gegner schnappen. entferne deine schattenklone und beschwöre einen neuen angrenzend zur heldenfigur. bestimme neu, welche die heldenfigur ist. nicht spielbar während du die flagge trägst. gegner betritt ein angrenzendes feld",
+      "new_actions": [
+        {
+          "action": "discard_card",
+          "target": "self",
+          "count": 1
+        },
+        {
+          "action": "teleport",
+          "target": "context"
+        },
+        {
+          "action": "remove_shadow_clone"
+        },
+        {
+          "action": "reassign_hero_figure"
+        }
+      ]
+    },
+    {
+      "id": "015",
+      "name": "Seelentausch",
+      "kind": "reclassified",
+      "old_text": "tausche die position durch teleportation mit einer anderen befreundeten figur im umkreis von 3 feldern. diese karte ersetzt \"tauschkristall\".",
+      "new_text": "tausche die position durch teleportation mit einer anderen verbündeten figur im umkreis von 3 feldern. diese karte ersetzt \"tauschkristall\".",
+      "new_actions": [
+        {
+          "action": "teleport_swap",
+          "target": "context"
+        }
+      ]
+    },
+    {
+      "id": "035",
+      "name": "Schildmodus",
+      "kind": "manual_preserved",
+      "old_text": "Du kannst diese karte nur spielen, wenn du deine Figuren in diesem Zug noch nicht bewegt hast. In diesem zug kann sich jede deiner figuren max. 2 felder bewegen. Bis zu beginn deines nächsten zuges können deine figuren nicht geschnappt werden.",
+      "new_text": "du kannst diese karte nur spielen, wenn du deine figuren in diesem zug noch nicht bewegt hast. in diesem zug kann sich jede deiner figuren max. um 2 felder bewegen. bis zu beginn deines nächsten zuges können deine figuren nicht geschnappt werden."
+    },
+    {
+      "id": "030",
+      "name": "Königszug",
+      "kind": "reclassified",
+      "old_text": "bewege dich um 1 zusätzliches feld. gegner dürfen in ihrem nächsten zug keine karten spielen. diese karte kann nicht gekontert werden. in diesem zug können keine konterkarten mehr gespielt werden.",
+      "new_text": "du kannst dich diesen zug um 1 zusätzliches feld bewegen. gegner dürfen in ihrem nächsten zug keine karten spielen. diese karte kann nicht gekontert werden. in diesem zug können keine konterkarten mehr gespielt werden.",
+      "new_actions": [
+        {
+          "action": "move",
+          "target": "self",
+          "fields": 1
+        },
+        {
+          "action": "prevent_card_play",
+          "target": "context"
+        }
+      ]
+    },
+    {
+      "id": "014",
+      "name": "Schleierhülle",
+      "kind": "reclassified",
+      "old_text": "wirf 1 karte ab: enthülle deine heldenfigur. entferne deine schattenklone und erstelle einen neuen angrenzend zur heldenfigur. bestimme neu, welche die heldenfigur ist. nicht spielbar während du die flagge trägst.",
+      "new_text": "wirf 1 karte ab: enthülle deine heldenfigur. entferne deine schattenklone und beschwöre einen neuen angrenzend zur heldenfigur. bestimme neu, welche die heldenfigur ist. nicht spielbar während du die flagge trägst.",
+      "new_actions": [
+        {
+          "action": "discard_card",
+          "target": "self",
+          "count": 1
+        },
+        {
+          "action": "remove_shadow_clone"
+        },
+        {
+          "action": "reassign_hero_figure"
+        }
+      ]
+    },
+    {
+      "id": "044",
+      "name": "Ehrenbanner",
+      "kind": "manual_preserved",
+      "old_text": "Platziere 1 banner auf einem feld. Es kann nicht mehr ziel von wänden oder fallen werden. Fallen darauf werden zerstört.",
+      "new_text": "platziere 1 banner auf einem feld. es kann nicht mehr ziel von wänden oder fallen werden. fallen darauf werden zerstört. ziehe 1 karte."
+    },
+    {
+      "id": "056",
+      "name": "Riftklingen-resonanz",
+      "kind": "reclassified",
+      "old_text": "• bedingung: in deinem zug - gegner spielt eine konterkarte • negiere den effekt und lege die karte auf den ablagestapel.",
+      "new_text": "• bedingung: in deinem zug -gegner spielt eine konterkarte • negiere den effekt und lege die karte auf den ablagestapel. in deinem zug -gegner spielt eine konterkarte",
+      "new_actions": [
+        {
+          "action": "negate_effect",
+          "target": "triggering_card"
+        },
+        {
+          "action": "discard_to_pile",
+          "target": "triggering_card"
+        }
+      ]
+    }
+  ],
+  "needs_manual_review": [
+    {
+      "id": "012",
+      "name": "schattenwechsel",
+      "reason": "mehrere API-Eintraege mit demselben Namen (1/13, 1/12) -- welcher aktuell gueltig ist, ist nicht eindeutig",
+      "raw_text": "enthülle deine heldenfigur. bestimme neu, welche deiner figuren die heldenfigur ist. du kannst dich bis zum ende des zuges nicht mehr bewegen. nicht spielbar während du die flagge trägst. /// Enthülle deine Heldenfigur. Bestimme neu, welche deiner Figuren die Heldenfigur ist. Du kannst dich bis zum Ende des Zuges nicht mehr bewegen. Nicht spielbar während du die Flagge trägst."
+    },
+    {
+      "id": "092",
+      "name": "Ätherraub",
+      "reason": "Text seit letztem Sync geaendert, kein bekanntes Muster",
+      "raw_text": "sieh dir bis zu 2 beliebige handkarten deines gegners an. wähle davon eine klassenkarte (es darf keine konterkarte sein): du darfst sie in diesem zug spielen, als wäre sie deine eigene, oder sie abwerfen."
+    },
+    {
+      "id": "026",
+      "name": "Festungsbrecher",
+      "reason": "Text seit letztem Sync geaendert, kein bekanntes Muster",
+      "raw_text": "zerstöre bis zu 4 wände deiner wahl."
+    },
+    {
+      "id": "034",
+      "name": "Schildkonter",
+      "reason": "Text seit letztem Sync geaendert, kein bekanntes Muster",
+      "raw_text": "• bedingung: gegner betritt ein angrenzendes feld zu deiner figur • positioniere 1 wand auf dem spielfeld neu an eine beliebige stelle. gegner betritt ein angrenzendes feld zu deiner figur"
+    }
+  ],
+  "unchanged": [
+    {
+      "id": "103",
+      "name": "Spiegeltransposition"
+    },
+    {
+      "id": "074",
+      "name": "Falle: Wurzelfalle"
+    },
+    {
+      "id": "079",
+      "name": "Gleitschritt"
+    },
+    {
+      "id": "062",
+      "name": "Sprengladung"
+    },
+    {
+      "id": "090",
+      "name": "Astralregen"
+    },
+    {
+      "id": "075",
+      "name": "Fass!"
+    },
+    {
+      "id": "097",
+      "name": "Eisfessel"
+    },
+    {
+      "id": "068",
+      "name": "Doppelschuss"
+    },
+    {
+      "id": "071",
+      "name": "Falle: Explosivfalle"
+    },
+    {
+      "id": "072",
+      "name": "Falle: Frostfalle"
+    },
+    {
+      "id": "105",
+      "name": "Umkehrsphäre"
+    },
+    {
+      "id": "100",
+      "name": "Frostzirkel"
+    },
+    {
+      "id": "084",
+      "name": "Waffenarsenal"
+    },
+    {
+      "id": "067",
+      "name": "Bruchschuss"
+    },
+    {
+      "id": "076",
+      "name": "Felsensprung"
+    },
+    {
+      "id": "063",
+      "name": "Transfusionsspiegel"
+    },
+    {
+      "id": "064",
+      "name": "Tauschkristall"
+    },
+    {
+      "id": "094",
+      "name": "Ätherstoss"
+    },
+    {
+      "id": "101",
+      "name": "Magischer impuls"
+    },
+    {
+      "id": "047",
+      "name": "Falle: Fangeisen"
+    },
+    {
+      "id": "005",
+      "name": "Dämmertritt"
+    },
+    {
+      "id": "046",
+      "name": "Falle: Auge des raben"
+    },
+    {
+      "id": "049",
+      "name": "Flüstergift"
+    },
+    {
+      "id": "042",
+      "name": "Bannkreis"
+    },
+    {
+      "id": "070",
+      "name": "Falle: Ätherfalle"
+    },
+    {
+      "id": "010",
+      "name": "Schattenreflexe"
+    },
+    {
+      "id": "027",
+      "name": "Flankenstoss"
+    },
+    {
+      "id": "050",
+      "name": "Gedankentfaltung"
+    },
+    {
+      "id": "037",
+      "name": "Klang des singenden schwertes"
+    },
+    {
+      "id": "036",
+      "name": "Schlachtbanner"
+    },
+    {
+      "id": "098",
+      "name": "Eiswall"
+    },
+    {
+      "id": "007",
+      "name": "Flüsterschritt"
+    },
+    {
+      "id": "033",
+      "name": "Runenbann"
+    },
+    {
+      "id": "048",
+      "name": "Felsverschiebung"
+    },
+    {
+      "id": "023",
+      "name": "Donnerbrüller"
+    },
+    {
+      "id": "043",
+      "name": "Blockstellung"
+    },
+    {
+      "id": "060",
+      "name": "Seelenkompass"
+    },
+    {
+      "id": "051",
+      "name": "Gorgonen-trank"
+    },
+    {
+      "id": "057",
+      "name": "Impuls des ring des Äon"
+    },
+    {
+      "id": "028",
+      "name": "Herausforderung"
+    },
+    {
+      "id": "052",
+      "name": "Himmelsbruch"
+    },
+    {
+      "id": "008",
+      "name": "Rauchbombe"
+    },
+    {
+      "id": "024",
+      "name": "Eisenruf"
+    },
+    {
+      "id": "038",
+      "name": "Wandbrecher"
+    },
+    {
+      "id": "011",
+      "name": "Schattenriss"
+    },
+    {
+      "id": "029",
+      "name": "Kampfvorbereitung"
+    },
+    {
+      "id": "009",
+      "name": "Schattenmanifest"
+    },
+    {
+      "id": "021",
+      "name": "Schattenverzehr"
+    },
+    {
+      "id": "059",
+      "name": "Schleierphiole"
+    }
+  ],
+  "unmatched_local_cards": [
+    {
+      "id": "001",
+      "name": "Assassin",
+      "cardType": "Held"
+    },
+    {
+      "id": "002",
+      "name": "Ritter",
+      "cardType": "Held"
+    },
+    {
+      "id": "003",
+      "name": "Waldläufer",
+      "cardType": "Held"
+    },
+    {
+      "id": "004",
+      "name": "Zauberer",
+      "cardType": "Held"
+    },
+    {
+      "id": "012",
+      "name": "Schattenwechsel",
+      "cardType": "Ultimate"
+    },
+    {
+      "id": "020",
+      "name": "Umbrafaden",
+      "cardType": "Ultimate"
+    }
+  ],
+  "ambiguous_api_duplicates": [
+    {
+      "name_de": "schattenwechsel",
+      "api_card_ids": [
+        "1/13",
+        "1/12"
+      ],
+      "detail": [
+        {
+          "card_id": "1/13",
+          "typ": [
+            "klasse",
+            "ultimate"
+          ],
+          "updated_date": "2026-08-07T16:37:12.432000",
+          "effect_de": "enthülle deine heldenfigur. bestimme neu, welche deiner figuren die heldenfigur ist. du kannst dich bis zum ende des zuges nicht mehr bewegen. nicht spielbar während du die flagge trägst."
+        },
+        {
+          "card_id": "1/12",
+          "typ": [
+            "ultimate"
+          ],
+          "updated_date": "2026-08-07T18:45:29.347000",
+          "effect_de": "Enthülle deine Heldenfigur. Bestimme neu, welche deiner Figuren die Heldenfigur ist. Du kannst dich bis zum Ende des Zuges nicht mehr bewegen. Nicht spielbar während du die Flagge trägst."
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "api_cards_total": 106,
+    "unchanged": 49,
+    "new": 0,
+    "changed": 52,
+    "needs_manual_review": 4,
+    "pct_cleanly_classified": 95.3,
+    "text_changed_manual_entries_recommend_human_review": 21
+  }
+}
