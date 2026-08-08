@@ -115,23 +115,39 @@ body { margin: 0; font-family: 'Cinzel', serif; background: #000000; color: #e6e
 }
 h2, h3 { font-family: 'Cinzel Decorative', serif; font-weight: 700; }
 .app-header { padding: 1.5rem 2rem 0; border-bottom: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.55); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
-/* Marke (Logo+Link) steht als eigene Gruppe in der mittleren Spalte eines
-   3-Spalten-Grids -- die leere linke Spalte balanciert die rechte
-   (Login-Button) Spalte aus, dadurch ist die Marke immer wirklich mittig
-   in der Zeile, unabhaengig davon wie breit der Login-Bereich rechts ist. */
-.app-header-top { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 1rem; margin-bottom: 1.1rem; }
-.app-header-brand { grid-column: 2; justify-self: center; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; justify-content: center; }
-.app-header h1 { margin: 0; font-family: 'Cinzel Decorative', serif; font-weight: 700; font-size: 2.1rem; letter-spacing: -0.02em; color: #e6e6e6; }
-.app-header-wordmark { display: flex; align-items: center; gap: 0.6rem; }
-.app-header-logo-img { height: 52px; width: auto; display: block; filter: drop-shadow(0 1px 3px rgba(0,0,0,0.7)); }
-.app-header-suffix { font-weight: 400; opacity: 0.6; font-size: 0.55em; letter-spacing: 0; align-self: center; }
+/* 3-Zonen-Header ueber die volle Breite: links das flagged.ch-Badge, mittig
+   das (grosse) Logo, rechts Login/Nutzer -- je eigene Grid-Spalte, damit
+   alle drei Zonen echten, eigenstaendigen Raum bekommen statt in einer
+   schmalen mittigen Gruppe zusammengedraengt zu sein. Die beiden aeusseren
+   1fr-Spalten sind gleich breit, dadurch bleibt die mittlere (auto-breite)
+   Logo-Zone unabhaengig vom Inhalt links/rechts immer exakt zentriert. */
+.app-header-top { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 1rem; margin-bottom: 1.3rem; }
+.app-header-left { grid-column: 1; justify-self: start; }
+.app-header h1 { margin: 0; font-family: 'Cinzel Decorative', serif; font-weight: 700; font-size: 2.8rem; letter-spacing: -0.02em; color: #e6e6e6; }
+.app-header-wordmark { grid-column: 2; justify-self: center; display: flex; align-items: center; gap: 0.8rem; }
+.app-header-logo-img { height: 88px; width: auto; display: block; filter: drop-shadow(0 1px 4px rgba(0,0,0,0.7)); }
+.app-header-suffix { font-weight: 400; opacity: 0.6; font-size: 0.5em; letter-spacing: 0; align-self: center; }
 .external-site-link { display: inline-flex; align-items: center; gap: 0.4rem; background: #1a1a1a; color: #ffffff; border: 1px solid rgba(255,255,255,0.14); border-radius: 999px; padding: 0.55rem 1.15rem; font-family: 'Cinzel', serif; font-weight: 700; font-size: 0.82rem; letter-spacing: 0.02em; text-decoration: none; white-space: nowrap; transition: background 0.15s ease, border-color 0.15s ease; }
 .external-site-link:hover { background: #2a2a2a; border-color: rgba(255,255,255,0.3); }
 .app-header-actions { grid-column: 3; justify-self: end; display: flex; align-items: center; gap: 0.9rem; }
 .tabs { display: flex; gap: 1.4rem; flex-wrap: wrap; }
-.tab { background: none; border: none; color: rgba(230,230,230,0.6); padding: 0.75rem 0; cursor: pointer; font-family: 'Cinzel', serif; font-size: 0.85rem; letter-spacing: 0.03em; text-transform: uppercase; border-bottom: 2px solid transparent; transition: color 0.15s ease, border-color 0.15s ease; }
-.tab:hover { color: #e6e6e6; }
-.tab.active { color: #ffffff; border-bottom: 2px solid #ffffff; }
+/* Aktiv-/Hover-Indikator: warmer Gold-Glow (dieselbe Akzentfarbe #e0b83a
+   wie ueberall sonst im Spiel -- Score-Zahlen, legendaere Kartenraritaet,
+   Helden-Enthuellungs-Glow) statt Kreis/Oval. Der native Browser-Fokusring
+   (der ovale Umriss beim Anklicken/Tab-Fokus) wird bewusst unterdrueckt und
+   durch denselben Glow ersetzt, damit Maus- UND Tastaturbedienung optisch
+   gleich aussehen -- kein zusaetzliches Kreis-Element im DOM noetig, der
+   Glow ist reiner box-shadow-Blur auf dem Button selbst. */
+.tab { background: none; border: none; border-radius: 6px; color: rgba(230,230,230,0.6); padding: 0.75rem 0.6rem; cursor: pointer; font-family: 'Cinzel', serif; font-size: 0.85rem; letter-spacing: 0.03em; text-transform: uppercase; border-bottom: 2px solid transparent; outline: none; transition: color 0.15s ease, border-color 0.15s ease, box-shadow 0.2s ease; }
+/* Hoehere Spezifitaet (.tabs .tab...) noetig, damit die generische globale
+   Regel "button:hover:not(:disabled)" (grauer Hintergrund + weisser Rand,
+   fuer normale Buttons gedacht) hier NICHT gewinnt -- sonst wuerde ein
+   gehoverter aktiver Tab kurzzeitig auf weiss/grau zurueckfallen statt
+   golden zu bleiben. */
+.tabs .tab:hover { color: #e6e6e6; background: none; border-bottom-color: transparent; box-shadow: 0 0 16px 1px rgba(224,184,58,0.4); }
+.tabs .tab:focus-visible { box-shadow: 0 0 0 1px rgba(224,184,58,0.7), 0 0 16px 2px rgba(224,184,58,0.5); }
+.tabs .tab.active { color: #ffffff; border-bottom: 2px solid #e0b83a; box-shadow: 0 2px 16px -2px rgba(224,184,58,0.7); }
+.tabs .tab.active:hover { background: none; border-bottom-color: #e0b83a; box-shadow: 0 2px 18px -1px rgba(224,184,58,0.85); }
 .app-content { padding: min(20vh, 12rem) 2rem 1.5rem; max-width: 1300px; margin: 0 auto; }
 .panel { background: rgba(10,10,10,0.72); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 1.5rem; position: relative; }
 .panel.error { color: #ff8080; }
@@ -456,22 +472,38 @@ button.danger:hover { background: rgba(163, 51, 51, 0.15); }
 .view-toggle button.active { background: #1a1a1a; color: white; }
 
 /* Card visual (stylized placeholder art) */
-.card-visual { border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.15); display: flex; flex-direction: column; box-shadow: 0 4px 16px rgba(0,0,0,0.4); }
+/* Kein eigener Aussen-Rahmen/Schatten mehr -- das Kartenbild bringt schon
+   einen aufwendig gemalten Rahmen mit, eine zusaetzliche CSS-Box drumherum
+   war rein redundant. position:relative noetig, damit der Typ-Tag (s.u.)
+   als kleines Abzeichen ueber dem Bild verankert werden kann. */
+.card-visual { position: relative; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; }
 .card-visual-art { position: relative; width: 100%; aspect-ratio: 961 / 1323; display: flex; align-items: center; justify-content: center; }
 .card-visual-art .icon-big { font-size: 3rem; opacity: 0.9; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5)); }
 .card-visual-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.card-visual-header { padding: 0.5rem 0.7rem; font-weight: 700; font-size: 0.9rem; background: rgba(0,0,0,0.35); display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+/* Kleines, abgerundetes Abzeichen oben links UEBER dem Bild statt einer
+   vollen, hart-eckigen Kopfzeile darueber -- die Klassenfarbe (via
+   background:inherit von .card-visual, das die Theme-Farbe per Inline-Style
+   traegt) bleibt als farbiger Akzent erhalten, nur ohne die dicke Box. */
+.card-visual-header { position: absolute; top: 0.45rem; left: 0.45rem; z-index: 1; max-width: 68%; padding: 0.3rem 0.6rem; font-weight: 700; font-size: 0.7rem; border-radius: 999px; background: inherit; border: 1px solid rgba(255,255,255,0.25); box-shadow: 0 2px 8px rgba(0,0,0,0.55); display: flex; align-items: center; gap: 0.35rem; }
+.card-visual-header span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .card-visual-small { width: 100%; }
 .card-visual-large { width: 260px; }
 
-/* Hover detail: full card image + separate text panel beside it, anchored to the hovered element */
+/* Hover detail: volles Kartenbild + Textbox daneben, folgt der Cursor-Position (siehe useHoverPreview). */
 .hover-preview { position: fixed; z-index: var(--z-hover-preview); pointer-events: none; display: flex; flex-direction: row; gap: 0.75rem; align-items: flex-start; }
 .hover-preview-card { width: 260px; flex-shrink: 0; }
-.hover-preview-text { width: 280px; max-width: 90vw; max-height: 80vh; overflow-y: auto; background: #14161c; border: 1px solid #2a2e38; border-radius: 10px; padding: 0.9rem 1rem; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
-.hover-preview-text h4 { margin: 0 0 0.35rem 0; font-size: 1rem; }
+/* Warmer, dunkler Look statt neutralem Blaugrau -- passend zum Rest der App
+   (Cinzel-Ueberschrift in der Gold-Akzentfarbe, warmer statt kuehler Rand). */
+.hover-preview-text { width: 280px; max-width: 90vw; max-height: 80vh; overflow-y: auto; background: rgba(13,11,9,0.95); border: 1px solid rgba(224,184,58,0.35); border-radius: 10px; padding: 0.9rem 1rem; box-shadow: 0 8px 28px rgba(0,0,0,0.65), 0 0 22px rgba(224,184,58,0.12); }
+.hover-preview-text h4 { margin: 0 0 0.35rem 0; font-size: 1.05rem; font-family: 'Cinzel Decorative', serif; color: #e0b83a; }
 .hover-preview-text .hp-meta { font-size: 0.78rem; color: #9aa0ab; margin-bottom: 0.6rem; }
 .hover-preview-text .hp-desc { font-size: 0.85rem; line-height: 1.5; color: #dfe1e6; white-space: pre-line; }
-.hover-preview-text .hp-tag { display: inline-block; font-size: 0.72rem; background: #262a33; color: #c4c8cf; padding: 0.15rem 0.5rem; border-radius: 6px; margin: 0 0.3rem 0.3rem 0; }
+.hover-preview-text .hp-tag { display: inline-block; font-size: 0.72rem; background: rgba(224,184,58,0.14); color: #e0b83a; border: 1px solid rgba(224,184,58,0.3); padding: 0.15rem 0.5rem; border-radius: 6px; margin: 0 0.3rem 0.3rem 0; }
+/* Aufgabe 5c: dieselbe Gold-Glow-Sprache wie bei den Nav-Reitern (Aufgabe 1)
+   -- konsistentes "Glow beim Hovern" ueberall in der App. Wird von
+   useHoverPreview() imperativ per classList gesetzt (siehe dort), nicht
+   ueber :hover, damit es exakt an den hover-preview-Zustand gekoppelt ist. */
+.hover-glow-target { box-shadow: 0 0 26px 4px rgba(224,184,58,0.55); border-radius: 8px; transition: box-shadow 0.15s ease; }
 
 .grid-of-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(145px, 160px)); gap: 1.1rem; justify-content: center; }
 .grid-of-cards-large { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
@@ -634,13 +666,17 @@ button.danger:hover { background: rgba(163, 51, 51, 0.15); }
 }
 
 @media (max-width: 640px) {
-  /* Auf schmalen Screens wuerden die zwei leeren 1fr-Balance-Spalten die
-     mittlere Marken-Spalte zu stark einquetschen -- hier stattdessen simpel
-     untereinander stapeln statt nebeneinander zentrieren. */
+  /* Auf schmalen Screens wuerden die drei Grid-Spalten (Link/Logo/Login)
+     nebeneinander zu eng -- hier stattdessen stapeln. "order" bringt das
+     grosse Logo trotz anderer DOM-Reihenfolge (Link zuerst im Markup, fuer
+     Screenreader/Tab-Reihenfolge sinnvoll links->mitte->rechts) optisch an
+     die oberste, prominenteste Stelle. */
   .app-header-top { display: flex; flex-direction: column; align-items: center; gap: 0.7rem; }
-  .app-header-actions { justify-self: unset; }
-  .app-header h1 { font-size: 1.6rem; }
-  .app-header-logo-img { height: 38px; }
+  .app-header-wordmark { order: 1; }
+  .app-header-left { order: 2; }
+  .app-header-actions { order: 3; justify-self: unset; }
+  .app-header h1 { font-size: 2.3rem; }
+  .app-header-logo-img { height: 66px; }
   .external-site-link { font-size: 0.72rem; padding: 0.45rem 0.85rem; }
   .tabs { gap: 0.9rem; overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; padding-bottom: 0.2rem; }
   .tab { padding: 0.6rem 0; font-size: 0.75rem; flex-shrink: 0; }
@@ -4033,43 +4069,71 @@ function CardVisual({ card, size = 'large', showHeader = true }) {
   );
 }
 
-// ---------- HoverPreview: volles Kartenbild + Textbox DANEBEN, verankert am gehoverten Element ----------
+// ---------- HoverPreview: volles Kartenbild + Textbox DANEBEN, verankert an der MAUSPOSITION ----------
+// Vorher war die Box am rect des gehoverten Elements verankert -- bei den
+// meisten Karten-Positionen im Grid griff aber die Bildschirmrand-Klemme
+// (EST_HEIGHT ist gross relativ zur Viewport-Hoehe), wodurch die Box fast
+// immer am selben Y-Wert nahe des unteren Bildschirmrands landete, egal wo
+// im Grid gehovert wurde -- wirkte wie eine feste Position. Jetzt folgt sie
+// direkt der Cursor-Position (mit Versatz) und aktualisiert bei jeder
+// Mausbewegung ueber der Karte.
 function useHoverPreview() {
   const [hovered, setHovered] = useState(null);
   const [showImage, setShowImage] = useState(true);
-  const [pos, setPos] = useState({ x: 0, y: 0, side: 'right' });
+  const [pos, setPos] = useState({ x: 0, y: 0 });
 
   const PREVIEW_CARD_W = 260;
   const PREVIEW_TEXT_W = 280;
   const GAP = 12;
+  const CURSOR_OFFSET = 20;
   const EST_HEIGHT = 460;
+
+  function computePos(clientX, clientY, wantImage) {
+    const totalW = wantImage ? (PREVIEW_CARD_W + GAP + PREVIEW_TEXT_W) : PREVIEW_TEXT_W;
+    let x = clientX + CURSOR_OFFSET;
+    if (x + totalW > window.innerWidth - 10) {
+      x = clientX - CURSOR_OFFSET - totalW;
+      if (x < 10) x = 10;
+    }
+    let y = clientY + CURSOR_OFFSET;
+    if (y + EST_HEIGHT > window.innerHeight - 10) {
+      y = Math.max(10, window.innerHeight - EST_HEIGHT - 10);
+    }
+    return { x, y };
+  }
 
   function bind(card, opts) {
     const wantImage = !opts || opts.showImage !== false;
     return {
       onMouseEnter: (e) => {
-        const rect = e.currentTarget.getBoundingClientRect();
-        const totalW = wantImage ? (PREVIEW_CARD_W + GAP + PREVIEW_TEXT_W) : PREVIEW_TEXT_W;
-        let x = rect.right + GAP;
-        let side = 'right';
-        if (x + totalW > window.innerWidth) {
-          x = rect.left - GAP - totalW;
-          side = 'left';
-          if (x < 10) x = 10;
-        }
-        let y = rect.top;
-        if (y + EST_HEIGHT > window.innerHeight) {
-          y = Math.max(10, window.innerHeight - EST_HEIGHT - 10);
-        }
-        setPos({ x, y, side });
+        // Derselbe Gold-Glow wie bei den Nav-Reitern (Aufgabe 1) -- imperativ
+        // per classList statt ueber eine React-className-Prop, weil bind()
+        // per Spread auf ganz unterschiedliche Wrapper-Elemente angewendet
+        // wird (.card-tile, nackte Grid-Divs, ...) und so an EINER Stelle
+        // fuer alle gleichzeitig greift, ohne jede Aufrufstelle einzeln
+        // anzufassen.
+        e.currentTarget.classList.add('hover-glow-target');
+        setPos(computePos(e.clientX, e.clientY, wantImage));
         setShowImage(wantImage);
         setHovered(card);
       },
-      onMouseLeave: () => setHovered(null),
+      onMouseMove: (e) => {
+        setPos(computePos(e.clientX, e.clientY, wantImage));
+      },
+      onMouseLeave: (e) => {
+        e.currentTarget.classList.remove('hover-glow-target');
+        setHovered(null);
+      },
     };
   }
 
-  const preview = hovered ? (
+  // Per Portal DIREKT in document.body gerendert, nicht an der Aufrufstelle
+  // im Baum (die meist innerhalb von .panel liegt). Grund: .panel hat
+  // backdrop-filter, und jedes Element mit backdrop-filter/transform/filter
+  // wird per CSS-Spezifikation zum "containing block" fuer seine
+  // position:fixed-Nachfahren -- ohne Portal wuerde die Box also relativ
+  // zum Panel statt zum Viewport positioniert, mit teils absurdem Versatz.
+  const preview = hovered ? ReactDOM.createPortal(
     <div className="hover-preview" style={{ left: pos.x, top: pos.y }}>
       {showImage && (
         <div className="hover-preview-card">
@@ -4090,7 +4154,8 @@ function useHoverPreview() {
         {hovered.notPlayableWithFlag && <span className="hp-tag">Nicht mit Flagge spielbar</span>}
         <div className="hp-desc">{hovered.description}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   ) : null;
 
   return { bind, preview };
@@ -7329,15 +7394,15 @@ function App() {
       <div className="tab-bg-vignette" />
       <header className="app-header">
         <div className="app-header-top">
-          <div className="app-header-brand">
-            <h1 className="app-header-wordmark">
-              <img src="images/flagged-logo.png" alt="Flagged" className="app-header-logo-img" />
-              <span className="app-header-suffix"> – Online</span>
-            </h1>
+          <div className="app-header-left">
             <a className="external-site-link" href="https://flagged.ch/" target="_blank" rel="noopener noreferrer">
               flagged.ch ↗
             </a>
           </div>
+          <h1 className="app-header-wordmark">
+            <img src="images/flagged-logo.png" alt="Flagged" className="app-header-logo-img" />
+            <span className="app-header-suffix"> – Online</span>
+          </h1>
           <div className="app-header-actions">
             {!authLoading && <AuthBar user={user} />}
           </div>
