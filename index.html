@@ -646,21 +646,21 @@ button.danger:hover { background: rgba(163, 51, 51, 0.15); }
    Inhalt kleiner dargestellt, damit die Gravur-Schrift sichtbar bleibt. */
 .board-grid { position: absolute; left: 38.3%; top: 15.8%; right: 38.2%; bottom: 21.7%; display: grid; }
 .zone-box { position: absolute; display: flex; align-items: center; justify-content: center; }
-.zone-left-top { left: 30.1%; top: 10.35%; width: 5.9%; height: 17.6%; align-items: flex-end; }    /* Gegner-Deck: linke Spalte, oben (Icon unten) */
-.zone-left-mid { left: 30.1%; top: 32.36%; width: 5.9%; height: 14.9%; align-items: flex-end; }    /* Gegner-Grabmal: linke Spalte, Mitte (Icon unten) */
-.zone-right-top { left: 30.1%; top: 59.06%; width: 5.9%; height: 16.8%; align-items: flex-start; } /* Gegner-Held: linke Spalte, unten (Icon oben) */
-.zone-left-bottom { left: 63.9%; top: 23.48%; width: 5.9%; height: 17.0%; align-items: flex-end; } /* Mein Held: rechte Spalte, oben (Icon unten) */
-.zone-right-mid { left: 63.9%; top: 49.87%; width: 5.9%; height: 17.2%; align-items: flex-start; } /* Mein Grabmal: rechte Spalte, Mitte (Icon oben) */
-.zone-right-bottom { left: 63.9%; top: 73.3%; width: 5.9%; height: 16.8%; align-items: flex-start; } /* Mein Deck: rechte Spalte, unten (Icon oben) */
+.zone-left-top { left: 30.1%; top: 10.35%; width: 5.9%; height: 17.6%; }    /* Gegner-Deck: linke Spalte, oben */
+.zone-left-mid { left: 30.1%; top: 32.36%; width: 5.9%; height: 14.9%; }    /* Gegner-Grabmal: linke Spalte, Mitte */
+.zone-right-top { left: 30.1%; top: 59.06%; width: 5.9%; height: 16.8%; } /* Gegner-Held: linke Spalte, unten */
+.zone-left-bottom { left: 63.9%; top: 23.48%; width: 5.9%; height: 17.0%; } /* Mein Held: rechte Spalte, oben */
+.zone-right-mid { left: 63.9%; top: 49.87%; width: 5.9%; height: 17.2%; } /* Mein Grabmal: rechte Spalte, Mitte */
+.zone-right-bottom { left: 63.9%; top: 73.3%; width: 5.9%; height: 16.8%; } /* Mein Deck: rechte Spalte, unten */
 /* Karten-Inhalt bewusst deutlich kleiner als die Nische (vorher 84.5%/91.8%
    der -- damals falsch gemessenen, zu kleinen -- Box): die Nische umfasst
    jetzt Gravur-Text + Icon zusammen, das Icon selbst nimmt nur etwa die
    halbe Nischenhoehe ein (align-items oben steuert, welche Haelfte). */
-.zone-deck-stack { position: relative; width: 78%; height: 46%; }
-.zone-graveyard-mini { position: relative; width: 78%; height: 46%; cursor: pointer; transition: transform 0.15s ease; transform-origin: center center; }
+.zone-deck-stack { position: relative; width: 88%; height: 84%; }
+.zone-graveyard-mini { position: relative; width: 88%; height: 84%; cursor: pointer; transition: transform 0.15s ease; transform-origin: center center; }
 .zone-graveyard-mini:hover { transform: scale(3.5); z-index: 950; }
 .zone-graveyard-mini-img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 4px; }
-.zone-hero-card { position: relative; width: 78%; height: 46%; cursor: pointer; transition: transform 0.15s ease; transform-origin: center center; }
+.zone-hero-card { position: relative; width: 88%; height: 84%; cursor: pointer; transition: transform 0.15s ease; transform-origin: center center; }
 .zone-hero-card:hover { transform: scale(3.5); z-index: 950; }
 .zone-hero-card-img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 4px; }
 /* Punkt 3a / Nachbesserung: ZWEI Gravuren im Bild sind tatsaechlich
