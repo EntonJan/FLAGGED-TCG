@@ -946,6 +946,41 @@ button.danger:hover { background: rgba(163, 51, 51, 0.15); }
   .case-slot-buy { font-size: 0.52rem; padding: 0.1rem 0.4rem; }
   .case-gauge { font-size: 0.46rem; }
 }
+
+/* =======================================================================
+   Aufgabe E: Inventar-Overlay -- statt des generischen dunklen Panels ein
+   Rahmen/Hintergrund im Leder-/Rucksack-Look (der Rucksack ist auf mehreren
+   Szenen erreichbar, es gibt kein einzelnes "Rucksack-Innenraum"-Bild dafuer --
+   daher eine Deko-Ueberarbeitung des bestehenden Panels statt einer neuen
+   Detailszene). Nur CSS, InventoryTab selbst bleibt unveraendert.
+   ======================================================================= */
+.tab-overlay-panel-inventory {
+  background:
+    radial-gradient(circle at 18% 12%, rgba(255,214,150,0.10), transparent 42%),
+    radial-gradient(circle at 85% 90%, rgba(0,0,0,0.4), transparent 55%),
+    linear-gradient(160deg, #6b4a2e 0%, #543a24 45%, #3a2717 100%);
+  border: 1px solid rgba(0,0,0,0.5);
+  border-radius: 16px 16px 30px 30px / 18px 18px 36px 36px;
+  box-shadow: inset 0 0 0 1px rgba(224,184,58,0.12), inset 0 0 50px rgba(0,0,0,0.55), 0 24px 60px rgba(0,0,0,0.7);
+  position: relative;
+}
+.tab-overlay-panel-inventory::before {
+  content: ''; position: absolute; inset: 9px; border: 1.5px dashed rgba(224,184,58,0.3);
+  border-radius: inherit; pointer-events: none;
+}
+.tab-overlay-panel-inventory::after {
+  content: ''; position: absolute; left: 50%; top: -1px; transform: translateX(-50%);
+  width: 64px; height: 22px; background: linear-gradient(180deg, #8a6338, #5c3f22);
+  border: 1px solid rgba(0,0,0,0.5); border-top: none; border-radius: 0 0 12px 12px;
+  box-shadow: inset 0 -3px 6px rgba(0,0,0,0.35);
+}
+.tab-overlay-panel-inventory .tab-overlay-header {
+  background: linear-gradient(180deg, rgba(0,0,0,0.32), rgba(0,0,0,0));
+  border-bottom: 1px solid rgba(224,184,58,0.25); border-radius: 16px 16px 0 0;
+}
+.tab-overlay-panel-inventory .tab-overlay-title { color: #f0dcae; }
+.tab-overlay-panel-inventory .tab-overlay-body { color: #f0e6cf; }
+.tab-overlay-panel-inventory .hand-card { background: rgba(20,14,8,0.35); border-radius: 8px; padding: 0.3rem; }
 </style>
 </head>
 <body>
@@ -8042,9 +8077,14 @@ function ShopCaseOverlay({ user, onClose }) {
 // .app-header macht die sonst zum containing block fuer position:fixed). --
 function TabOverlay({ tabId, user, onClose }) {
   const tab = TABS.find((t) => t.id === tabId);
+  // Aufgabe E: Inventar bekommt statt des generischen dunklen Panels einen
+  // Rahmen/Hintergrund, der an den Rucksack erinnert (aus dem es optisch
+  // "gekippt" wirkt) -- nur eine zusaetzliche CSS-Klasse, InventoryTab
+  // selbst (Datenlogik) bleibt unangetastet.
+  const isInventory = tabId === 'inventory';
   return ReactDOM.createPortal(
     <div className="tab-overlay-backdrop" onClick={onClose}>
-      <div className="tab-overlay-panel" onClick={(e) => e.stopPropagation()}>
+      <div className={'tab-overlay-panel' + (isInventory ? ' tab-overlay-panel-inventory' : '')} onClick={(e) => e.stopPropagation()}>
         <div className="tab-overlay-header">
           <h2 className="tab-overlay-title">{tab ? tab.label : ''}</h2>
           <button className="tab-overlay-close" onClick={onClose} aria-label="Schliessen">✕</button>
