@@ -524,18 +524,26 @@ button.danger:hover { background: rgba(163, 51, 51, 0.15); }
 .stack-item-owner { font-size: 0.75rem; color: #9aa0ab; }
 .stack-panel .status { font-weight: 700; }
 .board-wrap { display: flex; justify-content: center; margin-bottom: 1rem; }
-.board-frame { position: relative; width: min(82vw, 1400px, calc((100vh - 90px) * 1)); aspect-ratio: 1254 / 1254; }
+/* Aufgabe C: das Spielbrett verwendet game-table-detail.png (2 Spielsteine-
+   Nahaufnahme aus der Adventure-Szene) statt des vorherigen quadratischen
+   BOARD_BACKGROUND -- reines Reskin (neues Bild + neue Prozent-Koordinaten),
+   die komplette Spiellogik/State-Anbindung darunter ist unveraendert.
+   WICHTIG: die Klassennamen (.zone-left-top usw.) beschreiben die ALTE
+   Bildposition und wurden nicht umbenannt (reines Bezeichner-Erbe) -- welche
+   Zone (Deck/Grab/Held, Gegner/ich) an welcher Stelle sitzt, steht als
+   Kommentar bei jeder Regel. */
+.board-frame { position: relative; width: min(92vw, 1600px); aspect-ratio: 1584 / 672; }
 .board-frame-inner { position: absolute; inset: 0; }
 .board-frame-inner.board-frame-rotated { transform: rotate(180deg); }
 .board-bg-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; user-select: none; }
-.board-grid { position: absolute; left: 29.03%; top: 29.51%; right: 29.11%; bottom: 28.71%; display: grid; }
+.board-grid { position: absolute; left: 37.5%; top: 21.5%; right: 37.5%; bottom: 24.5%; display: grid; }
 .zone-box { position: absolute; display: flex; align-items: center; justify-content: center; }
-.zone-left-top { left: 4.05%; top: 11.96%; width: 11.61%; height: 15.05%; }
-.zone-left-mid { left: 4.05%; top: 33.60%; width: 11.61%; height: 15.32%; }
-.zone-left-bottom { left: 3.91%; top: 60.08%; width: 11.61%; height: 15.32%; }
-.zone-right-top { left: 84.48%; top: 24.87%; width: 11.34%; height: 15.19%; }
-.zone-right-mid { left: 84.48%; top: 51.34%; width: 11.47%; height: 15.19%; }
-.zone-right-bottom { left: 84.35%; top: 72.98%; width: 11.47%; height: 15.19%; }
+.zone-left-top { left: 26%; top: 20%; width: 6%; height: 11%; }      /* Gegner-Deck: linke Spalte, oben */
+.zone-left-mid { left: 26%; top: 38%; width: 6%; height: 11%; }      /* Gegner-Grabmal: linke Spalte, Mitte */
+.zone-right-top { left: 26%; top: 55%; width: 6%; height: 12%; }     /* Gegner-Held: linke Spalte, unten */
+.zone-left-bottom { left: 68%; top: 20%; width: 6%; height: 11%; }   /* Mein Held: rechte Spalte, oben */
+.zone-right-mid { left: 68%; top: 38%; width: 6%; height: 11%; }     /* Mein Grabmal: rechte Spalte, Mitte */
+.zone-right-bottom { left: 68%; top: 55%; width: 6%; height: 12%; }  /* Mein Deck: rechte Spalte, unten */
 .zone-deck-stack { position: relative; width: 84.5%; height: 91.8%; }
 .zone-graveyard-mini { position: relative; width: 84.5%; height: 91.8%; cursor: pointer; transition: transform 0.15s ease; transform-origin: center center; }
 .zone-graveyard-mini:hover { transform: scale(3.5); z-index: 950; }
@@ -558,8 +566,8 @@ button.danger:hover { background: rgba(163, 51, 51, 0.15); }
      Hover-Zoom der Karten abgeschnitten. Die Hand ist auf 5 Karten
      begrenzt, daher ist Scrollen hier nicht zwingend notwendig. */
 }
-.zone-hand-top { left: 22.27%; top: 3.76%; width: 72.06%; height: 12.24%; }
-.zone-hand-bottom { left: 5.40%; top: 84.27%; width: 72.06%; height: 12.24%; }
+.zone-hand-top { left: 37.5%; top: 3%; width: 25%; height: 15%; }
+.zone-hand-bottom { left: 37.5%; top: 80%; width: 25%; height: 17%; }
 .zone-hand-card { position: relative; display: flex; align-items: center; justify-content: center; height: 100%; flex-shrink: 0; }
 .zone-hand-card-image-wrap { position: relative; height: 100%; aspect-ratio: 961 / 1323; transition: transform 0.15s ease; transform-origin: center bottom; }
 .zone-hand-card-image-wrap:hover { transform: scale(4.5); z-index: 950; }
@@ -611,6 +619,37 @@ button.danger:hover { background: rgba(163, 51, 51, 0.15); }
 .wall-edge.clickable { cursor: pointer; background: rgba(224, 184, 58, 0.18); }
 .wall-edge.clickable:hover { background: rgba(224, 184, 58, 0.55); }
 .wall-edge.placed { cursor: default; }
+.wall-edge.wall-drop-target { background: rgba(224, 184, 58, 0.28); }
+
+/* Aufgabe D: Mauern/Fallen-Ablagen in den Holz-Seitenflaechen von
+   game-table-detail.png. Token-Groesse haengt an --wall-token-size (siehe
+   .board-frame style-Attribut), also an der tatsaechlich gerenderten
+   Zellenkante -- kein fester px-Wert. */
+.side-tray { position: absolute; top: 3%; bottom: 3%; width: 22%; display: flex; flex-direction: column; align-items: center; gap: 4%; }
+.side-tray-left { left: 2%; }
+.side-tray-right { right: 2%; }
+.side-tray-mirrored { transform: rotate(180deg); }
+.side-tray-walls { flex: 0 0 auto; display: grid; grid-template-columns: repeat(2, 1fr); gap: 6%; place-items: center; }
+.side-tray-traps { flex: 1; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; gap: 4%; min-height: 0; }
+.wall-token {
+  width: min(var(--wall-token-size, 40px), 100%); height: min(var(--wall-token-size, 40px), 100%);
+  aspect-ratio: 1 / 1; border-radius: 4px; background: rgba(0,0,0,0.25); border: 1px solid rgba(224,184,58,0.25);
+  display: flex; align-items: center; justify-content: center; cursor: grab;
+}
+.wall-token:active { cursor: grabbing; }
+.wall-token-used { opacity: 0.3; border-style: dashed; cursor: default; }
+.wall-token-img { width: 78%; height: 78%; object-fit: contain; pointer-events: none; }
+.trap-token {
+  width: min(calc(var(--wall-token-size, 40px) * 1.35), 100%); aspect-ratio: 961 / 1323; border-radius: 5px;
+  display: flex; align-items: center; justify-content: center; cursor: grab; flex-shrink: 1; min-height: 0;
+}
+.trap-token:active { cursor: grabbing; }
+.trap-token-empty { background: rgba(0,0,0,0.2); border: 1px dashed rgba(224,184,58,0.2); cursor: default; }
+.trap-token-card-wrap, .trap-token-card-wrap .card-visual { width: 100%; height: 100%; }
+.trap-token-img { width: 100%; height: 100%; object-fit: contain; border-radius: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.5); }
+@media (max-width: 900px) {
+  .side-tray { display: none; } /* auf schmalen Screens kein Platz neben dem Brett -- Wandsetzen bleibt ueber den bestehenden Klick-Modus/-Button erreichbar */
+}
 .wall-corner { background: transparent; }
 .wall-img { position: relative; width: 100%; height: 100%; object-fit: fill; filter: drop-shadow(0 0 3px rgba(0,0,0,0.8)); z-index: 5; }
 .wall-img-vertical { object-fit: cover; transform: scaleX(2.3); }
@@ -5889,6 +5928,76 @@ function FlyingCard({ from, to, onDone }) {
   );
 }
 
+// Aufgabe D: Wand-/Fallen-Ablagen als eigene, stabile Komponenten auf
+// Modulebene (NICHT innerhalb von GameBoards Render-IIFE definiert) --
+// sonst wuerde React bei jedem Re-Render von GameBoard eine neue
+// Funktionsidentitaet sehen und den kompletten Tray-Teilbaum neu mounten,
+// was ausgerechnet waehrend eines laufenden nativen Drag-Vorgangs (der
+// selbst ueber setState/Re-Render laeuft) das Drag-Quellelement aus dem DOM
+// reissen und den Drag abbrechen koennte.
+function WallTray({ remaining, mine, mirrored, onDragStart, onDragEnd }) {
+  const slots = Array.from({ length: 10 }, (_, i) => i < remaining);
+  return (
+    <div className={`side-tray-walls${mirrored ? ' side-tray-mirrored' : ''}`}>
+      {slots.map((available, i) => (
+        <div
+          key={i}
+          className={`wall-token${available ? '' : ' wall-token-used'}`}
+          draggable={mine && available}
+          onDragStart={mine && available ? onDragStart : undefined}
+          onDragEnd={mine && available ? onDragEnd : undefined}
+          title={mine ? `Wand ${i + 1} von 10${available ? '' : ' (bereits gesetzt)'}` : undefined}
+        >
+          {available && <img src={FIGURE_IMAGES.wall_vertical} alt="Wand" className="wall-token-img" draggable="false" />}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// cardIds (eigene Fallenkarten, real spielbar) ODER faceDownCount (gegnerische
+// Fallenkarten -- nur die Anzahl ist oeffentlich bekannt, der Inhalt bleibt
+// verdeckt, exakt wie bei der bestehenden gegnerischen Handanzeige).
+function TrapTray({ cardIds, mirrored, faceDownCount, baseCanAct, hasFlag, draggedCardRef }) {
+  const items = faceDownCount != null
+    ? Array.from({ length: 5 }, (_, i) => (i < faceDownCount ? 'facedown' : null))
+    : Array.from({ length: 5 }, (_, i) => cardIds[i] || null);
+  return (
+    <div className={`side-tray-traps${mirrored ? ' side-tray-mirrored' : ''}`}>
+      {items.map((item, i) => {
+        if (!item) return <div key={i} className="trap-token trap-token-empty" />;
+        if (item === 'facedown') {
+          return (
+            <div key={i} className="trap-token" title="Gegnerische Falle (verdeckt)">
+              <img src={CARD_BACK_IMAGE} alt="Falle (verdeckt)" className="trap-token-img" />
+            </div>
+          );
+        }
+        const cardId = item;
+        const structuredCard = STRUCTURED_CARDS_DATA.find((c) => c.id === cardId);
+        const displayCard = CARDS_DATA.find((c) => c.id === cardId) || { id: cardId, name: cardId, icon: '🪤', class: 'Neutral' };
+        const playable = baseCanAct && isCardPlayableInV1(structuredCard, hasFlag);
+        return (
+          <div key={cardId} className={`trap-token${playable ? ' draggable-hint' : ''}`} title={displayCard.name}>
+            <div
+              className="trap-token-card-wrap"
+              draggable={playable}
+              onDragStart={(e) => {
+                draggedCardRef.current = structuredCard;
+                e.dataTransfer.setData('text/plain', cardId);
+                e.dataTransfer.effectAllowed = 'move';
+              }}
+              onDragEnd={() => { draggedCardRef.current = null; }}
+            >
+              <CardVisual card={displayCard} size="small" showHeader={false} />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function GameBoard({ matchId, user, onLeaveMatch }) {
   const [doc, setDoc] = useState(null);
   const { bind, preview } = useHoverPreview();
@@ -5912,6 +6021,40 @@ function GameBoard({ matchId, user, onLeaveMatch }) {
   const [selectedDiscardIds, setSelectedDiscardIds] = useState([]);
   const [pendingWallFrom, setPendingWallFrom] = useState(null); // fuer move_wall: erste Wand gewaehlt
   const [errorMsg, setErrorMsg] = useState('');
+
+  // Aufgabe D: Groesse der Wand-/Fallen-Tokens in den Holz-Seitenflaechen wird
+  // aus der TATSAECHLICH gerenderten Zellengroesse des Spielrasters abgeleitet
+  // (per ResizeObserver, nicht hart codiert) -- als CSS-Variable auf .board-frame,
+  // damit sie automatisch mitwaechst/-schrumpft, falls sich die Zellengroesse
+  // je aendert (z.B. anderes Boardformat, andere Bildschirmgroesse).
+  const boardGridRef = useRef(null);
+  const [cellSizePx, setCellSizePx] = useState(48);
+  const [draggedWallToken, setDraggedWallToken] = useState(null); // 'wall' waehrend ein Wand-Token gezogen wird
+  const autoWallModeRef = useRef(false); // true, wenn wallMode NUR fuers Ziehen automatisch aktiviert wurde
+
+  useEffect(() => {
+    const el = boardGridRef.current;
+    // boardGridRef zeigt erst auf ein echtes DOM-Element, sobald die Partie
+    // geladen ist (vorher rendert die Komponente nur "Lade Partie..." ohne
+    // .board-grid) -- deshalb haengt dieser Effekt bewusst an [doc] statt an
+    // [] und versucht bei jeder Aenderung erneut zu beobachten, statt sich
+    // (bei leerem Deps-Array) endgueltig auf "Ref war beim ersten Mount noch
+    // leer" festzulegen.
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    function measure() {
+      const rect = el.getBoundingClientRect();
+      const cols = Engine.Board.STANDARD_1V1_BOARD.width;
+      const rows = Engine.Board.STANDARD_1V1_BOARD.height;
+      const cellW = (rect.width - (cols - 1) * 4) / cols;
+      const cellH = (rect.height - (rows - 1) * 4) / rows;
+      const size = Math.max(16, Math.min(cellW, cellH));
+      setCellSizePx(size);
+    }
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    measure();
+    return () => ro.disconnect();
+  }, [doc]);
 
   useEffect(() => {
     const unsub = db.collection('matches').doc(matchId).onSnapshot((d) => setDoc(d.data()));
@@ -6272,6 +6415,21 @@ function GameBoard({ matchId, user, onLeaveMatch }) {
     clearSelection();
   }
 
+  // Aufgabe D: Drag-Start/-Ende fuer ein Wand-Token aus der Seiten-Ablage.
+  // Aktiviert wallMode NUR falls er noch nicht aktiv war (merkt sich das per
+  // Ref) und schaltet ihn beim Loslassen wieder aus -- der eigentliche
+  // Platzierungs-Aufruf beim Drop laeuft ueber DIESELBE handleWallEdgeClick()
+  // wie beim bisherigen Klick-Flow, also dieselbe Engine-Pruefung/-Aktion
+  // (Engine.Match.attemptPlaceWall), keine neue/parallele Logik.
+  function handleWallTokenDragStart() {
+    if (!wallMode) { setWallMode(true); autoWallModeRef.current = true; }
+    setDraggedWallToken('wall');
+  }
+  function handleWallTokenDragEnd() {
+    setDraggedWallToken(null);
+    if (autoWallModeRef.current) { setWallMode(false); autoWallModeRef.current = false; }
+  }
+
   function handleWallEdgeClick(a, b) {
     // Nullpunkt (102): jeder Spieler MUSS unabhaengig vom Zug 1 Wand setzen --
     // das hat Vorrang vor allem anderen (isMyTurn, cardFlow, wallMode).
@@ -6591,9 +6749,11 @@ function GameBoard({ matchId, user, onLeaveMatch }) {
       edges.push(
         <div
           key={`edge-v-${x},${y}`}
-          className={`wall-edge${placed ? ' placed' : (wallMode ? ' clickable' : '')}`}
+          className={`wall-edge${placed ? ' placed' : (wallMode ? ' clickable' : '')}${draggedWallToken && !placed ? ' wall-drop-target' : ''}`}
           style={{ gridColumn: 2 * Math.min(da.x, db.x) + 2, gridRow: 2 * da.y + 1 }}
           onClick={() => handleWallEdgeClick(a, b)}
+          onDragOver={(e) => { if (draggedWallToken) e.preventDefault(); }}
+          onDrop={(e) => { e.preventDefault(); if (draggedWallToken) handleWallEdgeClick(a, b); }}
         >
           {placed && <img src={FIGURE_IMAGES.wall_vertical} alt="Wand" className="wall-img wall-img-vertical" />}
         </div>
@@ -6611,9 +6771,11 @@ function GameBoard({ matchId, user, onLeaveMatch }) {
       edges.push(
         <div
           key={`edge-h-${x},${y}`}
-          className={`wall-edge${placed ? ' placed' : (wallMode ? ' clickable' : '')}`}
+          className={`wall-edge${placed ? ' placed' : (wallMode ? ' clickable' : '')}${draggedWallToken && !placed ? ' wall-drop-target' : ''}`}
           style={{ gridColumn: 2 * da.x + 1, gridRow: 2 * Math.min(da.y, db.y) + 2 }}
           onClick={() => handleWallEdgeClick(a, b)}
+          onDragOver={(e) => { if (draggedWallToken) e.preventDefault(); }}
+          onDrop={(e) => { e.preventDefault(); if (draggedWallToken) handleWallEdgeClick(a, b); }}
         >
           {placed && <img src={FIGURE_IMAGES.wall_horizontal} alt="Wand" className="wall-img wall-img-horizontal" />}
         </div>
@@ -6846,11 +7008,12 @@ function GameBoard({ matchId, user, onLeaveMatch }) {
       })()}
 
       <div className="board-wrap">
-        <div className="board-frame">
+        <div className="board-frame" style={{ '--wall-token-size': cellSizePx + 'px' }}>
           <div className={`board-frame-inner${flipBoard ? ' board-frame-rotated' : ''}`}>
-          <img src={BOARD_BACKGROUND} alt="Spielfeld" className="board-bg-image" />
+          <img src="images/scenes/game-table-detail.png" alt="Spielfeld" className="board-bg-image" />
 
           <div
+            ref={boardGridRef}
             className="board-grid"
             style={{ gridTemplateColumns: trackTemplate, gridTemplateRows: rowTemplate }}
           >
@@ -6979,7 +7142,14 @@ function GameBoard({ matchId, user, onLeaveMatch }) {
 
           {/* Eigene Hand: liegt in der unteren "HAND"-Leiste, immer sichtbar (kein Klapp-Mechanismus mehr). */}
           <div className="zone-hand-bottom" ref={handZoneRef}>
-            {me.hand.map((cardId) => {
+            {/* Fallenkarten (cardType 'Falle') werden NICHT hier, sondern im
+                Fallen-Fach der rechten Holz-Ablage gezeigt (Aufgabe D) --
+                gleiche Karten, gleicher Spielzug-Mechanismus (startCardFlow),
+                nur eine zweite, thematisch passendere Ablagestelle dafuer. */}
+            {me.hand.filter((cardId) => {
+              const sc = STRUCTURED_CARDS_DATA.find((c) => c.id === cardId);
+              return !sc || sc.cardType !== 'Falle';
+            }).map((cardId) => {
               const structuredCard = STRUCTURED_CARDS_DATA.find((c) => c.id === cardId);
               const displayCard = CARDS_DATA.find((c) => c.id === cardId) || { id: cardId, name: cardId, icon: '❔', class: 'Neutral' };
               const playable = isMyTurn && !chainActive && !cardFlow && !myHandDiscardPending && state.pendingRespawn !== myId && isCardPlayableInV1(structuredCard, state.figures.some((f) => f.owner === myId && f.type === 'hero' && f.carryingFlag));
@@ -7009,6 +7179,40 @@ function GameBoard({ matchId, user, onLeaveMatch }) {
               );
             })}
           </div>
+
+          {/* Aufgabe D: Mauern + Fallen als echte DOM-Elemente in den leeren
+              Holz-Seitenflaechen von game-table-detail.png -- linke Seite
+              gegnerisch (gespiegelt/gedreht, rein informativ), rechte Seite
+              eigene (normal, per Drag-and-Drop spielbar). Ausserhalb des
+              rotierenden Innen-Wrappers, aus demselben Grund wie die Zonen/
+              Handleisten oben: muss unabhaengig von flipBoard immer an der
+              gleichen Bildschirmseite erscheinen. */}
+          {(() => {
+            const opponent = state.players[opponentId];
+            const myTrapCardIds = me.hand.filter((cardId) => {
+              const sc = STRUCTURED_CARDS_DATA.find((c) => c.id === cardId);
+              return sc && sc.cardType === 'Falle';
+            });
+            const opponentTrapCount = opponent.hand.filter((cardId) => {
+              const sc = STRUCTURED_CARDS_DATA.find((c) => c.id === cardId);
+              return sc && sc.cardType === 'Falle';
+            }).length;
+            const baseCanAct = isMyTurn && !chainActive && !cardFlow && !myHandDiscardPending && state.pendingRespawn !== myId;
+            const hasFlag = state.figures.some((f) => f.owner === myId && f.type === 'hero' && f.carryingFlag);
+
+            return (
+              <React.Fragment>
+                <div className="side-tray side-tray-left" title={`Gegner: ${opponent.wallsRemaining} von 10 Mauern übrig`}>
+                  <WallTray remaining={opponent.wallsRemaining} mine={false} mirrored />
+                  <TrapTray cardIds={[]} faceDownCount={Math.min(opponentTrapCount, 5)} mirrored />
+                </div>
+                <div className="side-tray side-tray-right" title={`${me.wallsRemaining} von 10 Mauern übrig`}>
+                  <WallTray remaining={me.wallsRemaining} mine onDragStart={handleWallTokenDragStart} onDragEnd={handleWallTokenDragEnd} />
+                  <TrapTray cardIds={myTrapCardIds} baseCanAct={baseCanAct} hasFlag={hasFlag} draggedCardRef={draggedCardRef} />
+                </div>
+              </React.Fragment>
+            );
+          })()}
         </div>
       </div>
 
