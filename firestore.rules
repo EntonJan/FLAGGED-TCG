@@ -27,8 +27,15 @@ service cloud.firestore {
     // Bestehend: Decks
     // -------------------------------------------------------------
     match /decks/{deckId} {
-      allow read: if request.auth != null &&
-                     (resource.data.ownerId == request.auth.uid || resource.data.isPublic == true);
+      // Lesen fuer alle eingeloggten Nutzer offen (nicht mehr nur Owner/isPublic):
+      // beim Partie-Start liest der Client, der das onSnapshot auf matches/{code}
+      // haelt (typischerweise Spieler 1), BEIDE Decks -- inkl. dem des soeben
+      // beigetretenen Gegners (expandDeck(data.player2.deckId) in initializeMatch()).
+      // Mit der alten ownerId/isPublic-Einschraenkung schlug genau dieser Read fehl
+      // ("Missing or insufficient permissions" beim Partie-Start). Decklisten sind
+      // keine sensiblen Daten (kein Geld/keine privaten Infos), daher ist offenes
+      // Lesen hier ein angemessener Kompromiss. Schreiben bleibt strikt owner-only.
+      allow read: if request.auth != null;
 
       allow create: if request.auth != null &&
                        request.resource.data.ownerId == request.auth.uid;

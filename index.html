@@ -799,7 +799,61 @@ button.danger:hover { background: rgba(163, 51, 51, 0.15); }
      zulassen, statt alles verzerrungsfrei, aber winzig einzupassen. */
   .static-scene-viewport { aspect-ratio: auto; height: 46vh; min-height: 260px; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .static-scene-inner { width: 760px; height: 100%; }
+  .detail-scene-viewport { aspect-ratio: auto; height: 42vh; min-height: 220px; }
+  .tab-overlay-panel { width: 96vw; max-height: 92vh; }
 }
+
+/* =======================================================================
+   Phase 2: Zwischenschritt-Szene (Theke nah) + Detail-Szenen + Tab-Overlay
+   ======================================================================= */
+.medium-scene-viewport { position: relative; width: min(100%, 1100px, 96.9vh); aspect-ratio: 1376 / 768; overflow: hidden; border-radius: 14px; box-shadow: 0 14px 44px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.08); }
+.medium-scene-inner { position: relative; width: 100%; height: 100%; }
+.medium-scene-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; user-select: none; -webkit-user-drag: none; }
+@media (max-width: 900px) {
+  /* Muss NACH der Basisregel oben stehen (gleiche Spezifitaet -- @media
+     allein erhoeht sie nicht -- sonst gewinnt bei gleicher Spezifitaet die
+     spaetere Basisregel per Quellreihenfolge und ueberschreibt overflow-x:
+     auto wieder mit dem geerbten overflow:hidden). Gleiches Muster wie bei
+     .static-scene-viewport: feste Mindestbreite + horizontales Scrollen
+     statt das Bild verzerrungsfrei, aber winzig einzupassen. */
+  .medium-scene-viewport { aspect-ratio: auto; height: 46vh; min-height: 260px; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .medium-scene-inner { width: 700px; height: 100%; }
+}
+
+/* Detail-Szenen (Glaskasten/Buch/Spieltisch nah) dienen in Phase 1 nur als
+   Hintergrund-Kulisse hinter dem sofort geoeffneten Tab-Overlay -- deshalb
+   bewusst ohne eigene Hotspots, nur ein ruhiges Hintergrundbild. */
+.detail-scene-viewport { position: relative; width: min(100%, 1100px, 96.9vh); aspect-ratio: 1376 / 768; overflow: hidden; border-radius: 14px; box-shadow: 0 14px 44px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.08); }
+.detail-scene-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* -- Tab-Overlay/Modal: bestehende Tab-Inhalte OHNE eigene visuelle Integration
+   (kommt in Phase 2 des Features) -- liegt einfach ueber der aktuellen Szene.
+   Per Portal direkt in document.body gerendert (siehe useHoverPreview weiter
+   oben fuer denselben Trick + denselben Grund: .panel/.app-header haben
+   backdrop-filter, das macht sie sonst zum containing block fuer position:fixed). -- */
+.tab-overlay-backdrop {
+  position: fixed; inset: 0; z-index: var(--z-modal); display: flex; align-items: center; justify-content: center;
+  background: rgba(4,3,2,0.75); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+  padding: 2rem 1rem; animation: scene-fade-in 0.35s ease;
+}
+.tab-overlay-panel {
+  position: relative; width: min(94vw, 1200px); max-height: 88vh; overflow-y: auto;
+  background: rgba(10,10,10,0.94); border: 1px solid rgba(224,184,58,0.3); border-radius: 14px;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.7), 0 0 40px rgba(224,184,58,0.08);
+}
+.tab-overlay-header {
+  position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  padding: 1.1rem 1.4rem; background: rgba(10,10,10,0.96); border-bottom: 1px solid rgba(224,184,58,0.25);
+  border-radius: 14px 14px 0 0;
+}
+.tab-overlay-title { margin: 0; font-family: 'Cinzel Decorative', serif; color: #e0b83a; font-size: 1.2rem; }
+.tab-overlay-close {
+  display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px;
+  background: rgba(26,26,26,0.9); color: #e6e6e6; border: 1px solid rgba(255,255,255,0.16); border-radius: 50%;
+  font-size: 1rem; cursor: pointer; outline: none; transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.tab-overlay-close:hover, .tab-overlay-close:focus-visible { box-shadow: 0 0 16px 1px rgba(224,184,58,0.5); border-color: rgba(224,184,58,0.6); }
+.tab-overlay-body { padding: 1.4rem; }
 </style>
 </head>
 <body>
@@ -7500,28 +7554,43 @@ function usePanDrag(onPanLeft, onPanRight) {
 }
 
 // -- Szene "Laden": ein Panoramabild, per Kamera-Schwenk zwischen 2 Positionen --
-function ShopScene({ cameraPos, onPan, onGoToRoom, onOpenTab }) {
+function ShopWideScene({ cameraPos, onPan, onGoToRoom, onOpenTab }) {
   const drag = usePanDrag(() => onPan('left'), () => onPan('right'));
   return (
     <div className="shop-scene-viewport" {...drag}>
       <div className={'shop-scene-pano cam-' + cameraPos}>
-        <img src="images/scenes/shop-kelvarg.png" alt="Laden" className="shop-scene-img" draggable="false" />
+        <img src="images/scenes/shop-wide.png" alt="Laden" className="shop-scene-img" draggable="false" />
 
-        {/* Linke Haelfte: Weltkarte + Regal (aktuell reine Deko, siehe Aufgabenstellung),
-            Tuer mit Vorhang -> Umkleidezimmer. */}
-        <SceneHotspot x={14.2} y={25.3} w={16.7} h={35.7} label="Weltkarte" inert />
-        <SceneHotspot x={34.4} y={17.9} w={14.2} h={69.9} label="Bücherregal" inert />
+        {/* Linke Haelfte: Weltkarte + Regal (reine Deko), Tuer mit Vorhang -> Umkleidezimmer. */}
+        <SceneHotspot x={18} y={19.3} w={17.7} h={41.7} label="Weltkarte" inert />
+        <SceneHotspot x={36.3} y={17.1} w={14.2} h={70.7} label="Bücherregal" inert />
         <SceneHotspot x={0} y={14.9} w={10.4} h={83.3} label="Tür zum Umkleidezimmer" onClick={() => onGoToRoom('dressing-room')} />
 
-        {/* Rechte Haelfte: Glaskasten -> Shop, Buch -> Kartenbibliothek, Rucksack ->
-            Inventar, Tuer mit Feuerschein -> Spielzimmer. */}
-        <SceneHotspot x={52.1} y={43.9} w={15.8} h={18.6} label="Glaskasten – Shop" onClick={() => onOpenTab('shop')} />
-        <SceneHotspot x={67.5} y={46.5} w={11.5} h={18} label="Buch – Kartenbibliothek" onClick={() => onOpenTab('cards')} />
-        <SceneHotspot x={68.8} y={77.4} w={10.7} h={20.8} label="Rucksack – Inventar" onClick={() => onOpenTab('inventory')} />
+        {/* Rechte Haelfte: Theke -> Zwischenschritt (naeher ran), Rucksack -> Inventar,
+            Tuer mit Feuerschein -> Spielzimmer. */}
+        <SceneHotspot x={51.8} y={43.2} w={34.7} h={23.8} label="Theke" onClick={() => onGoToRoom('shop-counter')} />
+        <SceneHotspot x={69.1} y={75.9} w={10.4} h={20.8} label="Rucksack – Inventar" onClick={() => onOpenTab('inventory')} />
         <SceneHotspot x={87.1} y={14.9} w={12.9} h={83.3} label="Tür zum Spielzimmer" onClick={() => onGoToRoom('game-room')} />
       </div>
       <button className="scene-pan-arrow scene-pan-arrow-left" onClick={() => onPan('left')} disabled={cameraPos === 'left'} aria-label="Nach links schwenken (zur Weltkarte)">‹</button>
       <button className="scene-pan-arrow scene-pan-arrow-right" onClick={() => onPan('right')} disabled={cameraPos === 'right'} aria-label="Nach rechts schwenken (zur Theke)">›</button>
+    </div>
+  );
+}
+
+// -- Zwischenschritt "Theke nah": Glaskasten und Buch beide gleichzeitig im Bild,
+// kein Kamera-Schwenk noetig (Bildformat ist dafuer nicht breit genug/noetig). --
+function ShopCounterScene({ onBack, onGoToDetail }) {
+  return (
+    <div className="static-scene-wrap">
+      <div className="medium-scene-viewport">
+        <div className="medium-scene-inner">
+          <img src="images/scenes/shop-counter-medium.png" alt="Theke" className="medium-scene-img" draggable="false" />
+          <SceneHotspot x={13.1} y={40.4} w={47.2} h={24.7} label="Glaskasten – Shop" onClick={() => onGoToDetail('shop-case', 'shop')} />
+          <SceneHotspot x={69.4} y={39.7} w={27.3} h={24.8} label="Buch – Kartenbibliothek" onClick={() => onGoToDetail('shop-book', 'cards')} />
+        </div>
+      </div>
+      <button className="scene-back-btn" onClick={onBack}>↩ Zurück</button>
     </div>
   );
 }
@@ -7546,19 +7615,38 @@ function StaticAdventureScene({ image, alt, hotspots, onBack, backLabel }) {
   );
 }
 
-const SCENE_TITLES = { shop: 'Der Laden', 'dressing-room': 'Umkleidezimmer', 'game-room': 'Spielzimmer' };
+// -- Detail-Szenen (Phase 1: reine Kulisse hinter dem sofort geoeffneten Overlay,
+// keine eigenen Hotspots -- die visuelle Integration kommt in Phase 2). --
+function DetailScene({ image, alt }) {
+  return (
+    <div className="detail-scene-viewport">
+      <img src={image} alt={alt} className="detail-scene-img" draggable="false" />
+    </div>
+  );
+}
 
-function AdventureScene({ room, shopCamera, onPan, onGoToRoom, onOpenTab }) {
+const SCENE_TITLES = {
+  'shop-wide': 'Der Laden', 'shop-counter': 'Der Laden – Theke',
+  'shop-case': 'Der Laden – Kartensammlung', 'shop-book': 'Der Laden – Kartenbibliothek',
+  'dressing-room': 'Umkleidezimmer', 'game-room': 'Spielzimmer', 'game-table': 'Spielzimmer – Spieltisch',
+};
+
+function AdventureScene({ room, shopCamera, onPan, onGoToRoom, onOpenTab, onGoToDetail }) {
   return (
     <div className="adventure-scene">
       <h2 className="scene-room-title">{SCENE_TITLES[room]}</h2>
-      {room === 'shop' && (
-        <ShopScene cameraPos={shopCamera} onPan={onPan} onGoToRoom={onGoToRoom} onOpenTab={onOpenTab} />
+      {room === 'shop-wide' && (
+        <ShopWideScene cameraPos={shopCamera} onPan={onPan} onGoToRoom={onGoToRoom} onOpenTab={onOpenTab} />
       )}
+      {room === 'shop-counter' && (
+        <ShopCounterScene onBack={() => onGoToRoom('shop-wide', 'right')} onGoToDetail={onGoToDetail} />
+      )}
+      {room === 'shop-case' && <DetailScene image="images/scenes/shop-case-detail.png" alt="Glaskasten" />}
+      {room === 'shop-book' && <DetailScene image="images/scenes/shop-book-detail.png" alt="Kartenbibliothek" />}
       {room === 'dressing-room' && (
         <StaticAdventureScene
-          image="images/scenes/dressing-room.png" alt="Umkleidezimmer"
-          onBack={() => onGoToRoom('shop', 'left')} backLabel="Zurück zum Laden"
+          image="images/scenes/dressing-room-wide.png" alt="Umkleidezimmer"
+          onBack={() => onGoToRoom('shop-wide', 'left')} backLabel="Zurück zum Laden"
           hotspots={[
             { x: 22, y: 14, w: 24, h: 67, label: 'Kleiderschrank – Deckbuilder', onClick: () => onOpenTab('builder') },
             { x: 75.4, y: 0, w: 24.6, h: 95, label: 'Regal – Meine Decks', onClick: () => onOpenTab('decks') },
@@ -7568,14 +7656,15 @@ function AdventureScene({ room, shopCamera, onPan, onGoToRoom, onOpenTab }) {
       )}
       {room === 'game-room' && (
         <StaticAdventureScene
-          image="images/scenes/game-room.png" alt="Spielzimmer"
-          onBack={() => onGoToRoom('shop', 'right')} backLabel="Zurück zum Laden"
+          image="images/scenes/game-room-wide.png" alt="Spielzimmer"
+          onBack={() => onGoToRoom('shop-wide', 'right')} backLabel="Zurück zum Laden"
           hotspots={[
-            { x: 30.3, y: 48, w: 45.5, h: 35.3, label: 'Spieltisch – Spielen', onClick: () => onOpenTab('play') },
+            { x: 30.3, y: 40, w: 52, h: 45, label: 'Spieltisch – Spielen', onClick: () => onGoToDetail('game-table', 'play') },
             { x: 13.6, y: 65.5, w: 11.3, h: 26.8, label: 'Rucksack – Inventar', onClick: () => onOpenTab('inventory') },
           ]}
         />
       )}
+      {room === 'game-table' && <DetailScene image="images/scenes/game-table-detail.png" alt="Spieltisch" />}
     </div>
   );
 }
@@ -7599,6 +7688,34 @@ function QuickNavMenu({ open, onToggle, onSelect, isAdmin }) {
   );
 }
 
+// -- Tab-Overlay: bestehender Tab-Inhalt, unveraendert, nur als Modal ueber der
+// Szene statt als eigene Seite. Portal nach document.body (siehe Kommentar bei
+// der CSS-Regel .tab-overlay-backdrop weiter oben -- backdrop-filter auf .panel/
+// .app-header macht die sonst zum containing block fuer position:fixed). --
+function TabOverlay({ tabId, user, onClose }) {
+  const tab = TABS.find((t) => t.id === tabId);
+  return ReactDOM.createPortal(
+    <div className="tab-overlay-backdrop" onClick={onClose}>
+      <div className="tab-overlay-panel" onClick={(e) => e.stopPropagation()}>
+        <div className="tab-overlay-header">
+          <h2 className="tab-overlay-title">{tab ? tab.label : ''}</h2>
+          <button className="tab-overlay-close" onClick={onClose} aria-label="Schliessen">✕</button>
+        </div>
+        <div className="tab-overlay-body">
+          {tabId === 'cards' && <CardList />}
+          {tabId === 'builder' && <DeckBuilder user={user} />}
+          {tabId === 'decks' && <MyDecks user={user} />}
+          {tabId === 'play' && <PlayTab user={user} />}
+          {tabId === 'shop' && <ShopTab user={user} />}
+          {tabId === 'inventory' && <InventoryTab user={user} />}
+          {tabId === 'admin' && isAdminUser(user) && <CardSyncReview user={user} />}
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 const TABS = [
   { id: 'cards', label: 'Karten' },
   { id: 'builder', label: 'Deckbuilder' },
@@ -7609,29 +7726,14 @@ const TABS = [
   { id: 'admin', label: 'Admin: Kartenpflege' },
 ];
 
-// Tab -> Stadt aus der Aiora-Weltkarte (siehe images/backgrounds/bg-<stadt>.jpg).
-// 'admin' hat bewusst keinen Eintrag -- dort bleibt der neutrale Seitenhintergrund.
-// Die eigentliche background-position pro Stadt (unterschiedlich fuer Desktop/
-// Mobile) steckt in den .bg-city-<stadt>-Regeln im <style>-Block, nicht hier --
-// so kann sie responsiv per Media Query variieren (waere ueber ein Inline-
-// style nicht moeglich, das haette jede @media-Regel dafuer uebertrumpft).
-const TAB_BACKGROUNDS = {
-  cards: { city: 'eldinvale' },
-  builder: { city: 'frostwood' },
-  decks: { city: 'kelvarg' },
-  play: { city: 'wornwood' },
-  shop: { city: 'arrenspire' },
-  inventory: { city: 'iskmar' },
-};
-
 function App() {
-  const [activeTab, setActiveTab] = useState('cards');
-  // navMode 'scene' = Adventure-Ansicht (Standard-Einstieg), 'tab' = der
-  // bestehende, unveraenderte Tab-Inhaltsbereich. sceneRoom/shopCamera
-  // steuern NUR die Adventure-Praesentation, nie die Tab-Inhalte selbst.
-  const [navMode, setNavMode] = useState('scene');
-  const [sceneRoom, setSceneRoom] = useState('shop');
+  // Es gibt ab Phase 2 keine eigenstaendige Tab-Homepage mehr -- die Adventure-
+  // Szene ist IMMER im Hintergrund sichtbar, Tab-Inhalte oeffnen sich als
+  // Overlay/Modal darueber (overlay=null -> nichts offen). sceneRoom/shopCamera
+  // steuern NUR die Szenen-Praesentation, nie die Tab-Inhalte selbst.
+  const [sceneRoom, setSceneRoom] = useState('shop-wide');
   const [shopCamera, setShopCamera] = useState('right');
+  const [overlay, setOverlay] = useState(null); // { tab, closeToRoom } | null
   const [quickNavOpen, setQuickNavOpen] = useState(false);
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -7647,30 +7749,44 @@ function App() {
     return unsubscribe;
   }, []);
 
-  function openTab(tabId) {
-    setActiveTab(tabId);
-    setNavMode('tab');
-    setQuickNavOpen(false);
-  }
-  function backToScene() {
-    setNavMode('scene');
-  }
   function goToRoom(room, cameraPos) {
     setSceneRoom(room);
     if (cameraPos) setShopCamera(cameraPos);
+  }
+  // Detail-Szenen (Glaskasten/Buch-Nahaufnahme, Spieltisch-Nahaufnahme) haben
+  // bewusst weder eigene Hotspots noch einen Zurueck-Button (Phase 1: reine
+  // Kulisse hinter dem sofort geoeffneten Overlay). Wird von DORT aus -- z.B.
+  // ueber das Direktzugriffs-Menue -- ein ANDERES Overlay geoeffnet, MUSS
+  // closeToRoom trotzdem auf die uebergeordnete, navigierbare Szene zeigen,
+  // sonst haengt man nach dem Schliessen in der Detail-Szene fest (keine
+  // Hotspots, kein Zurueck-Button erreichbar -- nur ein Reload haette
+  // rausgeholfen).
+  const DETAIL_SCENE_PARENT = { 'shop-case': 'shop-counter', 'shop-book': 'shop-counter', 'game-table': 'game-room' };
+
+  // Direkter Zugriff (Rucksack ueberall, Kleiderschrank/Regal im Umkleidezimmer,
+  // Direktzugriffs-Menue): Szene bleibt im Hintergrund unveraendert (ausser sie
+  // ist eine Sackgassen-Detailszene, siehe oben), Schliessen zeigt wieder
+  // dieselbe (oder die uebergeordnete) Szene.
+  function openOverlay(tabId) {
+    setOverlay({ tab: tabId, closeToRoom: DETAIL_SCENE_PARENT[sceneRoom] || null });
+    setQuickNavOpen(false);
+  }
+  // Ueber eine Detail-Szene oeffnen (Glaskasten/Buch/Spieltisch): navigiert
+  // zuerst zur Detail-Szene, das Overlay merkt sich fuers Schliessen, zu
+  // welcher Zwischen-Szene es zurueckgehen soll.
+  function goToDetail(detailRoom, tabId) {
+    setSceneRoom(detailRoom);
+    setOverlay({ tab: tabId, closeToRoom: DETAIL_SCENE_PARENT[detailRoom] });
+  }
+  function closeOverlay() {
+    if (overlay && overlay.closeToRoom) setSceneRoom(overlay.closeToRoom);
+    setOverlay(null);
   }
 
   const isAdmin = isAdminUser(user);
 
   return (
     <div className="app">
-      {Object.entries(TAB_BACKGROUNDS).map(([tabId, bg]) => (
-        <div
-          key={tabId}
-          className={`tab-bg-layer bg-city-${bg.city}` + (navMode === 'tab' && activeTab === tabId ? ' active' : '')}
-          style={{ backgroundImage: `url(images/backgrounds/bg-${bg.city}.jpg)` }}
-        />
-      ))}
       <div className="tab-bg-vignette" />
       <header className="app-header">
         <div className="app-header-top">
@@ -7684,37 +7800,19 @@ function App() {
             <span className="app-header-suffix"> – Online</span>
           </h1>
           <div className="app-header-actions">
-            <QuickNavMenu open={quickNavOpen} onToggle={() => setQuickNavOpen((v) => !v)} onSelect={openTab} isAdmin={isAdmin} />
+            <QuickNavMenu open={quickNavOpen} onToggle={() => setQuickNavOpen((v) => !v)} onSelect={openOverlay} isAdmin={isAdmin} />
             {!authLoading && <AuthBar user={user} />}
           </div>
         </div>
-        {navMode === 'tab' && (
-          <nav className="tabs">
-            {TABS.filter((tab) => tab.id !== 'admin' || isAdmin).map((tab) => (
-              <button key={tab.id} className={activeTab === tab.id ? 'tab active' : 'tab'} onClick={() => setActiveTab(tab.id)}>
-                {tab.label}
-              </button>
-            ))}
-            <button className="tab tab-back-to-scene" onClick={backToScene}>↩ Zur Szene</button>
-          </nav>
-        )}
       </header>
-      <main className={navMode === 'scene' ? 'app-content app-content-scene' : 'app-content'}>
-        {navMode === 'scene' && (
-          <AdventureScene room={sceneRoom} shopCamera={shopCamera} onPan={setShopCamera} onGoToRoom={goToRoom} onOpenTab={openTab} />
-        )}
-        {navMode === 'tab' && (
-          <React.Fragment>
-            {activeTab === 'cards' && <CardList />}
-            {activeTab === 'builder' && <DeckBuilder user={user} />}
-            {activeTab === 'decks' && <MyDecks user={user} />}
-            {activeTab === 'play' && <PlayTab user={user} />}
-            {activeTab === 'shop' && <ShopTab user={user} />}
-            {activeTab === 'inventory' && <InventoryTab user={user} />}
-            {activeTab === 'admin' && isAdmin && <CardSyncReview user={user} />}
-          </React.Fragment>
-        )}
+      <main className="app-content app-content-scene">
+        <AdventureScene
+          room={sceneRoom} shopCamera={shopCamera}
+          onPan={setShopCamera} onGoToRoom={goToRoom}
+          onOpenTab={openOverlay} onGoToDetail={goToDetail}
+        />
       </main>
+      {overlay && <TabOverlay tabId={overlay.tab} user={user} onClose={closeOverlay} />}
     </div>
   );
 }
