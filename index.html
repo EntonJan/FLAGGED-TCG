@@ -605,8 +605,16 @@ button.danger:hover { background: rgba(163, 51, 51, 0.15); }
 .zone-box { position: absolute; display: flex; align-items: center; justify-content: center; }
 .zone-left-top { left: 26%; top: 20%; width: 6%; height: 11%; }      /* Gegner-Deck: linke Spalte, oben */
 .zone-left-mid { left: 26%; top: 38%; width: 6%; height: 11%; }      /* Gegner-Grabmal: linke Spalte, Mitte */
-.zone-right-top { left: 26%; top: 55%; width: 6%; height: 12%; }     /* Gegner-Held: linke Spalte, unten */
-.zone-left-bottom { left: 68%; top: 20%; width: 6%; height: 11%; }   /* Mein Held: rechte Spalte, oben */
+/* Held-Faecher (.zone-right-top / .zone-left-bottom): urspruengliche Position
+   (Mittelpunkt bei 29%/71% je Spalte) war schlicht FALSCH gemessen -- per
+   Pixel-Scan der PNG (PowerShell/System.Drawing, dunkelster Bildbereich =
+   die gezeichnete Vertiefung) liegt die tatsaechliche Nische bei ca. 33.1%/
+   61.0% (links) bzw. 68.8%/25.9% (rechts), nicht bei 29%/61% bzw. 71%/25.5%
+   wie zuvor angenommen -- daher ragte die Heldenkarte trotz Verkleinerung
+   weiterhin sichtbar aus der Nische heraus. Gleiche Fach-Groesse wie Deck/
+   Grabmal (6%/11%), nur um den korrekt gemessenen Mittelpunkt zentriert. */
+.zone-right-top { left: 30.1%; top: 55.5%; width: 6%; height: 11%; }     /* Gegner-Held: linke Spalte, unten */
+.zone-left-bottom { left: 65.8%; top: 20.4%; width: 6%; height: 11%; }   /* Mein Held: rechte Spalte, oben */
 .zone-right-mid { left: 68%; top: 38%; width: 6%; height: 11%; }     /* Mein Grabmal: rechte Spalte, Mitte */
 .zone-right-bottom { left: 68%; top: 55%; width: 6%; height: 12%; }  /* Mein Deck: rechte Spalte, unten */
 .zone-deck-stack { position: relative; width: 84.5%; height: 91.8%; }
@@ -616,6 +624,21 @@ button.danger:hover { background: rgba(163, 51, 51, 0.15); }
 .zone-hero-card { position: relative; width: 84.5%; height: 91.8%; cursor: pointer; transition: transform 0.15s ease; transform-origin: center center; }
 .zone-hero-card:hover { transform: scale(3.5); z-index: 950; }
 .zone-hero-card-img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 4px; }
+/* Punkt 3a: deckt die verstuemmelte "GRAVEYARD"-Gravur im Bild ab (siehe
+   Kommentar an der JSX-Stelle) -- Hintergrundton aus der Bildvorlage
+   abgetastet, Schrift im selben Gold-Gravur-Stil wie die restliche App. */
+.zone-label-overlay {
+  position: absolute; display: flex; align-items: center; justify-content: center;
+  background: rgba(64, 38, 16, 0.94);
+  color: #cba055; font-family: 'Cinzel', serif; font-size: 0.6rem; letter-spacing: 0.08em;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.6), 0 0 4px rgba(0,0,0,0.4);
+  border-radius: 2px; pointer-events: none; user-select: none;
+}
+.zone-label-left { left: 28.5%; top: 31.5%; width: 10%; height: 7%; transform: rotate(180deg); }
+/* Zweiter Patch (siehe JSX-Kommentar): reine Hintergrundflaeche ohne Text --
+   deckt nur die zweite Gravur ab, wenn kein echtes Icon/keine Karte darueber
+   liegt; kein Rotate noetig, da kein lesbarer Text drin ist. */
+.zone-label-left-inner { left: 28%; top: 38%; width: 11%; height: 4.5%; background: rgba(64, 38, 16, 0.94); z-index: 0; }
 .zone-box.zone-graveyard { cursor: pointer; }
 .zone-box.zone-graveyard:hover { outline: 2px solid rgba(224, 184, 58, 0.6); }
 
@@ -7211,9 +7234,20 @@ function GameBoard({ matchId, user, onLeaveMatch }) {
                   <div className="zone-info-tooltip">Gegner-Deck: {opponent.deck.length} Karten</div>
                   <DeckStack count={opponent.deck.length} />
                 </div>
+                {/* Punkt 3a (Kritik-Runde): GLEICH ZWEI verstuemmelte "GRAVEYARD"-
+                    Gravuren im Bild an dieser Stelle (KI-Bildgenerierungs-Artefakt,
+                    siehe Pixel-Analyse) -- die grosse Titelzeile darueber UND eine
+                    zweite, kleinere Gravur direkt am oberen Rand der Fach-Vertiefung
+                    selbst. Laesst sich in einer statischen PNG nicht reparieren.
+                    Der zweite Patch steht bewusst VOR (= optisch UNTER) dem echten
+                    Grabmal-Icon im DOM, damit eine tatsaechlich vorhandene Friedhof-
+                    Karte weiterhin normal sichtbar bleibt -- er deckt die Gravur nur
+                    ab, wenn das Fach leer ist (GraveyardTop rendert dann nichts). */}
+                <span className="zone-label-overlay zone-label-left-inner" />
                 <div className="zone-box zone-graveyard zone-left-mid" onClick={() => setGraveyardView(opponent.id)}>
                   <GraveyardTop player={opponent} isMine={false} />
                 </div>
+                <span className="zone-label-overlay zone-label-left">GRAVEYARD</span>
                 <div className="zone-box zone-hero zone-right-top">
                   <HeroCard player={opponent} />
                 </div>
