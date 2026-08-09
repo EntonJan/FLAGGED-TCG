@@ -907,6 +907,45 @@ button.danger:hover { background: rgba(163, 51, 51, 0.15); }
   .book-card-line { font-size: 0.56rem; }
   .book-card-desc { font-size: 0.52rem; }
 }
+
+/* =======================================================================
+   Aufgabe B: Shop im Glaskasten -- ersetzt das generische Tab-Overlay fuer
+   den Pfad ueber die Glaskasten-Detailszene. Nutzt dieselben Hooks/Cloud-
+   Function-Aufrufe wie ShopTab (useCardMetadata/useCoins/computeShopRotation/
+   useShopDoc/useCountdown/purchaseCard), nur die Praesentation ist neu:
+   10 Karten sitzen in den gezeichneten Samtfaechern, die beiden Messing-
+   Rundanzeigen zeigen die echten Countdowns.
+   ======================================================================= */
+.case-overlay-panel {
+  position: relative; width: min(100%, 1200px, 96.9vh); background: transparent; border: none; box-shadow: none;
+  display: flex; flex-direction: column; align-items: center; gap: 0.6rem;
+}
+.case-overlay-close { position: absolute; top: -14px; right: -14px; z-index: 3; }
+.case-overlay-header { display: flex; align-items: center; gap: 1rem; }
+.case-viewport { position: relative; width: 100%; aspect-ratio: 1376 / 768; overflow: hidden; border-radius: 10px; box-shadow: 0 20px 55px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.08); }
+.case-viewport-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; user-select: none; }
+.case-slot { position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.case-slot-art { width: 82%; height: 78%; }
+.case-slot-art .card-visual { width: 100%; height: 100%; box-shadow: none; }
+.case-slot-art .card-visual-art { width: 100%; height: 100%; }
+.case-slot-art .card-visual-art img { width: 100%; height: 100%; object-fit: contain; }
+.case-slot-buy {
+  margin-top: 2%; padding: 0.15rem 0.6rem; font-size: 0.66rem; border-radius: 10px; cursor: pointer;
+  background: rgba(20,16,8,0.85); color: #e0b83a; border: 1px solid rgba(224,184,58,0.55);
+}
+.case-slot-buy:hover:not(:disabled) { background: rgba(224,184,58,0.85); color: #14100a; }
+.case-slot-buy:disabled { opacity: 0.5; cursor: default; }
+.case-slot-buy.bought { color: #7be07b; border-color: rgba(123,224,123,0.6); }
+.case-gauge {
+  position: absolute; aspect-ratio: 1 / 1; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  color: #f0e2b0; font-family: 'Cinzel', serif; font-size: 0.6rem; text-align: center; text-shadow: 0 1px 2px #000;
+  pointer-events: none;
+}
+@media (max-width: 900px) {
+  .case-overlay-panel { width: 96vw; }
+  .case-slot-buy { font-size: 0.52rem; padding: 0.1rem 0.4rem; }
+  .case-gauge { font-size: 0.46rem; }
+}
 </style>
 </head>
 <body>
@@ -7872,6 +7911,131 @@ function BookLibraryOverlay({ onClose }) {
   );
 }
 
+// -- Aufgabe B (Phase 2): Shop im Glaskasten. Ersetzt TabOverlay NUR fuer den
+// Weg ueber die Glaskasten-Detailszene (shop-case) -- verwendet 1:1 dieselben
+// Hooks/Cloud-Function-Aufrufe wie ShopTab (useCardMetadata/useCoins/
+// computeShopRotation/useShopDoc/useCountdown/'purchaseCard'/'ensureShopRotation'),
+// nur die Praesentation ist neu: die 10 Angebote sitzen in den gezeichneten
+// Samtfaechern von shop-case-detail.png (obere Reihe = Tagesangebote, untere
+// Reihe = Wochenangebote), die beiden Messing-Rundanzeigen zeigen die echten
+// Countdowns im selben Format wie im bestehenden Shop-Tab. --
+function ShopCaseOverlay({ user, onClose }) {
+  const metadata = useCardMetadata();
+  const coins = useCoins(user ? user.uid : null);
+  const weekId = useMemo(() => getISOWeekId(new Date()), []);
+  const dayId = useMemo(() => getISODayId(new Date()), []);
+  const dailyOffers = useMemo(() => computeShopRotation(dayId, metadata, 5), [dayId, metadata]);
+  const weeklyOffers = useMemo(() => computeShopRotation(weekId, metadata, 5), [weekId, metadata]);
+
+  const shopDoc = useShopDoc();
+  const [purchaseState, setPurchaseState] = useState({});
+  const [purchaseError, setPurchaseError] = useState(null);
+  const ensureAttempted = useRef(null);
+
+  const serverReady = shopDoc && shopDoc.cycleId === weekId;
+
+  const tagesCountdown = useCountdown(useMemo(getNextMidnight, [dayId]));
+  const wocheCountdown = useCountdown(useMemo(getNextMondayMidnight, [weekId]));
+
+  useEffect(() => {
+    if (!user || shopDoc === undefined) return;
+    if (serverReady) return;
+    if (ensureAttempted.current === weekId) return;
+    ensureAttempted.current = weekId;
+    const ensure = functionsClient.httpsCallable('ensureShopRotation');
+    ensure({
+      weekId,
+      offers: weeklyOffers.map(({ card, rarity, price, stock }) => ({ cardId: card.id, rarity, price, stock })),
+    }).catch((err) => console.error('Konnte Shop-Rotation nicht anlegen:', err));
+  }, [user, weekId, shopDoc, serverReady, weeklyOffers]);
+
+  async function handleBuy(cardId) {
+    setPurchaseError(null);
+    setPurchaseState((s) => ({ ...s, [cardId]: 'buying' }));
+    try {
+      const purchase = functionsClient.httpsCallable('purchaseCard');
+      await purchase({ cardId });
+      setPurchaseState((s) => ({ ...s, [cardId]: 'done' }));
+    } catch (err) {
+      console.error('Kauf fehlgeschlagen:', err);
+      setPurchaseError((err && err.message) || 'Kauf fehlgeschlagen.');
+      setPurchaseState((s) => ({ ...s, [cardId]: 'error' }));
+    }
+  }
+
+  // Koordinaten (in % von shop-case-detail.png, 1376x768) an den 10
+  // gezeichneten Samtfaechern (2 Reihen a 5) abgemessen.
+  const CASE_SLOTS = [
+    { left: 14.6, top: 25.2, width: 12.4, height: 21.5 },
+    { left: 29.4, top: 25.2, width: 12.4, height: 21.5 },
+    { left: 44.2, top: 25.2, width: 12.4, height: 21.5 },
+    { left: 59.0, top: 25.2, width: 12.4, height: 21.5 },
+    { left: 73.8, top: 25.2, width: 12.4, height: 21.5 },
+    { left: 14.6, top: 55.0, width: 12.4, height: 21.5 },
+    { left: 29.4, top: 55.0, width: 12.4, height: 21.5 },
+    { left: 44.2, top: 55.0, width: 12.4, height: 21.5 },
+    { left: 59.0, top: 55.0, width: 12.4, height: 21.5 },
+    { left: 73.8, top: 55.0, width: 12.4, height: 21.5 },
+  ];
+  const GAUGE_TOP = { left: 77.0, top: 15.5, width: 8.0 };
+  const GAUGE_BOTTOM = { left: 77.0, top: 51.2, width: 8.0 };
+
+  function renderSlot({ card }, slotIdx, isWeekly) {
+    const server = isWeekly && serverReady ? shopDoc.offers[card.id] : null;
+    const displayPrice = server ? server.price : 0;
+    const soldOut = server && Math.max(server.stock - server.sold, 0) <= 0;
+    const state = purchaseState[card.id];
+    const canBuy = (!isWeekly || serverReady) && !soldOut && coins !== null && coins >= displayPrice && state !== 'buying';
+    const pos = CASE_SLOTS[slotIdx];
+    return (
+      <div key={card.id} className="case-slot" style={{ left: pos.left + '%', top: pos.top + '%', width: pos.width + '%', height: pos.height + '%' }}>
+        <div className="case-slot-art"><CardVisual card={card} size="small" showHeader={false} /></div>
+        <button
+          className={'case-slot-buy' + (state === 'done' ? ' bought' : '')}
+          disabled={!canBuy}
+          onClick={() => handleBuy(card.id)}
+          title={isWeekly && !serverReady ? 'Shop wird noch eingerichtet…' : soldOut ? 'Ausverkauft' : (coins !== null && coins < displayPrice) ? 'Nicht genug Coins' : ''}
+        >
+          {state === 'buying' ? '…' : soldOut ? '✕' : state === 'done' ? '✓' : 'Kaufen'}
+        </button>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return ReactDOM.createPortal(
+      <div className="tab-overlay-backdrop" onClick={onClose}>
+        <div className="tab-overlay-panel" onClick={(e) => e.stopPropagation()}>
+          <div className="tab-overlay-header"><h2 className="tab-overlay-title">🛒 Shop</h2><button className="tab-overlay-close" onClick={onClose} aria-label="Schliessen">✕</button></div>
+          <div className="tab-overlay-body"><p className="card-meta">Bitte einloggen, um den Shop zu sehen.</p></div>
+        </div>
+      </div>,
+      document.body
+    );
+  }
+
+  return ReactDOM.createPortal(
+    <div className="tab-overlay-backdrop" onClick={onClose}>
+      <div className="case-overlay-panel" onClick={(e) => e.stopPropagation()}>
+        <button className="tab-overlay-close case-overlay-close" onClick={onClose} aria-label="Schliessen">✕</button>
+        <div className="case-overlay-header">
+          <div className="score-tablet">🪙 <span className="score-numbers">{coins === null ? '…' : coins}</span></div>
+          {purchaseError && <p className="status" style={{ color: '#e05b5b', margin: 0 }}>{purchaseError}</p>}
+          {!serverReady && <p className="card-meta" style={{ margin: 0 }}>Wochen-Rotation wird gerade eingerichtet…</p>}
+        </div>
+        <div className="case-viewport">
+          <img src="images/scenes/shop-case-detail.png" alt="Glaskasten" className="case-viewport-img" draggable="false" />
+          {dailyOffers.map((offer, i) => renderSlot(offer, i, false))}
+          {weeklyOffers.map((offer, i) => renderSlot(offer, i + 5, true))}
+          <div className="case-gauge" style={{ left: GAUGE_TOP.left + '%', top: GAUGE_TOP.top + '%', width: GAUGE_TOP.width + '%' }}>{tagesCountdown.label}</div>
+          <div className="case-gauge" style={{ left: GAUGE_BOTTOM.left + '%', top: GAUGE_BOTTOM.top + '%', width: GAUGE_BOTTOM.width + '%' }}>{wocheCountdown.label}</div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 // -- Tab-Overlay: bestehender Tab-Inhalt, unveraendert, nur als Modal ueber der
 // Szene statt als eigene Seite. Portal nach document.body (siehe Kommentar bei
 // der CSS-Regel .tab-overlay-backdrop weiter oben -- backdrop-filter auf .panel/
@@ -7996,9 +8160,11 @@ function App() {
           onOpenTab={openOverlay} onGoToDetail={goToDetail}
         />
       </main>
-      {overlay && (overlay.tab === 'cards' && sceneRoom === 'shop-book'
-        ? <BookLibraryOverlay onClose={closeOverlay} />
-        : <TabOverlay tabId={overlay.tab} user={user} onClose={closeOverlay} />)}
+      {overlay && overlay.tab === 'cards' && sceneRoom === 'shop-book' && <BookLibraryOverlay onClose={closeOverlay} />}
+      {overlay && overlay.tab === 'shop' && sceneRoom === 'shop-case' && <ShopCaseOverlay user={user} onClose={closeOverlay} />}
+      {overlay && !((overlay.tab === 'cards' && sceneRoom === 'shop-book') || (overlay.tab === 'shop' && sceneRoom === 'shop-case')) && (
+        <TabOverlay tabId={overlay.tab} user={user} onClose={closeOverlay} />
+      )}
     </div>
   );
 }
