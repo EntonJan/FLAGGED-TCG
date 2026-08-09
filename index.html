@@ -176,8 +176,30 @@ h2, h3 { font-family: 'Cinzel Decorative', serif; font-weight: 700; }
 .game-content-area { overflow-y: auto; min-height: 0; display: flex; flex-direction: column; gap: 0.5rem; }
 .game-fullscreen-overlay { position: fixed; inset: 0; z-index: var(--z-fullscreen); background: #0b0c0f; overflow-y: auto; }
 .game-toolbar { position: fixed; top: 0.6rem; right: 0.75rem; z-index: var(--z-toolbar); display: flex; gap: 0.5rem; }
-.game-toolbar button { background: #262a33; border: 1px solid #3a3f4b; box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
-.game-toolbar button:hover { background: #31363f; }
+/* Punkt 6b: etablierter Gold/Bronze-Glow-Stil (wie die Kaufen-Buttons im
+   Shop) statt generischer dunkler Rechtecke -- gilt fuer "Partie verlassen"
+   im festen Toolbar UND fuer "Wand setzen"/"Zug beenden" im Info-Panel. */
+/* Spezifitaet bewusst .game-toolbar/.board-side-actions + button.secondary
+   (statt nur "button"): die allgemeine button.secondary-Regel weiter unten
+   im Stylesheet hat dieselbe Spezifitaet wie ein einfaches ".klasse button"
+   -- bei gleicher Spezifitaet gewinnt sonst die spaetere Quellposition und
+   wuerfe den Gold-Stil hier wieder auf #333 zurueck (bereits mehrfach in
+   dieser Session als Bug-Muster aufgetreten). */
+.game-toolbar button, .board-side-actions button,
+.game-toolbar button.secondary, .board-side-actions button.secondary {
+  background: rgba(20, 16, 8, 0.85); color: #e0b83a; border: 1px solid rgba(224, 184, 58, 0.55);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4); transition: box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+.game-toolbar button:hover:not(:disabled), .board-side-actions button:hover:not(:disabled),
+.game-toolbar button.secondary:hover:not(:disabled), .board-side-actions button.secondary:hover:not(:disabled) {
+  background: rgba(224, 184, 58, 0.85); color: #14100a; border-color: rgba(224, 184, 58, 0.9);
+  box-shadow: 0 0 12px 1px rgba(224, 184, 58, 0.5);
+}
+/* Aktiver Zustand (z.B. "Wand-Modus beenden" waehrend wallMode aktiv ist --
+   className dafuer bewusst NICHT "secondary", siehe JSX) hebt sich mit
+   dauerhaft gefuelltem Gold vom sonst umrissenen Grundzustand ab. */
+.board-side-actions button:not(.secondary) { background: rgba(224, 184, 58, 0.85); color: #14100a; }
+.board-side-actions button:not(.secondary):hover:not(:disabled) { background: rgba(224, 184, 58, 1); box-shadow: 0 0 12px 2px rgba(224, 184, 58, 0.65); }
 .game-leave-btn { padding: 0.4rem 0.85rem; }
 .game-fullscreen-btn { padding: 0.4rem 0.7rem; font-size: 1rem; }
 .filters { display: flex; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
@@ -185,13 +207,25 @@ h2, h3 { font-family: 'Cinzel Decorative', serif; font-weight: 700; }
    .board-and-stack) -- eine kleine, absolut positionierte Tafel, die sich
    in den Rand-Bereich haengt, der durch das feste Bild-Seitenverhaeltnis
    ohnehin uebrig bleibt. */
+/* Punkt 6a: eigener Holz/Messing-Look statt freischwebend auf Schwarz --
+   kleine angehaengte Tafel, passend zur Gravur-Sprache der restlichen Szene.
+   Kompakter als vorher (kleinere Gaps/Padding/Schrift), damit der Inhalt
+   auch im knappen Rand-Bereich (siehe Punkt 1) moeglichst ohne internes
+   Scrollen passt. */
 .board-side-actions {
   position: absolute; right: 0.75rem; bottom: 0.75rem; z-index: 5;
-  display: flex; flex-direction: column; gap: 0.6rem; width: 200px;
+  display: flex; flex-direction: column; gap: 0.3rem; width: 176px;
   overflow-y: auto;
+  background: linear-gradient(160deg, #4a3320, #2b1c10);
+  border: 1px solid rgba(224, 184, 58, 0.4); border-radius: 8px;
+  padding: 0.4rem 0.55rem;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.4), inset 0 1px 2px rgba(255,255,255,0.08), 0 8px 20px rgba(0,0,0,0.6);
 }
-.board-side-actions .game-header { flex-direction: column; align-items: flex-start; gap: 0.2rem; font-size: 0.8rem; margin-bottom: 0; }
+.board-side-actions .score-tablet { padding: 0.35rem 0.5rem; font-size: 0.8rem; }
+.board-side-actions .game-header { flex-direction: column; align-items: flex-start; gap: 0.1rem; font-size: 0.72rem; margin-bottom: 0; color: #e6d9bd; }
 .board-side-actions button { width: 100%; }
+.board-side-actions .filters { margin-bottom: 0; gap: 0.3rem; }
+.board-side-actions button { padding: 0.32rem 0.6rem; font-size: 0.68rem; }
 @media (max-width: 900px) {
   /* Unter 900px stapelt sich die Tafel wieder unter dem Brett (die
      .board-and-stack-Gegenregel dafuer steht bewusst NICHT hier, sondern
