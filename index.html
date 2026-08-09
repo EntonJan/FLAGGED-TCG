@@ -181,9 +181,30 @@ h2, h3 { font-family: 'Cinzel Decorative', serif; font-weight: 700; }
 .game-leave-btn { padding: 0.4rem 0.85rem; }
 .game-fullscreen-btn { padding: 0.4rem 0.7rem; font-size: 1rem; }
 .filters { display: flex; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
-.board-side-actions { display: flex; flex-direction: column; gap: 0.75rem; width: 220px; flex-shrink: 0; align-self: flex-start; }
-.board-side-actions .game-header { flex-direction: column; align-items: flex-start; gap: 0.2rem; font-size: 0.82rem; margin-bottom: 0; }
+/* Punkt 1/6: keine raumgreifende Sidebar-Spalte mehr (siehe Kommentar bei
+   .board-and-stack) -- eine kleine, absolut positionierte Tafel, die sich
+   in den Rand-Bereich haengt, der durch das feste Bild-Seitenverhaeltnis
+   ohnehin uebrig bleibt. */
+.board-side-actions {
+  position: absolute; right: 0.75rem; bottom: 0.75rem; z-index: 5;
+  display: flex; flex-direction: column; gap: 0.6rem; width: 200px;
+  overflow-y: auto;
+}
+.board-side-actions .game-header { flex-direction: column; align-items: flex-start; gap: 0.2rem; font-size: 0.8rem; margin-bottom: 0; }
 .board-side-actions button { width: 100%; }
+@media (max-width: 900px) {
+  /* Unter 900px stapelt sich die Tafel wieder unter dem Brett (die
+     .board-and-stack-Gegenregel dafuer steht bewusst NICHT hier, sondern
+     NACH der unconditional .board-and-stack-Basisregel weiter unten im
+     Stylesheet -- gleiche Spezifitaet + fruehere Quellposition wuerde
+     sonst von der spaeteren Basisregel wieder ueberschrieben, siehe
+     Kommentar dort). Die per JS berechnete absolute Positionierung
+     (transform: translateX/Y) wird dafuer in GameBoard bewusst NICHT
+     angewendet (isDesktopLayout-Check), sonst wuerde der transform trotz
+     position:static weiterhin greifen und die Tafel seitlich aus dem
+     sichtbaren Bereich schieben. */
+  .board-side-actions { position: static; width: 100%; max-width: 420px; margin: 0.5rem auto 0; max-height: none; }
+}
 .zone-info-tooltip {
   position: absolute; bottom: 103%; left: 50%; transform: translateX(-50%);
   background: rgba(10, 10, 14, 0.95); border: 1px solid #55483a; border-radius: 6px;
@@ -511,7 +532,39 @@ button.danger:hover { background: rgba(163, 51, 51, 0.15); }
 /* Hover preview */
 .match-code { font-size: 2.2rem; font-weight: 800; letter-spacing: 0.3rem; background: #0c0c0c; border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 1rem; text-align: center; color: #ffffff; margin: 1rem 0; }
 .game-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; font-size: 0.9rem; color: #c4c8cf; }
-.board-and-stack { display: flex; flex-wrap: wrap; gap: 1.25rem; align-items: flex-start; justify-content: center; }
+/* Punkt 1 (Kritik-Runde nach Aufgabe C/D): das Spielbrett-Bild hat ein festes,
+   sehr breites Seitenverhaeltnis (1584:672 ~ 2.36:1). Eine reine vw-basierte
+   Breite (frueher: min(92vw,1600px)) ignoriert die verfuegbare HOEHE komplett --
+   auf normalen Breitbild-Viewports bleibt das Brett dadurch immer relativ
+   kurz/klein, mit viel ungenutztem Platz darunter. .board-frame bekommt daher
+   per JS (ResizeObserver auf .board-wrap, siehe boardFrameSizeRef-Effekt in
+   GameBoard) eine explizite Breite/Hoehe zugewiesen, die den verfuegbaren Platz
+   (Breite UND Hoehe) unter Beibehaltung des Bildseitenverhaeltnisses maximal
+   ausfuellt -- die CSS-Regel hier ist nur der Fallback vor der ersten Messung. */
+/* .board-side-actions ist bewusst KEIN weiteres Flex-Kind mehr, das um die
+   Breite konkurriert (siehe unten) -- bei einem derart breiten Bildformat
+   (1584:672) wuerde jedes Prozent, das eine feste Sidebar-Spalte von der
+   Breite abzieht, den per Seitenverhaeltnis maximal moeglichen Brett-Bereich
+   ueberproportional verkleinern (und wegen des Umbruch-Verhaltens von
+   flex-wrap bei zwei Zeilen sogar zirkulaer falsch werden, siehe Kommentar
+   an .board-frame). Stattdessen bekommt .board-wrap die VOLLE Flaeche von
+   .board-and-stack, das Brett zentriert sich darin unter Beibehaltung des
+   Seitenverhaeltnisses -- der dabei zwangslaeufig entstehende Rand (oben+
+   unten bei breiten, links+rechts bei hohen Viewports) ist die einzige
+   Stelle, an der ueberhaupt noch Platz fuer die Info-Tafel ist; sie wird
+   daher als kleine, absolut positionierte Tafel genau dort angehaengt
+   (Punkt 6: Holz/Messing-Optik) statt als raumgreifende Seitenspalte. */
+.board-and-stack { position: relative; display: flex; flex-direction: row; flex-wrap: nowrap; gap: 1.25rem; align-items: stretch; justify-content: center; flex: 1 1 auto; min-height: 0; }
+@media (max-width: 900px) {
+  /* Muss NACH der Basisregel oben stehen (siehe .board-side-actions-Kommentar
+     weiter oben im Stylesheet) -- sonst gewinnt bei gleicher Spezifitaet die
+     spaetere Basisregel per Quellreihenfolge und ueberschreibt row wieder.
+     .board-side-actions ist ab hier wieder ein normales Flex-Kind (position:
+     static) statt absolut positioniert -- ohne column wuerde es sich mit
+     .board-wrap in einer Zeile um die Breite streiten und das Brett auf
+     wenige Pixel zusammendruecken (siehe Kritik-Runde). */
+  .board-and-stack { flex-direction: column; justify-content: center; }
+}
 .stack-panel { background: #14161c; border: 2px solid #5b8cff; border-radius: 10px; padding: 1rem; width: min(300px, 100%); flex-shrink: 0; box-shadow: 0 0 18px rgba(91, 140, 255, 0.35); }
 .stack-panel h3 { margin: 0 0 0.6rem 0; }
 .stack-items { display: flex; flex-direction: column-reverse; gap: 0.4rem; margin-bottom: 0.8rem; }
@@ -523,7 +576,19 @@ button.danger:hover { background: rgba(163, 51, 51, 0.15); }
 .stack-item.negated { opacity: 0.5; text-decoration: line-through; }
 .stack-item-owner { font-size: 0.75rem; color: #9aa0ab; }
 .stack-panel .status { font-weight: 700; }
-.board-wrap { display: flex; justify-content: center; margin-bottom: 1rem; }
+.board-wrap { display: flex; justify-content: center; align-items: center; margin-bottom: 1rem; flex: 1 1 auto; min-width: 0; min-height: 0; }
+@media (max-width: 900px) {
+  /* Muss NACH der Basisregel oben stehen (gleiches Quellreihenfolge-Prinzip
+     wie bei .board-and-stack weiter oben). Ohne diese Regel wuerde flex:1
+     .board-wrap zwingen, die GESAMTE Spaltenhoehe zu fuellen -- bei diesem
+     breiten Bildformat in einem hohen mobilen Viewport waere das Brett
+     trotzdem nur schmal-hoch (breitenbegrenzt), der ungenutzte Rest wuerde
+     als grosse Luecke MITTEN im Wrapper landen und .board-side-actions weit
+     nach unten abtrennen. Mit natuerlicher Groesse ruecken Brett + Tafel
+     zusammen und werden als Gruppe zentriert (siehe justify-content:center
+     an .board-and-stack). */
+  .board-wrap { flex: 0 0 auto; width: 100%; }
+}
 /* Aufgabe C: das Spielbrett verwendet game-table-detail.png (2 Spielsteine-
    Nahaufnahme aus der Adventure-Szene) statt des vorherigen quadratischen
    BOARD_BACKGROUND -- reines Reskin (neues Bild + neue Prozent-Koordinaten),
@@ -532,7 +597,7 @@ button.danger:hover { background: rgba(163, 51, 51, 0.15); }
    Bildposition und wurden nicht umbenannt (reines Bezeichner-Erbe) -- welche
    Zone (Deck/Grab/Held, Gegner/ich) an welcher Stelle sitzt, steht als
    Kommentar bei jeder Regel. */
-.board-frame { position: relative; width: min(92vw, 1600px); aspect-ratio: 1584 / 672; }
+.board-frame { position: relative; width: min(92vw, 1600px); max-width: 100%; max-height: 100%; aspect-ratio: 1584 / 672; }
 .board-frame-inner { position: absolute; inset: 0; }
 .board-frame-inner.board-frame-rotated { transform: rotate(180deg); }
 .board-bg-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; user-select: none; }
@@ -6029,6 +6094,29 @@ function GameBoard({ matchId, user, onLeaveMatch }) {
   // je aendert (z.B. anderes Boardformat, andere Bildschirmgroesse).
   const boardGridRef = useRef(null);
   const [cellSizePx, setCellSizePx] = useState(48);
+  // Punkt 1 (Kritik nach Aufgabe C/D): .board-frame bekommt eine explizite
+  // Breite/Hoehe, die den in .board-wrap TATSAECHLICH verfuegbaren Platz
+  // (Breite UND Hoehe, nicht nur vw) unter Beibehaltung des festen
+  // Bildseitenverhaeltnisses 1584:672 maximal ausfuellt -- reines "contain"-
+  // Fitting, per ResizeObserver gemessen statt mit einer festen vw/vh-Formel
+  // geraten (die je nach Viewport-Form immer in die eine oder andere
+  // Richtung zu viel Platz verschenkt hat).
+  const boardWrapRef = useRef(null);
+  const [frameSize, setFrameSize] = useState(null); // {w,h} in px, oder null vor der ersten Messung
+  // Muss mit dem @media (max-width: 900px)-Bruch bei .board-and-stack/
+  // .board-side-actions synchron bleiben: unterhalb davon stapelt CSS die
+  // Info-Tafel einfach unter dem Brett -- die per JS berechnete absolute
+  // Randposition (transform: translateX/Y) darf dort NICHT als Inline-Style
+  // gesetzt werden, sonst wirkt der transform trotz position:static weiter
+  // und schiebt die Tafel seitlich aus dem sichtbaren Bereich.
+  const [isDesktopLayout, setIsDesktopLayout] = useState(() => typeof window !== 'undefined' ? window.innerWidth > 900 : true);
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 901px)');
+    const onChange = () => setIsDesktopLayout(mq.matches);
+    onChange();
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
   const [draggedWallToken, setDraggedWallToken] = useState(null); // 'wall' waehrend ein Wand-Token gezogen wird
   const autoWallModeRef = useRef(false); // true, wenn wallMode NUR fuers Ziehen automatisch aktiviert wurde
 
@@ -6053,6 +6141,44 @@ function GameBoard({ matchId, user, onLeaveMatch }) {
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     measure();
+    return () => ro.disconnect();
+  }, [doc]);
+
+  useEffect(() => {
+    const wrap = boardWrapRef.current;
+    if (!wrap || typeof ResizeObserver === 'undefined') return;
+    const RATIO = 1584 / 672;
+    function measureFrame() {
+      const availW = wrap.clientWidth;
+      const availH = wrap.clientHeight;
+      if (availW <= 0 || availH <= 0) return;
+      let w, h;
+      if (availW / availH > RATIO) { h = availH; w = h * RATIO; }
+      else { w = availW; h = w / RATIO; }
+      // marginBottom/marginRight: der Rand, der beim Contain-Fit zwangslaeufig
+      // uebrig bleibt (bei diesem sehr breiten Bildformat je nach Viewport
+      // entweder unten -- breiter Viewport -- oder rechts -- hoher Viewport).
+      // .board-side-actions (Punkt 6) wird EXAKT dort platziert, nie ueber
+      // dem Brett selbst, egal wie das Verhaeltnis gerade ausfaellt.
+      // WICHTIG (Kritik-Runde nach Punkt 1): .board-wrap zentriert das Brett
+      // per align-items/justify-content:center -- der volle Leerraum
+      // (availH-h bzw. availW-w) verteilt sich also HAELFTIG ueber BEIDE
+      // Seiten, nicht komplett auf eine. Nur die Haelfte liegt tatsaechlich
+      // unterhalb/rechts vom Brett. Ausserdem hat .board-wrap selbst noch
+      // margin-bottom:1rem -- der zaehlt zusaetzlich zum echten Randbereich
+      // dazu (er liegt AUSSERHALB von .board-wrap, aber INNERHALB von
+      // .board-and-stack, dem Containing Block von .board-side-actions).
+      // Ohne beides ueberschaetzte marginBottom den verfuegbaren Platz um
+      // mehr als das Doppelte -- die Tafel ueberlappte dadurch reproduzierbar
+      // den unteren Rand des Bretts.
+      const wrapMarginBottom = parseFloat(getComputedStyle(wrap).marginBottom) || 0;
+      const marginBottom = Math.max(0, (availH - h) / 2) + wrapMarginBottom;
+      const marginRight = Math.max(0, (availW - w) / 2);
+      setFrameSize({ w: Math.floor(w), h: Math.floor(h), marginBottom: Math.floor(marginBottom), marginRight: Math.floor(marginRight) });
+    }
+    const ro = new ResizeObserver(measureFrame);
+    ro.observe(wrap);
+    measureFrame();
     return () => ro.disconnect();
   }, [doc]);
 
@@ -7007,8 +7133,14 @@ function GameBoard({ matchId, user, onLeaveMatch }) {
         );
       })()}
 
-      <div className="board-wrap">
-        <div className="board-frame" style={{ '--wall-token-size': cellSizePx + 'px' }}>
+      <div className="board-wrap" ref={boardWrapRef}>
+        <div
+          className="board-frame"
+          style={{
+            '--wall-token-size': cellSizePx + 'px',
+            ...(frameSize ? { width: frameSize.w + 'px', height: frameSize.h + 'px' } : {}),
+          }}
+        >
           <div className={`board-frame-inner${flipBoard ? ' board-frame-rotated' : ''}`}>
           <img src="images/scenes/game-table-detail.png" alt="Spielfeld" className="board-bg-image" />
 
@@ -7216,7 +7348,14 @@ function GameBoard({ matchId, user, onLeaveMatch }) {
         </div>
       </div>
 
-      <div className="board-side-actions">
+      <div
+        className="board-side-actions"
+        style={(frameSize && isDesktopLayout) ? (
+          frameSize.marginBottom >= frameSize.marginRight
+            ? { left: '50%', right: 'auto', top: 'auto', bottom: '4px', transform: 'translateX(-50%)', maxHeight: Math.max(60, frameSize.marginBottom - 8) + 'px' }
+            : { right: '4px', left: 'auto', top: '50%', bottom: 'auto', transform: 'translateY(-50%)', maxHeight: '94%' }
+        ) : undefined}
+      >
         <div className="score-tablet">
           🚩 <span className="score-numbers">{me.flagPoints} : {state.players[opponentId] ? state.players[opponentId].flagPoints : 0}</span> 🚩
         </div>
