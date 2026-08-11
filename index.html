@@ -160,10 +160,14 @@ h2, h3 { font-family: 'Cinzel Decorative', serif; font-weight: 700; }
    einem Padding-Wert am Inhalt kompensiert werden, sonst wurden Buttons
    darunter unklickbar (siehe .my-hand-expanded, frueher). Das war die
    Wurzel mehrerer Einzel-Bugs in dieser App.
-   Jetzt: die Handkarten liegen direkt in den dafuer vorgesehenen
-   "HAND"-Bereichen des Spielfeld-Bilds selbst (siehe .zone-hand-top/
-   .zone-hand-bottom) -- es gibt keine separaten Leisten-Zeilen mehr,
-   daher genuegt eine einzelne, voll ausfuellende Inhalts-Zeile.
+   Danach: die Handkarten lagen direkt in den "HAND"-Bereichen des
+   Spielfeld-Bilds selbst.
+   Abschnitt 4: die Hand ist wieder vom Tisch-Bild geloest (siehe .hand-row)
+   -- der alte Tisch-Platz wird jetzt von der Trap-Zone (.zone-gold-frame an
+   TABLE_LAYOUT.trapZoneOpponent/-Mine) eingenommen. .game-content-area bleibt
+   trotzdem eine einzelne Flex-Spalte -- die Hand-Leisten sind einfach
+   zusaetzliche Flex-Kinder direkt vor/nach .board-and-stack, kein Grid-Umbau
+   noetig.
    --------------------------------------------------------------------- */
 .game-panel-with-hand-bars {
   display: grid;
@@ -690,35 +694,38 @@ button.danger:hover { background: rgba(163, 51, 51, 0.15); }
   position: absolute; top: 1%; left: 50%; transform: translateX(-50%);
   max-width: 70%; height: auto; pointer-events: none; user-select: none; z-index: 3;
 }
+/* Abschnitt 4: Trap-Zone ist deutlich breiter als hoch (alte Hand-Position) --
+   Innenabstand haelt die TrapTray-Reihe vom Label oben und den Ecken-
+   Ornamenten frei. WICHTIG: Prozent-Padding wuerde (CSS-Spezifikation) auch
+   fuer oben/unten gegen die BREITE des containing block (.board-frame)
+   aufgeloest -- bei dieser sehr breiten, flachen Zone waeren das absurd
+   grosse px-Werte (20% von ~1700px Brett-Breite!), die die Box weit ueber
+   ihre per boxToStyle gesetzte Hoehe hinaus aufblaehen. Deshalb feste
+   rem-Werte statt Prozent. */
+.zone-trap-zone { box-sizing: border-box; padding: 1.6rem 0.6rem 0.3rem; }
+/* Die Trap-Zone ist sehr breit, aber flach -- ein an der BREITE orientiertes
+   Label (wie bei den quadratischeren Nischen, max-width:70%) waere hier viel
+   zu gross fuer die geringe Hoehe. Stattdessen an der Zonen-HOEHE orientieren. */
+.zone-trap-zone .zone-gold-label { max-width: 34%; max-height: 30%; width: auto; height: auto; top: 3%; }
 .zone-box.zone-graveyard { cursor: pointer; }
 .zone-box.zone-graveyard:hover { outline: 2px solid rgba(224, 184, 58, 0.6); }
 
-/* Handzonen: liegen jetzt direkt in den dafuer vorgesehenen "HAND"-Leisten
-   des Spielfeld-Bilds (gemessen per Kantenerkennung), statt als separates
-   Klapp-Fenster ausserhalb des Bilds. Immer sichtbar, keine Klapp-Logik
-   mehr noetig. */
-.zone-hand-top, .zone-hand-bottom {
-  position: absolute; display: flex; align-items: center; justify-content: center;
-  gap: 0.4rem; padding: 0 3%;
-  /* Kein overflow-x:auto mehr -- das haette per CSS-Eigenart (eine Achse
-     nicht 'visible' zwingt die andere ebenfalls zu 'auto'/clip) auch den
-     Hover-Zoom der Karten abgeschnitten. Die Hand ist auf 5 Karten
-     begrenzt, daher ist Scrollen hier nicht zwingend notwendig. */
-}
-/* Praezise per Kantenerkennung vermessen (Node/pngjs-Skript, Sobel-Kanten auf
-   der Messing-Fase der HAND-Ablage, siehe Commit) -- vorher feste 25%/15-17%
-   passten nicht zur tatsaechlichen Ablage-Groesse im Bild. */
-.zone-hand-top { left: 37.3%; top: 0.8%; width: 28.4%; height: 15.5%; }
-.zone-hand-bottom { left: 37.3%; top: 83.5%; width: 28.4%; height: 14.2%; }
-/* flex-shrink war bisher 0 (nie verkleinern) -- bei 5 Handkarten UND einer
-   nun praezise (statt grosszuegig geschaetzt) vermessenen, schmaleren Ablage
-   reichte die Breite nicht immer. Jetzt duerfen sich die Karten dynamisch
-   ueber die Anzahl in der Hand skalieren: .zone-hand-card-image-wrap treibt
-   seine Breite primaer aus dem verfuegbaren Flex-Anteil (width:100% seines
-   Flex-Slots) und leitet die Hoehe per aspect-ratio ab, gedeckelt von
-   max-height:100% der Ablage -- bei wenigen Karten limitiert also die Hoehe
-   (wie vorher), bei vielen Karten limitiert automatisch die Breite, ohne
-   festen Kartenbreiten-Wert. */
+/* Abschnitt 4: Handzonen liegen NICHT MEHR auf dem Tisch-Bild (das war die
+   alte .zone-hand-top/.zone-hand-bottom-Position, jetzt durch die Trap-Zone
+   ersetzt, siehe .zone-gold-frame an TABLE_LAYOUT.trapZoneOpponent/-Mine
+   weiter unten in der JSX) -- stattdessen eigene, vom Tisch-Bild komplett
+   unabhaengige Leisten direkt darueber (Gegner) bzw. darunter (ich), als
+   normale Flex-Kinder von .game-content-area (siehe JSX), NICHT absolut
+   gegen .board-frame positioniert. Groesse kommt aus der eigenen Hoehe
+   (clamp, viewport-basiert) statt aus einer festen Bild-Ablageflaeche. */
+.hand-row { display: flex; align-items: center; justify-content: center; gap: 0.6rem; flex-wrap: wrap; padding: 0.3rem 1rem; flex: 0 0 auto; height: clamp(88px, 13vh, 165px); }
+/* flex-shrink war bisher 0 (nie verkleinern) -- bei 5 Handkarten reichte die
+   Breite nicht immer. Die Karten skalieren dynamisch ueber die Anzahl in der
+   Hand: .zone-hand-card-image-wrap treibt seine Breite primaer aus dem
+   verfuegbaren Flex-Anteil (width:100% seines Flex-Slots) und leitet die
+   Hoehe per aspect-ratio ab, gedeckelt von max-height:100% der Leiste -- bei
+   wenigen Karten limitiert also die Hoehe, bei vielen (5+) automatisch die
+   Breite, ohne festen Kartenbreiten-Wert und ohne Ueberlauf. */
 .zone-hand-card { position: relative; display: flex; align-items: center; justify-content: center; height: 100%; flex: 0 1 auto; min-width: 0; max-width: 20%; }
 .zone-hand-card-image-wrap { position: relative; width: 100%; height: auto; max-height: 100%; aspect-ratio: 961 / 1323; transition: transform 0.15s ease; transform-origin: center bottom; }
 .zone-hand-card-image-wrap:hover { transform: scale(4.5); z-index: 950; }
@@ -803,6 +810,11 @@ button.danger:hover { background: rgba(163, 51, 51, 0.15); }
 .side-tray-mirrored { transform: rotate(180deg); }
 .side-tray-walls { flex: 0 0 auto; display: grid; grid-template-columns: 1fr; gap: 5%; place-items: center; }
 .side-tray-traps { flex: 1; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; gap: 4%; min-height: 0; }
+/* Abschnitt 4: dieselbe Komponente (TrapTray) fuer die neue, breite Trap-Zone
+   auf dem Tisch -- dort ist eine waagrechte Reihe statt der schmalen
+   Seiten-Saeule noetig. */
+.trap-tray-horizontal { flex-direction: row; justify-content: center; width: 100%; height: 100%; }
+.trap-tray-horizontal .trap-token { height: 100%; width: auto; }
 .wall-token {
   width: min(var(--wall-token-size, 40px), 100%); height: min(var(--wall-token-size, 40px), 100%);
   aspect-ratio: 1 / 1; border-radius: 4px; background: rgba(0,0,0,0.25); border: 1px solid rgba(224,184,58,0.25);
@@ -6239,12 +6251,12 @@ function WallTray({ remaining, mine, mirrored, onDragStart, onDragEnd }) {
 // cardIds (eigene Fallenkarten, real spielbar) ODER faceDownCount (gegnerische
 // Fallenkarten -- nur die Anzahl ist oeffentlich bekannt, der Inhalt bleibt
 // verdeckt, exakt wie bei der bestehenden gegnerischen Handanzeige).
-function TrapTray({ cardIds, mirrored, faceDownCount, baseCanAct, hasFlag, draggedCardRef }) {
+function TrapTray({ cardIds, mirrored, faceDownCount, baseCanAct, hasFlag, draggedCardRef, horizontal }) {
   const items = faceDownCount != null
     ? Array.from({ length: 5 }, (_, i) => (i < faceDownCount ? 'facedown' : null))
     : Array.from({ length: 5 }, (_, i) => cardIds[i] || null);
   return (
-    <div className={`side-tray-traps${mirrored ? ' side-tray-mirrored' : ''}`}>
+    <div className={`side-tray-traps${mirrored ? ' side-tray-mirrored' : ''}${horizontal ? ' trap-tray-horizontal' : ''}`}>
       {items.map((item, i) => {
         if (!item) return <div key={i} className="trap-token trap-token-empty" />;
         if (item === 'facedown') {
@@ -7237,6 +7249,15 @@ function GameBoard({ matchId, user, onLeaveMatch }) {
         return null;
       })()}
 
+      {/* Abschnitt 4: Gegner-Hand liegt jetzt in einer eigenen Leiste DIREKT
+          UEBER dem Tisch-Container, nicht mehr auf dem Tisch-Bild selbst --
+          immer sichtbar, nur Kartenrücken (nur die Anzahl ist oeffentlich). */}
+      <div className="hand-row hand-row-opponent">
+        {state.players[opponentId].hand.map((_, i) => (
+          <img key={i} src={CARD_BACK_IMAGE} alt="Gegnerkarte" className="zone-opp-hand-card-img" />
+        ))}
+      </div>
+
       <div className="board-and-stack">
       {state.activeChain && !state.activeChain.resolved && (() => {
         const topEntry = state.activeChain.items.length > 0
@@ -7493,91 +7514,61 @@ function GameBoard({ matchId, user, onLeaveMatch }) {
                   <div className="zone-info-tooltip">Dein Deck: {me.deck.length} Karten</div>
                   <DeckStack count={me.deck.length} />
                 </div>
+
+                {/* Abschnitt 4: Trap-Zone an der alten Hand-Position (siehe
+                    TABLE_LAYOUT.trapZoneOpponent/-Mine) -- rein visuell neu
+                    (Gold-Rahmen + Label statt Hand-Ablage), die Fallen-Logik
+                    dahinter ist die BESTEHENDE Engine (state.traps,
+                    checkTrapTrigger, pendingTrapResolution) unveraendert.
+                    TrapTray zeigt die eigenen Fallenkarten aus der Hand
+                    (spielbar per Drag) bzw. bei der Gegner-Zone nur die
+                    verdeckte Anzahl -- exakt dieselbe Komponente, die vorher
+                    in der Wand-Ablage sass (Aufgabe D), nur an neuer Stelle. */}
+                {(() => {
+                  const myTrapCardIds = me.hand.filter((cardId) => {
+                    const sc = STRUCTURED_CARDS_DATA.find((c) => c.id === cardId);
+                    return sc && sc.cardType === 'Falle';
+                  });
+                  const opponentTrapCount = opponent.hand.filter((cardId) => {
+                    const sc = STRUCTURED_CARDS_DATA.find((c) => c.id === cardId);
+                    return sc && sc.cardType === 'Falle';
+                  }).length;
+                  const baseCanAct = isMyTurn && !chainActive && !cardFlow && !myHandDiscardPending && state.pendingRespawn !== myId;
+                  const hasFlag = state.figures.some((f) => f.owner === myId && f.type === 'hero' && f.carryingFlag);
+                  return (
+                    <React.Fragment>
+                      <div className="zone-box zone-gold-frame zone-gold-frame-rotated zone-trap-zone" style={boxToStyle(TABLE_LAYOUT.trapZoneOpponent)}>
+                        <GoldFrameDecor label="images/frames/label-trap.png" />
+                        <TrapTray cardIds={[]} faceDownCount={Math.min(opponentTrapCount, 5)} horizontal />
+                      </div>
+                      <div className="zone-box zone-gold-frame zone-trap-zone" style={boxToStyle(TABLE_LAYOUT.trapZoneMine)}>
+                        <GoldFrameDecor label="images/frames/label-trap.png" />
+                        <TrapTray cardIds={myTrapCardIds} baseCanAct={baseCanAct} hasFlag={hasFlag} draggedCardRef={draggedCardRef} horizontal />
+                      </div>
+                    </React.Fragment>
+                  );
+                })()}
               </React.Fragment>
             );
           })()}
 
-          {/* Handzonen liegen bewusst AUSSERHALB des rotierenden Innen-Wrappers:
-              anders als Held/Deck/Grab (die mit dem Feld mitdrehen sollen) muss
-              die eigene Hand IMMER unten und die gegnerische IMMER oben
-              erscheinen, unabhaengig davon, fuer welchen Spieler das Feld
-              gerade gedreht ist. */}
-          {/* Gegner-Hand: liegt in der oberen "HAND"-Leiste des Bildes, immer sichtbar, nur Kartenrücken. */}
-          <div className="zone-hand-top">
-            {state.players[opponentId].hand.map((_, i) => (
-              <img key={i} src={CARD_BACK_IMAGE} alt="Gegnerkarte" className="zone-opp-hand-card-img" />
-            ))}
-          </div>
-
-          {/* Eigene Hand: liegt in der unteren "HAND"-Leiste, immer sichtbar (kein Klapp-Mechanismus mehr). */}
-          <div className="zone-hand-bottom" ref={handZoneRef}>
-            {/* Fallenkarten (cardType 'Falle') werden NICHT hier, sondern im
-                Fallen-Fach der rechten Holz-Ablage gezeigt (Aufgabe D) --
-                gleiche Karten, gleicher Spielzug-Mechanismus (startCardFlow),
-                nur eine zweite, thematisch passendere Ablagestelle dafuer. */}
-            {me.hand.filter((cardId) => {
-              const sc = STRUCTURED_CARDS_DATA.find((c) => c.id === cardId);
-              return !sc || sc.cardType !== 'Falle';
-            }).map((cardId) => {
-              const structuredCard = STRUCTURED_CARDS_DATA.find((c) => c.id === cardId);
-              const displayCard = CARDS_DATA.find((c) => c.id === cardId) || { id: cardId, name: cardId, icon: '❔', class: 'Neutral' };
-              const playable = isMyTurn && !chainActive && !cardFlow && !myHandDiscardPending && state.pendingRespawn !== myId && isCardPlayableInV1(structuredCard, state.figures.some((f) => f.owner === myId && f.type === 'hero' && f.carryingFlag));
-              return (
-                <div key={cardId} className={`zone-hand-card${playable ? ' draggable-hint' : ''}`}>
-                  <div
-                    className="zone-hand-card-image-wrap"
-                    draggable={playable}
-                    onDragStart={(e) => {
-                      draggedCardRef.current = structuredCard;
-                      e.dataTransfer.setData('text/plain', cardId);
-                      e.dataTransfer.effectAllowed = 'move';
-                    }}
-                    onDragEnd={() => { draggedCardRef.current = null; }}
-                  >
-                    <CardVisual card={displayCard} size="small" showHeader={false} />
-                  </div>
-                  {myHandDiscardPending && (
-                    <button
-                      className="zone-hand-play hand-card-discard"
-                      onClick={() => pushState((s) => Engine.Match.resolvePendingHandDiscard(s, myId, cardId))}
-                    >
-                      ✕ Verwerfen
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Aufgabe D: Mauern + Fallen als echte DOM-Elemente in den leeren
-              Holz-Seitenflaechen von game-table-detail.png -- linke Seite
+          {/* Aufgabe D: Mauern als echte DOM-Elemente in den leeren Holz-
+              Seitenflaechen von game-table-detail.png -- linke Seite
               gegnerisch (gespiegelt/gedreht, rein informativ), rechte Seite
               eigene (normal, per Drag-and-Drop spielbar). Ausserhalb des
-              rotierenden Innen-Wrappers, aus demselben Grund wie die Zonen/
-              Handleisten oben: muss unabhaengig von flipBoard immer an der
-              gleichen Bildschirmseite erscheinen. */}
+              rotierenden Innen-Wrappers, muss unabhaengig von flipBoard immer
+              an der gleichen Bildschirmseite erscheinen. (Die Fallenkarten
+              liegen seit Abschnitt 4 nicht mehr hier, sondern in der neuen
+              Trap-Zone auf dem Tisch, siehe GoldFrameDecor-Zonen oben.) */}
           {(() => {
             const opponent = state.players[opponentId];
-            const myTrapCardIds = me.hand.filter((cardId) => {
-              const sc = STRUCTURED_CARDS_DATA.find((c) => c.id === cardId);
-              return sc && sc.cardType === 'Falle';
-            });
-            const opponentTrapCount = opponent.hand.filter((cardId) => {
-              const sc = STRUCTURED_CARDS_DATA.find((c) => c.id === cardId);
-              return sc && sc.cardType === 'Falle';
-            }).length;
-            const baseCanAct = isMyTurn && !chainActive && !cardFlow && !myHandDiscardPending && state.pendingRespawn !== myId;
-            const hasFlag = state.figures.some((f) => f.owner === myId && f.type === 'hero' && f.carryingFlag);
-
             return (
               <React.Fragment>
                 <div className="side-tray side-tray-left" style={boxToStyle(TABLE_LAYOUT.wallTray.left)} title={`Gegner: ${opponent.wallsRemaining} von 10 Mauern übrig`}>
                   <WallTray remaining={opponent.wallsRemaining} mine={false} mirrored />
-                  <TrapTray cardIds={[]} faceDownCount={Math.min(opponentTrapCount, 5)} mirrored />
                 </div>
                 <div className="side-tray side-tray-right" style={boxToStyle(TABLE_LAYOUT.wallTray.right)} title={`${me.wallsRemaining} von 10 Mauern übrig`}>
                   <WallTray remaining={me.wallsRemaining} mine onDragStart={handleWallTokenDragStart} onDragEnd={handleWallTokenDragEnd} />
-                  <TrapTray cardIds={myTrapCardIds} baseCanAct={baseCanAct} hasFlag={hasFlag} draggedCardRef={draggedCardRef} />
                 </div>
               </React.Fragment>
             );
@@ -7616,6 +7607,47 @@ function GameBoard({ matchId, user, onLeaveMatch }) {
           </div>
         )}
       </div>
+      </div>
+
+      {/* Abschnitt 4: eigene Hand liegt in einer eigenen Leiste DIREKT UNTER
+          dem Tisch-Container, nicht mehr auf dem Tisch-Bild selbst. */}
+      <div className="hand-row hand-row-mine" ref={handZoneRef}>
+        {/* Fallenkarten (cardType 'Falle') werden NICHT hier, sondern in der
+            neuen Trap-Zone auf dem Tisch gezeigt (Abschnitt 4) -- gleiche
+            Karten, gleicher Spielzug-Mechanismus (startCardFlow), nur eine
+            zweite, thematisch passendere Ablagestelle dafuer. */}
+        {me.hand.filter((cardId) => {
+          const sc = STRUCTURED_CARDS_DATA.find((c) => c.id === cardId);
+          return !sc || sc.cardType !== 'Falle';
+        }).map((cardId) => {
+          const structuredCard = STRUCTURED_CARDS_DATA.find((c) => c.id === cardId);
+          const displayCard = CARDS_DATA.find((c) => c.id === cardId) || { id: cardId, name: cardId, icon: '❔', class: 'Neutral' };
+          const playable = isMyTurn && !chainActive && !cardFlow && !myHandDiscardPending && state.pendingRespawn !== myId && isCardPlayableInV1(structuredCard, state.figures.some((f) => f.owner === myId && f.type === 'hero' && f.carryingFlag));
+          return (
+            <div key={cardId} className={`zone-hand-card${playable ? ' draggable-hint' : ''}`}>
+              <div
+                className="zone-hand-card-image-wrap"
+                draggable={playable}
+                onDragStart={(e) => {
+                  draggedCardRef.current = structuredCard;
+                  e.dataTransfer.setData('text/plain', cardId);
+                  e.dataTransfer.effectAllowed = 'move';
+                }}
+                onDragEnd={() => { draggedCardRef.current = null; }}
+              >
+                <CardVisual card={displayCard} size="small" showHeader={false} />
+              </div>
+              {myHandDiscardPending && (
+                <button
+                  className="zone-hand-play hand-card-discard"
+                  onClick={() => pushState((s) => Engine.Match.resolvePendingHandDiscard(s, myId, cardId))}
+                >
+                  ✕ Verwerfen
+                </button>
+              )}
+            </div>
+          );
+        })}
       </div>
       {wallMode && !cardFlow && <p className="status">Klicke auf eine der goldenen Lücken zwischen den Feldern, um dort eine Wand zu setzen.</p>}
 
