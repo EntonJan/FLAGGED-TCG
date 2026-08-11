@@ -646,12 +646,11 @@ button.danger:hover { background: rgba(163, 51, 51, 0.15); }
    Inhalt kleiner dargestellt, damit die Gravur-Schrift sichtbar bleibt. */
 .board-grid { position: absolute; left: 38.3%; top: 15.8%; right: 38.2%; bottom: 21.7%; display: grid; }
 .zone-box { position: absolute; display: flex; align-items: center; justify-content: center; }
-.zone-left-top { left: 30.1%; top: 10.35%; width: 5.9%; height: 17.6%; }    /* Gegner-Deck: linke Spalte, oben */
-.zone-left-mid { left: 30.1%; top: 32.36%; width: 5.9%; height: 14.9%; }    /* Gegner-Grabmal: linke Spalte, Mitte */
-.zone-right-top { left: 30.1%; top: 59.06%; width: 5.9%; height: 16.8%; } /* Gegner-Held: linke Spalte, unten */
-.zone-left-bottom { left: 63.9%; top: 23.48%; width: 5.9%; height: 17.0%; } /* Mein Held: rechte Spalte, oben */
-.zone-right-mid { left: 63.9%; top: 49.87%; width: 5.9%; height: 17.2%; } /* Mein Grabmal: rechte Spalte, Mitte */
-.zone-right-bottom { left: 63.9%; top: 73.3%; width: 5.9%; height: 16.8%; } /* Mein Deck: rechte Spalte, unten */
+/* Abschnitt 1 (Spieltisch-Reskin): .zone-left-top usw. haben ab jetzt KEINE
+   Position mehr im Stylesheet -- die kommt per inline style={boxToStyle(...)}
+   aus TABLE_LAYOUT.niches (siehe JSX). Klassennamen bleiben nur als Bezeichner-
+   Erbe erhalten (welche Zone = welcher Spieler, siehe Kommentar an der
+   JSX-Stelle), tragen aber keine CSS-Regeln mehr. */
 /* Karten-Inhalt bewusst deutlich kleiner als die Nische (vorher 84.5%/91.8%
    der -- damals falsch gemessenen, zu kleinen -- Box): die Nische umfasst
    jetzt Gravur-Text + Icon zusammen, das Icon selbst nimmt nur etwa die
@@ -785,9 +784,9 @@ button.danger:hover { background: rgba(163, 51, 51, 0.15); }
    positioniert. Token-Groesse haengt weiterhin an --wall-token-size (siehe
    .board-frame style-Attribut), also an der tatsaechlich gerenderten
    Zellenkante -- kein fester px-Wert. */
-.side-tray { position: absolute; top: 3%; bottom: 3%; width: 8.6%; display: flex; flex-direction: column; align-items: center; gap: 3%; }
-.side-tray-left { left: 20.6%; }   /* endet mit kleinem Abstand an der Nischen-Spalte (linke Nischen beginnen bei 30.1%) */
-.side-tray-right { left: 70.4%; } /* beginnt mit kleinem Abstand nach der Nischen-Spalte (rechte Nischen enden bei 69.8%) */
+/* Abschnitt 1: Position kommt jetzt per inline style aus
+   TABLE_LAYOUT.wallTray.left/right (siehe JSX), nicht mehr fest von hier. */
+.side-tray { position: absolute; display: flex; flex-direction: column; align-items: center; gap: 3%; }
 .side-tray-mirrored { transform: rotate(180deg); }
 .side-tray-walls { flex: 0 0 auto; display: grid; grid-template-columns: 1fr; gap: 5%; place-items: center; }
 .side-tray-traps { flex: 1; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; gap: 4%; min-height: 0; }
@@ -4240,6 +4239,67 @@ const { useState, useEffect, useLayoutEffect, useMemo, useRef } = React;
 const DEFAULT_CARD_LIMIT = 3; // Standardlimit, falls Karte kein eigenes Limit hat. Bei Bedarf anpassen.
 const CLASSES = ['Alle', 'Assassine', 'Ritter', 'Ranger', 'Zauberer', 'Neutral', 'Team'];
 
+// ============================================================
+// TABLE_LAYOUT -- zentrale Config fuer das 1v1-Spielbrett (Spieltisch-Reskin,
+// Abschnitt 1). Alle Positionen als Pixel-Koordinaten gegen ein festes
+// 1584x672-Referenzraster (Ausgangsgroesse des Tisch-Hintergrunds), NICHT
+// als CSS-Prozentwerte direkt im Stylesheet. .board-grid und alle Zonen-
+// Container (Nischen, Trap-Zonen, Wand-Ablage) lesen ab jetzt NUR NOCH aus
+// diesem Objekt -- ueber pctX()/pctY() in Prozent von .board-frame
+// umgerechnet, per inline style gesetzt statt fest im Stylesheet.
+//
+// Herkunft der Werte: automatisierte Vermessung von game-table-detail.png
+// (Sobel-Kantenerkennung auf der Messing-Fase, siehe vorherige Commits) --
+// mit dem Wechsel auf die Gold-Ornament-Rahmen (Abschnitt 3) sind das jetzt
+// reine Startwerte/Layout-Vorgaben, keine Bild-Vermessung mehr noetig, da
+// die Rahmen nicht mehr an eingemalte Nischen gebunden sind.
+//
+// WICHTIG: cellSize/boardOrigin werden spaeter 1:1 fuer Three.js-Welt-
+// koordinaten der Wand-/Figuren-Objekte wiederverwendet (1 Zelle = 1 Unit).
+// Nicht veraendern ohne Ruecksprache.
+const TABLE_REF_W = 1584;
+const TABLE_REF_H = 672;
+function pctX(px) { return (px / TABLE_REF_W) * 100; }
+function pctY(px) { return (px / TABLE_REF_H) * 100; }
+/** Wandelt eine {x,y,w,h}-Box (Referenz-Pixel) in ein CSS-Style-Objekt
+ * (left/top/width/height in %) um -- der zentrale Ersatz fuer die vorher
+ * fest im Stylesheet stehenden .zone-left-top{left:...%; ...}-Regeln. */
+function boxToStyle(box) {
+  return { left: pctX(box.x) + '%', top: pctY(box.y) + '%', width: pctX(box.w) + '%', height: pctY(box.h) + '%' };
+}
+
+const TABLE_LAYOUT = {
+  refWidth: TABLE_REF_W,
+  refHeight: TABLE_REF_H,
+  boardCols: 8,
+  boardRows: 8,
+  boardOrigin: { x: 606.6, y: 106.2 },
+  // Zellen sind in der bisherigen Bildvorlage nicht exakt quadratisch
+  // (Perspektive der Illustration) -- cellSize daher als {w,h}-Paar.
+  // Dient als Ausgangswert; die tatsaechliche Wand-Token-Groesse kommt
+  // weiterhin per ResizeObserver von der LIVE gerenderten Zellengroesse
+  // (siehe cellSizePx in GameBoard), nicht von diesem statischen Wert --
+  // robuster gegenueber Layout-/Viewport-Aenderungen.
+  cellSize: { w: 46.71, h: 52.49 },
+  niches: {
+    deckOpponent:      { x: 476.8,  y: 69.5,  w: 93.5, h: 118.3 },
+    graveyardOpponent: { x: 476.8,  y: 217.5, w: 93.5, h: 100.1 },
+    heroOpponent:      { x: 476.8,  y: 397.0, w: 93.5, h: 112.9 },
+    heroMine:          { x: 1012.2, y: 157.8, w: 93.5, h: 114.2 },
+    graveyardMine:     { x: 1012.2, y: 335.1, w: 93.5, h: 115.6 },
+    deckMine:          { x: 1012.2, y: 492.6, w: 93.5, h: 112.9 },
+  },
+  // Ersetzen die alten .zone-hand-top/.zone-hand-bottom-Positionen AUF dem
+  // Tisch (Abschnitt 4: Hand wandert vom Tisch runter, hier entsteht
+  // stattdessen die Trap-Zone).
+  trapZoneOpponent: { x: 590.8, y: 5.4,   w: 449.9, h: 104.2 },
+  trapZoneMine:     { x: 590.8, y: 561.1, w: 449.9, h: 95.4 },
+  wallTray: {
+    left:  { x: 326.3,  y: 20.2, w: 136.2, h: 631.7, count: 10 },
+    right: { x: 1115.3, y: 20.2, w: 136.2, h: 631.7, count: 10 },
+  },
+};
+
 const CLASS_THEME = {
   Assassine: { from: '#3b1d5e', to: '#150a24' },
   Ritter:    { from: '#1d3a6e', to: '#0a1626' },
@@ -7330,12 +7390,13 @@ function GameBoard({ matchId, user, onLeaveMatch }) {
                 {/* Gegner (oberer Cluster): Deck oben-links, Grabmal Mitte-links, Held oben-rechts. */}
                 <div
                   className="zone-box zone-deck zone-left-top"
+                  style={boxToStyle(TABLE_LAYOUT.niches.deckOpponent)}
                   onContextMenu={(e) => e.preventDefault()}
                 >
                   <div className="zone-info-tooltip">Gegner-Deck: {opponent.deck.length} Karten</div>
                   <DeckStack count={opponent.deck.length} />
                 </div>
-                <div className="zone-box zone-graveyard zone-left-mid" onClick={() => setGraveyardView(opponent.id)}>
+                <div className="zone-box zone-graveyard zone-left-mid" style={boxToStyle(TABLE_LAYOUT.niches.graveyardOpponent)} onClick={() => setGraveyardView(opponent.id)}>
                   <GraveyardTop player={opponent} isMine={false} />
                 </div>
                 {/* Punkt 3a / Nachbesserung: die "GRAVEYARD"-Gravur im oberen
@@ -7348,7 +7409,7 @@ function GameBoard({ matchId, user, onLeaveMatch }) {
                     in der UNTEREN Haelfte der Nische verankert, der Patch deckt nur
                     die OBERE Haelfte (wo die Gravur sitzt) ab. */}
                 <span className="zone-label-overlay zone-label-left">GRAVEYARD</span>
-                <div className="zone-box zone-hero zone-right-top">
+                <div className="zone-box zone-hero zone-right-top" style={boxToStyle(TABLE_LAYOUT.niches.heroOpponent)}>
                   <HeroCard player={opponent} />
                 </div>
                 {/* Dieselbe Art Bild-Artefakt wie beim Grabmal, hier bei der
@@ -7360,6 +7421,7 @@ function GameBoard({ matchId, user, onLeaveMatch }) {
                 {/* Ich (unterer Cluster): Held unten-links, Grabmal Mitte-rechts, Deck unten-rechts. */}
                 <div
                   className={`zone-box zone-hero zone-left-bottom${dragOverGrid ? ' drag-over-active' : ''}`}
+                  style={boxToStyle(TABLE_LAYOUT.niches.heroMine)}
                   onDragOver={(e) => { if (draggedCardRef.current) e.preventDefault(); }}
                   onDragEnter={(e) => { if (draggedCardRef.current) setDragOverGrid(true); }}
                   onDragLeave={() => setDragOverGrid(false)}
@@ -7381,12 +7443,13 @@ function GameBoard({ matchId, user, onLeaveMatch }) {
                   </div>
                   <HeroCard player={me} />
                 </div>
-                <div className="zone-box zone-graveyard zone-right-mid" onClick={() => setGraveyardView(me.id)}>
+                <div className="zone-box zone-graveyard zone-right-mid" style={boxToStyle(TABLE_LAYOUT.niches.graveyardMine)} onClick={() => setGraveyardView(me.id)}>
                   <GraveyardTop player={me} isMine={true} />
                 </div>
                 <div
                   ref={deckZoneRef}
                   className="zone-box zone-deck zone-right-bottom"
+                  style={boxToStyle(TABLE_LAYOUT.niches.deckMine)}
                   onContextMenu={(e) => {
                     e.preventDefault();
                     setDeckContextMenu({ x: e.clientX, y: e.clientY });
@@ -7473,11 +7536,11 @@ function GameBoard({ matchId, user, onLeaveMatch }) {
 
             return (
               <React.Fragment>
-                <div className="side-tray side-tray-left" title={`Gegner: ${opponent.wallsRemaining} von 10 Mauern übrig`}>
+                <div className="side-tray side-tray-left" style={boxToStyle(TABLE_LAYOUT.wallTray.left)} title={`Gegner: ${opponent.wallsRemaining} von 10 Mauern übrig`}>
                   <WallTray remaining={opponent.wallsRemaining} mine={false} mirrored />
                   <TrapTray cardIds={[]} faceDownCount={Math.min(opponentTrapCount, 5)} mirrored />
                 </div>
-                <div className="side-tray side-tray-right" title={`${me.wallsRemaining} von 10 Mauern übrig`}>
+                <div className="side-tray side-tray-right" style={boxToStyle(TABLE_LAYOUT.wallTray.right)} title={`${me.wallsRemaining} von 10 Mauern übrig`}>
                   <WallTray remaining={me.wallsRemaining} mine onDragStart={handleWallTokenDragStart} onDragEnd={handleWallTokenDragEnd} />
                   <TrapTray cardIds={myTrapCardIds} baseCanAct={baseCanAct} hasFlag={hasFlag} draggedCardRef={draggedCardRef} />
                 </div>
