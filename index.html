@@ -657,7 +657,11 @@ button.danger:hover { background: rgba(163, 51, 51, 0.15); }
    die GESAMTE Nische ab; welche Haelfte davon das Icon zeigt, variiert je
    Nische (siehe align-items je Klasse weiter unten) und wird per Karten-
    Inhalt kleiner dargestellt, damit die Gravur-Schrift sichtbar bleibt. */
-.board-grid { position: absolute; left: 38.3%; top: 15.8%; right: 38.2%; bottom: 21.7%; display: grid; }
+/* Abschnitt 5: Position/Groesse kommt jetzt per inline style={boxToStyle(
+   TABLE_LAYOUT.boardArea)} aus derselben Quelle wie board-inset.png
+   (Abschnitt 2) -- garantiert exakte Deckungsgleichheit statt zweier separat
+   gepflegter Prozentangaben. */
+.board-grid { position: absolute; display: grid; }
 .zone-box { position: absolute; display: flex; align-items: center; justify-content: center; }
 /* Abschnitt 1 (Spieltisch-Reskin): .zone-left-top usw. haben ab jetzt KEINE
    Position mehr im Stylesheet -- die kommt per inline style={boxToStyle(...)}
@@ -7384,7 +7388,7 @@ function GameBoard({ matchId, user, onLeaveMatch }) {
           <div
             ref={boardGridRef}
             className="board-grid"
-            style={{ gridTemplateColumns: trackTemplate, gridTemplateRows: rowTemplate }}
+            style={{ ...boxToStyle(TABLE_LAYOUT.boardArea), gridTemplateColumns: trackTemplate, gridTemplateRows: rowTemplate }}
           >
             {corners}
             {edges}
