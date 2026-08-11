@@ -671,21 +671,25 @@ button.danger:hover { background: rgba(163, 51, 51, 0.15); }
 .zone-hero-card { position: relative; width: 88%; height: 84%; cursor: pointer; transition: transform 0.15s ease; transform-origin: center center; }
 .zone-hero-card:hover { transform: scale(3.5); z-index: 950; }
 .zone-hero-card-img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 4px; }
-/* Punkt 3a / Nachbesserung: ZWEI Gravuren im Bild sind tatsaechlich
-   verstuemmelte KI-Bildgenerierungs-Artefakte (per Bildausschnitt
-   verifiziert, kein Mess-/CSS-Fehler): "GRAVEYARD" links (gespiegelte
-   Gegner-Seite) und "HERO" rechts oben (Mein Held) lesen sich beide wie
-   zufaellige Buchstabenfolgen. Beide Patches jetzt exakt auf die neu
-   gemessene Nischen-Box zugeschnitten (vorher zu gross/falsch positioniert). */
-.zone-label-overlay {
-  position: absolute; display: flex; align-items: center; justify-content: center;
-  background: rgba(64, 38, 16, 0.94);
-  color: #cba055; font-family: 'Cinzel', serif; font-size: 0.55rem; letter-spacing: 0.06em;
-  text-shadow: 0 1px 0 rgba(0,0,0,0.6), 0 0 4px rgba(0,0,0,0.4);
-  border-radius: 2px; pointer-events: none; user-select: none;
+/* Abschnitt 3 (Gold-Ornament-Rahmen): ersetzt den alten geschnitzten Holz-
+   Nischen-Look vollstaendig -- kein Schatten/Fase/Medaillon mehr. corner-
+   gold.png ist bereits ein vollstaendiges L-Ornament mit auslaufenden Armen
+   (siehe Kommentar an goldFrameGeometry-Stelle oben) -- 4 auf die GESAMTE
+   Zonen-Box gestreckte, gespiegelte (NICHT rotierte -- der Rankenverlauf ist
+   gerichtet, eine Drehung wuerde ihn verzerren, eine Spiegelung erhaelt ihn
+   korrekt) Kopien ergeben von selbst einen kompletten Rahmen. */
+.zone-gold-frame-rotated { transform: rotate(180deg); }
+.zone-gold-corner {
+  position: absolute; inset: 0; background-image: url('images/frames/corner-gold.png');
+  background-size: 100% 100%; background-repeat: no-repeat; pointer-events: none; z-index: 2;
 }
-.zone-label-left { left: 30.1%; top: 32.36%; width: 5.9%; height: 8.5%; transform: rotate(180deg); }
-.zone-label-right-hero { left: 63.9%; top: 28.5%; width: 5.9%; height: 8.5%; }
+.zone-gold-corner-tr { transform: scaleX(-1); }
+.zone-gold-corner-bl { transform: scaleY(-1); }
+.zone-gold-corner-br { transform: scale(-1, -1); }
+.zone-gold-label {
+  position: absolute; top: 1%; left: 50%; transform: translateX(-50%);
+  max-width: 70%; height: auto; pointer-events: none; user-select: none; z-index: 3;
+}
 .zone-box.zone-graveyard { cursor: pointer; }
 .zone-box.zone-graveyard:hover { outline: 2px solid rgba(224, 184, 58, 0.6); }
 
@@ -4277,6 +4281,15 @@ function boxToStyle(box) {
   return { left: pctX(box.x) + '%', top: pctY(box.y) + '%', width: pctX(box.w) + '%', height: pctY(box.h) + '%' };
 }
 
+// Abschnitt 3 (Gold-Ornament-Rahmen): corner-gold.png ist selbst schon ein
+// VOLLSTAENDIGES L-foermiges Eck-Ornament -- beide Arme laufen bereits ueber
+// (fast) die ganze Bild-Breite/-Hoehe spitz zulaufend aus (kein separates
+// Kanten-Bild noetig). 4 auf die GESAMTE Zonen-Box gestreckte Kopien (je
+// gespiegelt statt rotiert, siehe CSS) ergeben dadurch von selbst einen
+// kompletten Rahmen: jede Kopie steuert ihre Ecke + die beiden angrenzenden
+// (zur Mitte hin ausblassenden) Kanten-Arme bei, die sich mit den Armen der
+// gegenueberliegenden Ecken in der Mitte jeder Kante treffen.
+
 const TABLE_LAYOUT = {
   refWidth: TABLE_REF_W,
   refHeight: TABLE_REF_H,
@@ -7404,42 +7417,42 @@ function GameBoard({ matchId, user, onLeaveMatch }) {
               );
             }
 
+            function GoldFrameDecor({ label }) {
+              return (
+                <React.Fragment>
+                  <div className="zone-gold-corner zone-gold-corner-tl" />
+                  <div className="zone-gold-corner zone-gold-corner-tr" />
+                  <div className="zone-gold-corner zone-gold-corner-bl" />
+                  <div className="zone-gold-corner zone-gold-corner-br" />
+                  {label && <img src={label} alt="" className="zone-gold-label" />}
+                </React.Fragment>
+              );
+            }
+
             return (
               <React.Fragment>
                 {/* Gegner (oberer Cluster): Deck oben-links, Grabmal Mitte-links, Held oben-rechts. */}
                 <div
-                  className="zone-box zone-deck zone-left-top"
+                  className="zone-box zone-deck zone-left-top zone-gold-frame zone-gold-frame-rotated"
                   style={boxToStyle(TABLE_LAYOUT.niches.deckOpponent)}
                   onContextMenu={(e) => e.preventDefault()}
                 >
+                  <GoldFrameDecor label="images/frames/label-deck.png" />
                   <div className="zone-info-tooltip">Gegner-Deck: {opponent.deck.length} Karten</div>
                   <DeckStack count={opponent.deck.length} />
                 </div>
-                <div className="zone-box zone-graveyard zone-left-mid" style={boxToStyle(TABLE_LAYOUT.niches.graveyardOpponent)} onClick={() => setGraveyardView(opponent.id)}>
+                <div className="zone-box zone-graveyard zone-left-mid zone-gold-frame zone-gold-frame-rotated" style={boxToStyle(TABLE_LAYOUT.niches.graveyardOpponent)} onClick={() => setGraveyardView(opponent.id)}>
+                  <GoldFrameDecor label="images/frames/label-graveyard.png" />
                   <GraveyardTop player={opponent} isMine={false} />
                 </div>
-                {/* Punkt 3a / Nachbesserung: die "GRAVEYARD"-Gravur im oberen
-                    Teil dieser Nische ist ein verstuemmeltes KI-Bildgenerierungs-
-                    Artefakt (per Bildausschnitt verifiziert, siehe CSS-Kommentar
-                    an .zone-label-overlay) -- laesst sich in einer statischen PNG
-                    nicht reparieren, daher ein Text-Patch im gleichen Gravur-Stil.
-                    Sitzt NACH (= optisch UEBER) dem Grabmal-Icon im DOM, ueberlappt
-                    aber nicht dessen Inhalt: das Icon ist per align-items:flex-end
-                    in der UNTEREN Haelfte der Nische verankert, der Patch deckt nur
-                    die OBERE Haelfte (wo die Gravur sitzt) ab. */}
-                <span className="zone-label-overlay zone-label-left">GRAVEYARD</span>
-                <div className="zone-box zone-hero zone-right-top" style={boxToStyle(TABLE_LAYOUT.niches.heroOpponent)}>
+                <div className="zone-box zone-hero zone-right-top zone-gold-frame zone-gold-frame-rotated" style={boxToStyle(TABLE_LAYOUT.niches.heroOpponent)}>
+                  <GoldFrameDecor label="images/frames/label-hero.png" />
                   <HeroCard player={opponent} />
                 </div>
-                {/* Dieselbe Art Bild-Artefakt wie beim Grabmal, hier bei der
-                    rechten "HERO"-Gravur (Gegner-Held-Nische) -- ebenfalls per
-                    Bildausschnitt verifiziert, ebenfalls nicht rotiert (die
-                    Gravur an dieser Stelle ist im Bild NICHT gespiegelt). */}
-                <span className="zone-label-overlay zone-label-right-hero">HERO</span>
 
                 {/* Ich (unterer Cluster): Held unten-links, Grabmal Mitte-rechts, Deck unten-rechts. */}
                 <div
-                  className={`zone-box zone-hero zone-left-bottom${dragOverGrid ? ' drag-over-active' : ''}`}
+                  className={`zone-box zone-hero zone-left-bottom zone-gold-frame${dragOverGrid ? ' drag-over-active' : ''}`}
                   style={boxToStyle(TABLE_LAYOUT.niches.heroMine)}
                   onDragOver={(e) => { if (draggedCardRef.current) e.preventDefault(); }}
                   onDragEnter={(e) => { if (draggedCardRef.current) setDragOverGrid(true); }}
@@ -7455,6 +7468,7 @@ function GameBoard({ matchId, user, onLeaveMatch }) {
                     startCardFlow(card, 'origin');
                   }}
                 >
+                  <GoldFrameDecor label="images/frames/label-hero.png" />
                   <div className="zone-info-tooltip">
                     Bewegung: {state.turnBudget.fieldsMoved}/{state.turnBudget.maxFields}<br />
                     Karten: {state.turnBudget.cardsPlayed}/{state.turnBudget.maxCards}<br />
@@ -7462,18 +7476,20 @@ function GameBoard({ matchId, user, onLeaveMatch }) {
                   </div>
                   <HeroCard player={me} />
                 </div>
-                <div className="zone-box zone-graveyard zone-right-mid" style={boxToStyle(TABLE_LAYOUT.niches.graveyardMine)} onClick={() => setGraveyardView(me.id)}>
+                <div className="zone-box zone-graveyard zone-right-mid zone-gold-frame" style={boxToStyle(TABLE_LAYOUT.niches.graveyardMine)} onClick={() => setGraveyardView(me.id)}>
+                  <GoldFrameDecor label="images/frames/label-graveyard.png" />
                   <GraveyardTop player={me} isMine={true} />
                 </div>
                 <div
                   ref={deckZoneRef}
-                  className="zone-box zone-deck zone-right-bottom"
+                  className="zone-box zone-deck zone-right-bottom zone-gold-frame"
                   style={boxToStyle(TABLE_LAYOUT.niches.deckMine)}
                   onContextMenu={(e) => {
                     e.preventDefault();
                     setDeckContextMenu({ x: e.clientX, y: e.clientY });
                   }}
                 >
+                  <GoldFrameDecor label="images/frames/label-deck.png" />
                   <div className="zone-info-tooltip">Dein Deck: {me.deck.length} Karten</div>
                   <DeckStack count={me.deck.length} />
                 </div>
