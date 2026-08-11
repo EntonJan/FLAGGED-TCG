@@ -631,10 +631,19 @@ button.danger:hover { background: rgba(163, 51, 51, 0.15); }
    Bildposition und wurden nicht umbenannt (reines Bezeichner-Erbe) -- welche
    Zone (Deck/Grab/Held, Gegner/ich) an welcher Stelle sitzt, steht als
    Kommentar bei jeder Regel. */
-.board-frame { position: relative; width: min(92vw, 1600px); max-width: 100%; max-height: 100%; aspect-ratio: 1584 / 672; }
+/* Abschnitt 2 (Holz-Hintergrund): .board-frame bekommt eine echte, kachelnde
+   Holz-Textur (CC0, Poly Haven "Oak Veneer 01") als CSS-background statt des
+   vorherigen vollflaechigen <img> von game-table-detail.png -- background-repeat
+   sorgt fuer eine gleichmaessige Maserung ueber die gesamte (variable) Brett-
+   flaeche, unabhaengig von deren tatsaechlicher gerenderter Groesse. */
+.board-frame { position: relative; width: min(92vw, 1600px); max-width: 100%; max-height: 100%; aspect-ratio: 1584 / 672; background-image: url('images/textures/wood-tile.jpg'); background-repeat: repeat; }
 .board-frame-inner { position: absolute; inset: 0; }
 .board-frame-inner.board-frame-rotated { transform: rotate(180deg); }
-.board-bg-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; user-select: none; }
+/* Nur noch die reine Spielfeld-Landschaft (kein Holzrahmen/keine Nischen/keine
+   Gravur mehr) -- zugeschnitten aus game-table-detail.png exakt auf
+   TABLE_LAYOUT.boardArea (siehe boxToStyle-Aufruf in der JSX-Stelle), liegt
+   als reine Dekor-Ebene UNTER dem selbst gezeichneten .board-grid. */
+.board-inset-image { position: absolute; object-fit: cover; pointer-events: none; user-select: none; }
 /* Nachbesserung (dediziertes Vermessungs-Skript, Node/pngjs statt PIL/opencv
    -- kein Python im System verfuegbar, siehe Commit-Beschreibung): Sobel-
    Kantenerkennung auf der Messing-Fase JEDER Nische (nicht Dunkelheits-
@@ -4299,6 +4308,16 @@ const TABLE_LAYOUT = {
     right: { x: 1115.3, y: 20.2, w: 136.2, h: 631.7, count: 10 },
   },
 };
+// Abschnitt 2: abgeleitete Box fuer die reine Spielfeld-Flaeche (8x8-Gitter),
+// exakt boardOrigin + cellSize*boardCols/boardRows -- wird sowohl fuer das
+// zugeschnittene Landschaftsbild (board-inset.png) als auch spaeter fuer
+// .board-grid (Abschnitt 5) verwendet, damit beide garantiert exakt uebereinander liegen.
+TABLE_LAYOUT.boardArea = {
+  x: TABLE_LAYOUT.boardOrigin.x,
+  y: TABLE_LAYOUT.boardOrigin.y,
+  w: TABLE_LAYOUT.cellSize.w * TABLE_LAYOUT.boardCols,
+  h: TABLE_LAYOUT.cellSize.h * TABLE_LAYOUT.boardRows,
+};
 
 const CLASS_THEME = {
   Assassine: { from: '#3b1d5e', to: '#150a24' },
@@ -7326,7 +7345,7 @@ function GameBoard({ matchId, user, onLeaveMatch }) {
           }}
         >
           <div className={`board-frame-inner${flipBoard ? ' board-frame-rotated' : ''}`}>
-          <img src="images/scenes/game-table-detail.png" alt="Spielfeld" className="board-bg-image" />
+          <img src="images/scenes/board-inset.png" alt="Spielfeld" className="board-inset-image" style={boxToStyle(TABLE_LAYOUT.boardArea)} />
 
           <div
             ref={boardGridRef}
