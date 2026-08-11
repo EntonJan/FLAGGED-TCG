@@ -640,7 +640,20 @@ button.danger:hover { background: rgba(163, 51, 51, 0.15); }
    vorherigen vollflaechigen <img> von game-table-detail.png -- background-repeat
    sorgt fuer eine gleichmaessige Maserung ueber die gesamte (variable) Brett-
    flaeche, unabhaengig von deren tatsaechlicher gerenderter Groesse. */
-.board-frame { position: relative; width: min(92vw, 1600px); max-width: 100%; max-height: 100%; aspect-ratio: 1584 / 672; background-image: url('images/textures/wood-tile.jpg'); background-repeat: repeat; }
+/* Referenz-Kartengroesse (Zonen-Groessen-Verifikation): wiederverwendet
+   --wall-token-size -- die bereits vorhandene, per ResizeObserver LIVE aus
+   der tatsaechlich gerenderten Brett-Zelle gemessene Groesse (siehe
+   cellSizePx in GameBoard) -- als Kartenbreite (eine Karte, die auf einer
+   Zelle liegt, ist schmaler als eine Zelle hoch ist: 961:1323 vs. der
+   Zellen-Breite als schmalere Zellen-Dimension). Hoehe daraus per festem
+   Kartenseitenverhaeltnis 961:1323 abgeleitet. EINE Referenzgroesse fuer
+   alle Zonen-Karten (Deck/Grabmal/Held/Falle, beide Seiten) -- keine Zone
+   skaliert die Karte mehr individuell in % ihrer eigenen Box. */
+.board-frame {
+  --card-w-standard: var(--wall-token-size, 40px);
+  --card-h-standard: calc(var(--wall-token-size, 40px) * 1323 / 961);
+  position: relative; width: min(92vw, 1600px); max-width: 100%; max-height: 100%; aspect-ratio: 1584 / 672; background-image: url('images/textures/wood-tile.jpg'); background-repeat: repeat;
+}
 .board-frame-inner { position: absolute; inset: 0; }
 .board-frame-inner.board-frame-rotated { transform: rotate(180deg); }
 /* Nur noch die reine Spielfeld-Landschaft (kein Holzrahmen/keine Nischen/keine
@@ -664,19 +677,26 @@ button.danger:hover { background: rgba(163, 51, 51, 0.15); }
 .board-grid { position: absolute; display: grid; }
 .zone-box { position: absolute; display: flex; align-items: center; justify-content: center; }
 /* Abschnitt 1 (Spieltisch-Reskin): .zone-left-top usw. haben ab jetzt KEINE
-   Position mehr im Stylesheet -- die kommt per inline style={boxToStyle(...)}
-   aus TABLE_LAYOUT.niches (siehe JSX). Klassennamen bleiben nur als Bezeichner-
+   Position mehr im Stylesheet -- die kommt per inline style aus
+   TABLE_LAYOUT.niches (siehe JSX). Klassennamen bleiben nur als Bezeichner-
    Erbe erhalten (welche Zone = welcher Spieler, siehe Kommentar an der
    JSX-Stelle), tragen aber keine CSS-Regeln mehr. */
-/* Karten-Inhalt bewusst deutlich kleiner als die Nische (vorher 84.5%/91.8%
-   der -- damals falsch gemessenen, zu kleinen -- Box): die Nische umfasst
-   jetzt Gravur-Text + Icon zusammen, das Icon selbst nimmt nur etwa die
-   halbe Nischenhoehe ein (align-items oben steuert, welche Haelfte). */
-.zone-deck-stack { position: relative; width: 88%; height: 84%; }
-.zone-graveyard-mini { position: relative; width: 88%; height: 84%; cursor: pointer; transition: transform 0.15s ease; transform-origin: center center; }
+/* Zonen-Groessen-Verifikation: die Zonenbox selbst bekommt ihre Breite/Hoehe
+   jetzt NICHT mehr von boxToStyle() (das liefert nur noch left/top, siehe
+   posOnly() in der JSX), sondern exakt Kartengroesse + 4px (2px Rand auf
+   jeder Seite) -- fest verdrahtet mit derselben --card-w/-h-standard-Variable
+   wie der Karteninhalt selbst, garantiert exakten Gleichlauf statt zweier
+   unabhaengig gepflegter Werte. */
+.zone-card-slot { width: calc(var(--card-w-standard) + 4px); height: calc(var(--card-h-standard) + 4px); }
+/* Karten-Inhalt: feste Referenzgroesse (--card-w/-h-standard, siehe
+   .board-frame) statt individueller Prozentskalierung je Zone (vorher
+   88%/84% der -- je nach Zone unterschiedlich grossen -- Nische). Eine Karte
+   im Deck-Slot ist dadurch optisch exakt gleich gross wie im Hero-Slot. */
+.zone-deck-stack { position: relative; width: var(--card-w-standard); height: var(--card-h-standard); }
+.zone-graveyard-mini { position: relative; width: var(--card-w-standard); height: var(--card-h-standard); cursor: pointer; transition: transform 0.15s ease; transform-origin: center center; }
 .zone-graveyard-mini:hover { transform: scale(3.5); z-index: 950; }
 .zone-graveyard-mini-img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 4px; }
-.zone-hero-card { position: relative; width: 88%; height: 84%; cursor: pointer; transition: transform 0.15s ease; transform-origin: center center; }
+.zone-hero-card { position: relative; width: var(--card-w-standard); height: var(--card-h-standard); cursor: pointer; transition: transform 0.15s ease; transform-origin: center center; }
 .zone-hero-card:hover { transform: scale(3.5); z-index: 950; }
 .zone-hero-card-img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 4px; }
 /* Abschnitt 3 (Gold-Ornament-Rahmen): ersetzt den alten geschnitzten Holz-
@@ -817,8 +837,12 @@ button.danger:hover { background: rgba(163, 51, 51, 0.15); }
 /* Abschnitt 4: dieselbe Komponente (TrapTray) fuer die neue, breite Trap-Zone
    auf dem Tisch -- dort ist eine waagrechte Reihe statt der schmalen
    Seiten-Saeule noetig. */
+/* Zonen-Groessen-Verifikation: die Trap-Zone bleibt bewusst breit (Platz fuer
+   bis zu 5 Fallenkarten nebeneinander) -- die 2px-Randregel gilt hier NICHT
+   fuer die ganze breite Box, sondern pro Karten-SLOT (.trap-token), der
+   dieselbe --card-w/-h-standard-Referenz + 4px bekommt wie die anderen
+   Zonen. */
 .trap-tray-horizontal { flex-direction: row; justify-content: center; width: 100%; height: 100%; }
-.trap-tray-horizontal .trap-token { height: 100%; width: auto; }
 .wall-token {
   width: min(var(--wall-token-size, 40px), 100%); height: min(var(--wall-token-size, 40px), 100%);
   aspect-ratio: 1 / 1; border-radius: 4px; background: rgba(0,0,0,0.25); border: 1px solid rgba(224,184,58,0.25);
@@ -832,14 +856,20 @@ button.danger:hover { background: rgba(163, 51, 51, 0.15); }
   filter: drop-shadow(0 1px 1px rgba(0,0,0,0.6));
 }
 .wall-token:hover .wall-token-icon { stroke: #f0d78a; }
+/* Slot-Groesse = Referenz-Kartengroesse + 4px (2px Rand je Seite) --
+   dieselbe Variable wie die Nischen-Karten (.zone-card-slot), damit eine
+   Fallenkarte optisch exakt gleich gross ist wie eine Deck/Grabmal/Held-
+   Karte. Der Karten-Inhalt selbst (.trap-token-card-wrap/-img) ist fest auf
+   --card-w/-h-standard gesetzt, nicht 100% des Slots -- sonst gaebe es
+   keinen Rand. */
 .trap-token {
-  width: min(calc(var(--wall-token-size, 40px) * 1.35), 100%); aspect-ratio: 961 / 1323; border-radius: 5px;
-  display: flex; align-items: center; justify-content: center; cursor: grab; flex-shrink: 1; min-height: 0;
+  width: calc(var(--card-w-standard) + 4px); height: calc(var(--card-h-standard) + 4px); border-radius: 5px;
+  display: flex; align-items: center; justify-content: center; cursor: grab; flex-shrink: 0;
 }
 .trap-token:active { cursor: grabbing; }
 .trap-token-empty { background: rgba(0,0,0,0.2); border: 1px dashed rgba(224,184,58,0.2); cursor: default; }
-.trap-token-card-wrap, .trap-token-card-wrap .card-visual { width: 100%; height: 100%; }
-.trap-token-img { width: 100%; height: 100%; object-fit: contain; border-radius: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.5); }
+.trap-token-card-wrap, .trap-token-card-wrap .card-visual { width: var(--card-w-standard); height: var(--card-h-standard); }
+.trap-token-img { width: var(--card-w-standard); height: var(--card-h-standard); object-fit: contain; border-radius: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.5); }
 @media (max-width: 900px) {
   .side-tray { display: none; } /* auf schmalen Screens kein Platz neben dem Brett -- Wandsetzen bleibt ueber den bestehenden Klick-Modus/-Button erreichbar */
 }
@@ -4296,6 +4326,14 @@ function pctY(px) { return (px / TABLE_REF_H) * 100; }
 function boxToStyle(box) {
   return { left: pctX(box.x) + '%', top: pctY(box.y) + '%', width: pctX(box.w) + '%', height: pctY(box.h) + '%' };
 }
+// Zonen-Groessen-Verifikation: fuer die 6 Karten-Nischen (Deck/Grabmal/Held)
+// kommt nur noch die POSITION (x/y) aus TABLE_LAYOUT -- die Breite/Hoehe der
+// Box wird stattdessen exakt an die Referenz-Kartengroesse gekoppelt (siehe
+// .zone-card-slot in CSS), damit der Rand IMMER exakt 2px betraegt, egal wie
+// gross die Karte tatsaechlich gerendert wird.
+function posOnly(box) {
+  return { left: pctX(box.x) + '%', top: pctY(box.y) + '%' };
+}
 
 // Abschnitt 3 (Gold-Ornament-Rahmen): corner-gold.png ist selbst schon ein
 // VOLLSTAENDIGES L-foermiges Eck-Ornament -- beide Arme laufen bereits ueber
@@ -7458,27 +7496,27 @@ function GameBoard({ matchId, user, onLeaveMatch }) {
               <React.Fragment>
                 {/* Gegner (oberer Cluster): Deck oben-links, Grabmal Mitte-links, Held oben-rechts. */}
                 <div
-                  className="zone-box zone-deck zone-left-top zone-gold-frame zone-gold-frame-rotated"
-                  style={boxToStyle(TABLE_LAYOUT.niches.deckOpponent)}
+                  className="zone-box zone-deck zone-left-top zone-gold-frame zone-gold-frame-rotated zone-card-slot"
+                  style={posOnly(TABLE_LAYOUT.niches.deckOpponent)}
                   onContextMenu={(e) => e.preventDefault()}
                 >
                   <GoldFrameDecor label="images/frames/label-deck.png" />
                   <div className="zone-info-tooltip">Gegner-Deck: {opponent.deck.length} Karten</div>
                   <DeckStack count={opponent.deck.length} />
                 </div>
-                <div className="zone-box zone-graveyard zone-left-mid zone-gold-frame zone-gold-frame-rotated" style={boxToStyle(TABLE_LAYOUT.niches.graveyardOpponent)} onClick={() => setGraveyardView(opponent.id)}>
+                <div className="zone-box zone-graveyard zone-left-mid zone-gold-frame zone-gold-frame-rotated zone-card-slot" style={posOnly(TABLE_LAYOUT.niches.graveyardOpponent)} onClick={() => setGraveyardView(opponent.id)}>
                   <GoldFrameDecor label="images/frames/label-graveyard.png" />
                   <GraveyardTop player={opponent} isMine={false} />
                 </div>
-                <div className="zone-box zone-hero zone-right-top zone-gold-frame zone-gold-frame-rotated" style={boxToStyle(TABLE_LAYOUT.niches.heroOpponent)}>
+                <div className="zone-box zone-hero zone-right-top zone-gold-frame zone-gold-frame-rotated zone-card-slot" style={posOnly(TABLE_LAYOUT.niches.heroOpponent)}>
                   <GoldFrameDecor label="images/frames/label-hero.png" />
                   <HeroCard player={opponent} />
                 </div>
 
                 {/* Ich (unterer Cluster): Held unten-links, Grabmal Mitte-rechts, Deck unten-rechts. */}
                 <div
-                  className={`zone-box zone-hero zone-left-bottom zone-gold-frame${dragOverGrid ? ' drag-over-active' : ''}`}
-                  style={boxToStyle(TABLE_LAYOUT.niches.heroMine)}
+                  className={`zone-box zone-hero zone-left-bottom zone-gold-frame zone-card-slot${dragOverGrid ? ' drag-over-active' : ''}`}
+                  style={posOnly(TABLE_LAYOUT.niches.heroMine)}
                   onDragOver={(e) => { if (draggedCardRef.current) e.preventDefault(); }}
                   onDragEnter={(e) => { if (draggedCardRef.current) setDragOverGrid(true); }}
                   onDragLeave={() => setDragOverGrid(false)}
@@ -7501,14 +7539,14 @@ function GameBoard({ matchId, user, onLeaveMatch }) {
                   </div>
                   <HeroCard player={me} />
                 </div>
-                <div className="zone-box zone-graveyard zone-right-mid zone-gold-frame" style={boxToStyle(TABLE_LAYOUT.niches.graveyardMine)} onClick={() => setGraveyardView(me.id)}>
+                <div className="zone-box zone-graveyard zone-right-mid zone-gold-frame zone-card-slot" style={posOnly(TABLE_LAYOUT.niches.graveyardMine)} onClick={() => setGraveyardView(me.id)}>
                   <GoldFrameDecor label="images/frames/label-graveyard.png" />
                   <GraveyardTop player={me} isMine={true} />
                 </div>
                 <div
                   ref={deckZoneRef}
-                  className="zone-box zone-deck zone-right-bottom zone-gold-frame"
-                  style={boxToStyle(TABLE_LAYOUT.niches.deckMine)}
+                  className="zone-box zone-deck zone-right-bottom zone-gold-frame zone-card-slot"
+                  style={posOnly(TABLE_LAYOUT.niches.deckMine)}
                   onContextMenu={(e) => {
                     e.preventDefault();
                     setDeckContextMenu({ x: e.clientX, y: e.clientY });
