@@ -694,9 +694,9 @@ button.danger:hover { background: rgba(163, 51, 51, 0.15); }
    JSX-Stelle), tragen aber keine CSS-Regeln mehr. */
 /* Zonen-Groessen-Verifikation: die Zonenbox selbst bekommt ihre Breite/Hoehe
    jetzt NICHT mehr von boxToStyle() (das liefert nur noch left/top, siehe
-   posOnly() in der JSX), sondern exakt Kartengroesse + 4px (2px Rand auf
-   jeder Seite) -- fest verdrahtet mit derselben --card-w/-h-standard-Variable
-   wie der Karteninhalt selbst, garantiert exakten Gleichlauf statt zweier
+   centerBoxStyle() in der JSX), sondern exakt Kartengroesse + 4px (2px Rand
+   auf jeder Seite) -- fest verdrahtet mit derselben --card-w/-h-standard-
+   Variable wie der Karteninhalt selbst, garantiert exakten Gleichlauf statt zweier
    unabhaengig gepflegter Werte. */
 .zone-card-slot { width: calc(var(--card-w-standard) + 4px); height: calc(var(--card-h-standard) + 4px); }
 /* Karten-Inhalt: feste Referenzgroesse (--card-w/-h-standard, siehe
@@ -4345,12 +4345,23 @@ function boxToStyle(box) {
   return { left: pctX(box.x) + '%', top: pctY(box.y) + '%', width: pctX(box.w) + '%', height: pctY(box.h) + '%' };
 }
 // Zonen-Groessen-Verifikation: fuer die 6 Karten-Nischen (Deck/Grabmal/Held)
-// kommt nur noch die POSITION (x/y) aus TABLE_LAYOUT -- die Breite/Hoehe der
-// Box wird stattdessen exakt an die Referenz-Kartengroesse gekoppelt (siehe
+// kommt nur noch die POSITION aus TABLE_LAYOUT -- die Breite/Hoehe der Box
+// wird stattdessen exakt an die Referenz-Kartengroesse gekoppelt (siehe
 // .zone-card-slot in CSS), damit der Rand IMMER exakt 2px betraegt, egal wie
 // gross die Karte tatsaechlich gerendert wird.
-function posOnly(box) {
-  return { left: pctX(box.x) + '%', top: pctY(box.y) + '%' };
+// Tisch-Korrektur Punkt 2 (Symmetrie): die 6 Karten-Nischen werden ab jetzt
+// per MITTELPUNKT (cx/cy) statt per linker-oberer-Ecke positioniert und per
+// translate(-50%,-50%) auf diesem Punkt zentriert -- dadurch ist die
+// Position von der (inzwischen kartenbasierten, siehe .zone-card-slot)
+// Boxgroesse komplett entkoppelt: exakte Links/Rechts-Spiegelsymmetrie um
+// die Brett-Mittelachse (792 = TABLE_REF_W/2) ist damit rein ueber cx
+// garantiert, unabhaengig davon, wie gross die Karte gerade gerendert wird.
+function centerBoxStyle(cx, cy, rotated) {
+  return {
+    left: pctX(cx) + '%',
+    top: pctY(cy) + '%',
+    transform: 'translate(-50%, -50%)' + (rotated ? ' rotate(180deg)' : ''),
+  };
 }
 
 // Abschnitt 3 (Gold-Ornament-Rahmen): corner-gold.png ist selbst schon ein
@@ -4375,22 +4386,33 @@ const TABLE_LAYOUT = {
   // (siehe cellSizePx in GameBoard), nicht von diesem statischen Wert --
   // robuster gegenueber Layout-/Viewport-Aenderungen.
   cellSize: { w: 46.71, h: 52.49 },
+  // Tisch-Korrektur Punkt 2 (Symmetrie): cx/cy statt x/y/w/h -- Mittelpunkt
+  // je Nische, per centerBoxStyle() zentriert positioniert (siehe JSX).
+  // Linke und rechte Spalte liegen jetzt exakt spiegelsymmetrisch zur
+  // Brett-Mittelachse (cx-Abstand zu 792 = TABLE_REF_W/2 ist links wie
+  // rechts identisch: 267.7). Y-Positionen sind reihenweise abgeglichen
+  // (Reihe 1 links/rechts gleiche Hoehe, Reihe 2 gleiche Hoehe, Reihe 3
+  // gleiche Hoehe) -- Mittelwert der vorher (Abschnitt 1) einzeln
+  // gemessenen, leicht abweichenden linken/rechten Werte.
   niches: {
-    deckOpponent:      { x: 476.8,  y: 69.5,  w: 93.5, h: 118.3 },
-    graveyardOpponent: { x: 476.8,  y: 217.5, w: 93.5, h: 100.1 },
-    heroOpponent:      { x: 476.8,  y: 397.0, w: 93.5, h: 112.9 },
-    heroMine:          { x: 1012.2, y: 157.8, w: 93.5, h: 114.2 },
-    graveyardMine:     { x: 1012.2, y: 335.1, w: 93.5, h: 115.6 },
-    deckMine:          { x: 1012.2, y: 492.6, w: 93.5, h: 112.9 },
+    deckOpponent:      { cx: 524.3,  cy: 171.8 },
+    graveyardOpponent: { cx: 524.3,  cy: 330.2 },
+    heroOpponent:      { cx: 524.3,  cy: 501.3 },
+    heroMine:          { cx: 1059.7, cy: 171.8 },
+    graveyardMine:     { cx: 1059.7, cy: 330.2 },
+    deckMine:          { cx: 1059.7, cy: 501.3 },
   },
   // Ersetzen die alten .zone-hand-top/.zone-hand-bottom-Positionen AUF dem
   // Tisch (Abschnitt 4: Hand wandert vom Tisch runter, hier entsteht
   // stattdessen die Trap-Zone).
   trapZoneOpponent: { x: 590.8, y: 5.4,   w: 449.9, h: 104.2 },
   trapZoneMine:     { x: 590.8, y: 561.1, w: 449.9, h: 95.4 },
+  // Tisch-Korrektur Punkt 2: x links/rechts symmetrisiert (vorher 326.3/
+  // 1115.3 -- ca. 6 Ref-px asymmetrisch, Mittelwert der beiden Abstaende
+  // zur Brett-Mittelachse 792 uebernommen).
   wallTray: {
-    left:  { x: 326.3,  y: 20.2, w: 136.2, h: 631.7, count: 10 },
-    right: { x: 1115.3, y: 20.2, w: 136.2, h: 631.7, count: 10 },
+    left:  { x: 329.4,  y: 20.2, w: 136.2, h: 631.7, count: 10 },
+    right: { x: 1118.4, y: 20.2, w: 136.2, h: 631.7, count: 10 },
   },
 };
 // Abschnitt 2: abgeleitete Box fuer die reine Spielfeld-Flaeche (8x8-Gitter),
@@ -7514,19 +7536,19 @@ function GameBoard({ matchId, user, onLeaveMatch }) {
               <React.Fragment>
                 {/* Gegner (oberer Cluster): Deck oben-links, Grabmal Mitte-links, Held oben-rechts. */}
                 <div
-                  className="zone-box zone-deck zone-left-top zone-gold-frame zone-gold-frame-rotated zone-card-slot"
-                  style={posOnly(TABLE_LAYOUT.niches.deckOpponent)}
+                  className="zone-box zone-deck zone-left-top zone-gold-frame zone-card-slot"
+                  style={centerBoxStyle(TABLE_LAYOUT.niches.deckOpponent.cx, TABLE_LAYOUT.niches.deckOpponent.cy, true)}
                   onContextMenu={(e) => e.preventDefault()}
                 >
                   <GoldFrameDecor label="images/frames/label-deck.png" />
                   <div className="zone-info-tooltip">Gegner-Deck: {opponent.deck.length} Karten</div>
                   <DeckStack count={opponent.deck.length} />
                 </div>
-                <div className="zone-box zone-graveyard zone-left-mid zone-gold-frame zone-gold-frame-rotated zone-card-slot" style={posOnly(TABLE_LAYOUT.niches.graveyardOpponent)} onClick={() => setGraveyardView(opponent.id)}>
+                <div className="zone-box zone-graveyard zone-left-mid zone-gold-frame zone-card-slot" style={centerBoxStyle(TABLE_LAYOUT.niches.graveyardOpponent.cx, TABLE_LAYOUT.niches.graveyardOpponent.cy, true)} onClick={() => setGraveyardView(opponent.id)}>
                   <GoldFrameDecor label="images/frames/label-graveyard.png" />
                   <GraveyardTop player={opponent} isMine={false} />
                 </div>
-                <div className="zone-box zone-hero zone-right-top zone-gold-frame zone-gold-frame-rotated zone-card-slot" style={posOnly(TABLE_LAYOUT.niches.heroOpponent)}>
+                <div className="zone-box zone-hero zone-right-top zone-gold-frame zone-card-slot" style={centerBoxStyle(TABLE_LAYOUT.niches.heroOpponent.cx, TABLE_LAYOUT.niches.heroOpponent.cy, true)}>
                   <GoldFrameDecor label="images/frames/label-hero.png" />
                   <HeroCard player={opponent} />
                 </div>
@@ -7534,7 +7556,7 @@ function GameBoard({ matchId, user, onLeaveMatch }) {
                 {/* Ich (unterer Cluster): Held unten-links, Grabmal Mitte-rechts, Deck unten-rechts. */}
                 <div
                   className={`zone-box zone-hero zone-left-bottom zone-gold-frame zone-card-slot${dragOverGrid ? ' drag-over-active' : ''}`}
-                  style={posOnly(TABLE_LAYOUT.niches.heroMine)}
+                  style={centerBoxStyle(TABLE_LAYOUT.niches.heroMine.cx, TABLE_LAYOUT.niches.heroMine.cy, false)}
                   onDragOver={(e) => { if (draggedCardRef.current) e.preventDefault(); }}
                   onDragEnter={(e) => { if (draggedCardRef.current) setDragOverGrid(true); }}
                   onDragLeave={() => setDragOverGrid(false)}
@@ -7557,14 +7579,14 @@ function GameBoard({ matchId, user, onLeaveMatch }) {
                   </div>
                   <HeroCard player={me} />
                 </div>
-                <div className="zone-box zone-graveyard zone-right-mid zone-gold-frame zone-card-slot" style={posOnly(TABLE_LAYOUT.niches.graveyardMine)} onClick={() => setGraveyardView(me.id)}>
+                <div className="zone-box zone-graveyard zone-right-mid zone-gold-frame zone-card-slot" style={centerBoxStyle(TABLE_LAYOUT.niches.graveyardMine.cx, TABLE_LAYOUT.niches.graveyardMine.cy, false)} onClick={() => setGraveyardView(me.id)}>
                   <GoldFrameDecor label="images/frames/label-graveyard.png" />
                   <GraveyardTop player={me} isMine={true} />
                 </div>
                 <div
                   ref={deckZoneRef}
                   className="zone-box zone-deck zone-right-bottom zone-gold-frame zone-card-slot"
-                  style={posOnly(TABLE_LAYOUT.niches.deckMine)}
+                  style={centerBoxStyle(TABLE_LAYOUT.niches.deckMine.cx, TABLE_LAYOUT.niches.deckMine.cy, false)}
                   onContextMenu={(e) => {
                     e.preventDefault();
                     setDeckContextMenu({ x: e.clientX, y: e.clientY });
