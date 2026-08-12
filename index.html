@@ -649,10 +649,21 @@ button.danger:hover { background: rgba(163, 51, 51, 0.15); }
    Kartenseitenverhaeltnis 961:1323 abgeleitet. EINE Referenzgroesse fuer
    alle Zonen-Karten (Deck/Grabmal/Held/Falle, beide Seiten) -- keine Zone
    skaliert die Karte mehr individuell in % ihrer eigenen Box. */
+/* Tisch-Korrektur Punkt 1: die Poly-Haven-Textur selbst ist ein helles
+   Honig-Tan, deutlich heller/oranger als das Zielbraun aus game-table-
+   detail.png (~#2F1F13, per Pixel-Sample gemessen). Ein dunkelbraunes
+   Overlay im multiply-Blend (NUR auf den background-image-Layer, nicht per
+   filter auf .board-frame selbst -- filter wuerde auch alle Kinder wie
+   Karten/Gold-Rahmen/Grid mit abdunkeln) trifft den Zielton praezise
+   (per Playwright-Pixel-Sample iterativ gesucht: rgba(47,31,19,0.88)
+   multiply ergibt ein gerendertes #302012, Ziel #2F1F13 -- Differenz < 2). */
 .board-frame {
   --card-w-standard: var(--wall-token-size, 40px);
   --card-h-standard: calc(var(--wall-token-size, 40px) * 1323 / 961);
-  position: relative; width: min(92vw, 1600px); max-width: 100%; max-height: 100%; aspect-ratio: 1584 / 672; background-image: url('images/textures/wood-tile.jpg'); background-repeat: repeat;
+  position: relative; width: min(92vw, 1600px); max-width: 100%; max-height: 100%; aspect-ratio: 1584 / 672;
+  background-image: linear-gradient(rgba(47,31,19,0.88), rgba(47,31,19,0.88)), url('images/textures/wood-tile.jpg');
+  background-blend-mode: multiply;
+  background-repeat: repeat;
 }
 .board-frame-inner { position: absolute; inset: 0; }
 .board-frame-inner.board-frame-rotated { transform: rotate(180deg); }
