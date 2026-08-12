@@ -39,6 +39,14 @@
     border-left: 1px dashed rgba(255, 60, 60, 0.85);
     pointer-events: none; z-index: 50;
   }
+  /* Smart Alignment Guides: volle Canvas-Hoehe/-Breite, gut sichtbares
+     Magenta. Symmetrie-Treffer (Spiegel-Paar erkannt) in Cyan, damit man
+     sie optisch von einer simplen Kanten/Mitten-Uebereinstimmung
+     unterscheiden kann. */
+  .guide-line { position: absolute; pointer-events: none; z-index: 60; }
+  .guide-line.v { top: 0; bottom: 0; width: 0; border-left: 1px solid rgba(255, 0, 200, 0.9); }
+  .guide-line.h { left: 0; right: 0; height: 0; border-top: 1px solid rgba(255, 0, 200, 0.9); }
+  .guide-line.symmetry { border-color: rgba(40, 230, 220, 0.95); }
   .el {
     position: absolute; display: flex; align-items: center; justify-content: center;
     cursor: move; box-sizing: border-box;
@@ -119,9 +127,22 @@
     <p class="hint">
       Zieht Elemente per Maus (Position) oder an den goldenen Eck-Griffen
       (Größe). <strong>Shift</strong> gedrückt halten = am 8×8-Brett-Raster
-      einrasten. Werte unten sind exakt dieselben Ref-Koordinaten
-      (1584×672) wie in <code>TABLE_LAYOUT</code>.
+      einrasten. Magenta/Cyan-Linien beim Ziehen = Smart Guides (immer
+      aktiv, auch ohne Shift). Werte unten sind Ref-Koordinaten (aktuelle
+      Tisch-Größe: <span id="refSizeLabel"></span>) wie in
+      <code>TABLE_LAYOUT</code>.
     </p>
+
+    <h2>Tisch-Größe (Referenz-Canvas)</h2>
+    <div id="refSizeFields"></div>
+
+    <h2>Kartengröße (Nischen)</h2>
+    <div class="note">Gilt gemeinsam für alle 6 Deck/Grabmal/Held-Boxen -- Nische = Kartengröße + 2px Rand pro Seite.</div>
+    <div id="cardSizeFields"></div>
+
+    <h2>Kartengröße (Hand)</h2>
+    <div class="note">Unabhängig von der Nischen-Kartengröße -- die Hand liegt außerhalb des Tisches, kein Canvas-Element dafür.</div>
+    <div id="handCardSizeFields"></div>
 
     <h2>Elemente</h2>
     <div class="el-list" id="elList"></div>
@@ -142,8 +163,13 @@
 <script>
 (function () {
   'use strict';
-  const REF_W = 1584, REF_H = 672;
+  // Editor-Erweiterung Punkt 2: Referenz-Canvas ist jetzt selbst editierbar
+  // (Panel-Felder "Tisch-Breite"/"Tisch-Höhe") -- deshalb `let` statt
+  // `const`, und ein breiterer Default (statt der bisherigen 1584x672 aus
+  // TABLE_LAYOUT) als Ausgangspunkt zum Ausprobieren.
+  let REF_W = 1920, REF_H = 720;
   const BOARD_COLS = 8, BOARD_ROWS = 8;
+  const SMART_TOL = 4; // Ref-px Toleranz fuer Smart Guides
 
   // ------------------------------------------------------------------
   // Ausgangswerte 1:1 aus TABLE_LAYOUT in index.html kopiert (Stand siehe
@@ -170,14 +196,16 @@
     },
   };
 
-  // Referenz-Kartengroesse wie im Hauptspiel (Abschnitt "Zonen-Groessen-
-  // Verifikation"): Breite = cellSize.w, Hoehe per Kartenverhaeltnis
-  // 961:1323 abgeleitet. Nur fuer die DARSTELLUNG der 6 (im echten Spiel
-  // groessenfixen) Nischen-Platzhalter -- siehe Hinweis im Panel.
-  const CARD_W = INITIAL.cellSize.w;
-  const CARD_H = CARD_W * 1323 / 961;
-  const NICHE_BOX_W = CARD_W + 4;
-  const NICHE_BOX_H = CARD_H + 4;
+  // Editor-Erweiterung Punkt 3: Kartengroesse ist jetzt EDITIERBAR (Panel-
+  // Feld "Kartengröße (Nischen)") statt fest aus cellSize abgeleitet --
+  // Ausgangswert bleibt aber identisch zum bisherigen Verhalten (Breite =
+  // cellSize.w, Hoehe per Kartenverhaeltnis 961:1323). Gilt gemeinsam fuer
+  // alle 6 Nischen (siehe syncNicheGeometry). handCardSize ist unabhaengig
+  // davon -- reines Zahlenfeld, kein Canvas-Element (die Hand liegt
+  // ausserhalb des Tisches).
+  const CARD_ASPECT = 1323 / 961;
+  const initialCardW = INITIAL.cellSize.w;
+  const initialCardH = initialCardW * CARD_ASPECT;
 
   const NICHE_LABELS = {
     deckOpponent: ['Deck', 'Gegner', 'images/frames/label-deck.png'],
@@ -190,10 +218,12 @@
 
   // ------------------------------------------------------------------
   // Uniformes Editor-Modell: JEDES Element hat x/y/w/h (linke obere Ecke +
-  // Groesse) in Ref-Koordinaten. Fuer die 6 Nischen ist w/h NUR ein
-  // Anzeige-Platzhalter (im echten Spiel bestimmt die Kartengroesse die
-  // Box, nicht TABLE_LAYOUT) -- deshalb "resizable:false" fuer die und nur
-  // x/y (als Mittelpunkt) editierbar/exportiert.
+  // Groesse) in Ref-Koordinaten -- fuer die 6 Nischen sind x/y/w/h ein
+  // ABGELEITETER Wert (siehe syncNicheGeometry, laeuft vor jedem Render),
+  // die eigentliche gespeicherte Position ist cx/cy, die Groesse kommt aus
+  // dem GLOBALEN state.cardSize. Alle 6 sind jetzt "resizable:true" wie
+  // die anderen Elemente -- ihr Resize-Handler schreibt aber bewusst in
+  // state.cardSize statt in das einzelne Element (siehe startResize).
   // ------------------------------------------------------------------
   function buildElements(src) {
     const els = [];
@@ -207,8 +237,8 @@
       const [type, side, labelImg] = NICHE_LABELS[key];
       els.push({
         id: 'niche_' + key, label: type + ' (' + side + ')', kind: 'niche', nicheKey: key,
-        resizable: false, labelImg,
-        x: n.cx - NICHE_BOX_W / 2, y: n.cy - NICHE_BOX_H / 2, w: NICHE_BOX_W, h: NICHE_BOX_H,
+        resizable: true, labelImg,
+        cx: n.cx, cy: n.cy, x: 0, y: 0, w: 0, h: 0, // x/y/w/h werden von syncNicheGeometry() gesetzt
       });
     });
     els.push({
@@ -233,6 +263,9 @@
   const state = {
     elements: buildElements(INITIAL),
     selectedId: 'board',
+    cardSize: { w: initialCardW, h: initialCardH },
+    handCardSize: { w: initialCardW, h: initialCardH },
+    activeGuides: null, // {v:[{pos,symmetry}], h:[{pos,symmetry}]} waehrend Drag/Resize, sonst null
   };
 
   const stage = document.getElementById('stage');
@@ -240,10 +273,40 @@
   const fieldsWrap = document.getElementById('fieldsWrap');
   const selNameEl = document.getElementById('selName');
   const snapIndicator = document.getElementById('snapIndicator');
+  const refSizeLabel = document.getElementById('refSizeLabel');
 
   function getEl(id) { return state.elements.find((e) => e.id === id); }
   function pctX(v) { return (v / REF_W) * 100; }
   function pctY(v) { return (v / REF_H) * 100; }
+
+  // Registry aller Zahlenfelder im Panel ({input, get}), damit waehrend
+  // Drag/Resize UND beim Tippen NUR der ANGEZEIGTE WERT aktualisiert wird
+  // (input.value setzen), statt die Input-Elemente komplett neu zu bauen --
+  // sonst verliert ein Feld beim zweiten Tastendruck den Fokus, weil das
+  // gerade fokussierte <input> durch ein neues DOM-Element ersetzt wuerde.
+  // Wird bei jedem VOLLSTAENDIGEN render() geleert und neu befuellt.
+  let fieldRegistry = [];
+  function registerField(input, get) { fieldRegistry.push({ input, get }); }
+  function refreshFieldValues() {
+    fieldRegistry.forEach(({ input, get }) => {
+      if (document.activeElement === input) return; // Feld, in das der User gerade tippt, unangetastet lassen
+      const v = String(round2(get()));
+      if (input.value !== v) input.value = v;
+    });
+  }
+
+  // Schreibt fuer JEDE Nische x/y/w/h aus cx/cy + dem gemeinsamen
+  // state.cardSize -- muss vor jeder Stelle laufen, die el.x/y/w/h einer
+  // Nische liest (Rendering, Smart Guides, Export). Nische = Karte + 2px
+  // Rand pro Seite (siehe letzter Auftrag, .zone-card-slot).
+  function syncNicheGeometry() {
+    const w = state.cardSize.w + 4, h = state.cardSize.h + 4;
+    state.elements.forEach((el) => {
+      if (el.kind !== 'niche') return;
+      el.w = w; el.h = h;
+      el.x = el.cx - w / 2; el.y = el.cy - h / 2;
+    });
+  }
 
   // ------------------------------------------------------------------
   // Grid-Snap: Linien kommen aus dem AKTUELLEN board-Element (falls es
@@ -273,7 +336,30 @@
   // ------------------------------------------------------------------
   // Rendering
   // ------------------------------------------------------------------
+  // render(): VOLLSTAENDIGER Rebuild (Buehne + gesamtes Panel inkl. Feld-
+  // Registry) -- fuer Init, Element-Auswahl wechseln, Drag/Resize-Ende.
+  // renderStage(): NUR die Buehne (Canvas-Elemente/Guides/Grid) -- fuer
+  // Drag/Resize-Zwischenschritte UND Feld-Tipp-Events (siehe
+  // renderStageOnly), damit fokussierte <input>-Elemente nicht durch neue
+  // DOM-Knoten ersetzt werden (sonst Fokusverlust nach jedem Tastendruck).
   function render() {
+    fieldRegistry = []; // volle Neuerstellung aller Panel-Felder -- Registry neu aufbauen
+    renderStage();
+    renderRefSizeFields();
+    renderCardSizeFields();
+    renderElList();
+    renderFields();
+  }
+
+  function renderStage() {
+    syncNicheGeometry();
+    // Punkt 2: Canvas-Seitenverhaeltnis folgt der editierbaren Tisch-
+    // Groesse -- Element-Positionen bleiben unveraendert in absoluten
+    // Ref-Koordinaten, nur die Prozent-Umrechnung (pctX/pctY) und damit
+    // die Darstellung aendert sich.
+    stage.style.aspectRatio = REF_W + ' / ' + REF_H;
+    refSizeLabel.textContent = REF_W + '×' + REF_H;
+
     stage.innerHTML = '';
 
     // Board-Landschaft (nur Deko-Referenz, benutzt board-inset.png).
@@ -363,7 +449,10 @@
           const h = document.createElement('div');
           h.className = 'handle ' + corner;
           h.dataset.corner = corner;
-          h.addEventListener('pointerdown', (e) => startResize(e, el.id, corner));
+          h.addEventListener('pointerdown', (e) => {
+            if (el.kind === 'niche') startResizeNiche(e, el.id, corner);
+            else startResize(e, el.id, corner);
+          });
           div.appendChild(h);
         });
       }
@@ -377,8 +466,84 @@
       stage.appendChild(div);
     });
 
-    renderElList();
-    renderFields();
+    // Smart Guides: volle Canvas-Hoehe/-Breite, ueber allem anderen.
+    if (state.activeGuides) {
+      state.activeGuides.v.forEach((g) => {
+        const line = document.createElement('div');
+        line.className = 'guide-line v' + (g.symmetry ? ' symmetry' : '');
+        line.style.left = pctX(g.pos) + '%';
+        stage.appendChild(line);
+      });
+      state.activeGuides.h.forEach((g) => {
+        const line = document.createElement('div');
+        line.className = 'guide-line h' + (g.symmetry ? ' symmetry' : '');
+        line.style.top = pctY(g.pos) + '%';
+        stage.appendChild(line);
+      });
+    }
+  }
+
+  function renderRefSizeFields() {
+    const wrap = document.getElementById('refSizeFields');
+    wrap.innerHTML = '';
+    const row = document.createElement('div');
+    row.className = 'field-row';
+    [
+      { label: 'Tisch-Breite', get: () => REF_W, set: (v) => { REF_W = Math.max(100, v); } },
+      { label: 'Tisch-Höhe', get: () => REF_H, set: (v) => { REF_H = Math.max(100, v); } },
+    ].forEach((def) => {
+      const field = document.createElement('div');
+      field.className = 'field';
+      const label = document.createElement('label');
+      label.textContent = def.label;
+      const input = document.createElement('input');
+      input.type = 'number'; input.step = '1'; input.value = round2(def.get());
+      input.addEventListener('input', () => {
+        const v = parseFloat(input.value);
+        if (Number.isNaN(v)) return;
+        def.set(v);
+        renderStageOnly();
+      });
+      registerField(input, def.get);
+      field.appendChild(label); field.appendChild(input);
+      row.appendChild(field);
+    });
+    wrap.appendChild(row);
+  }
+
+  function renderCardSizeFields() {
+    const nicheWrap = document.getElementById('cardSizeFields');
+    nicheWrap.innerHTML = '';
+    nicheWrap.appendChild(buildSizeRow(state.cardSize));
+    const handWrap = document.getElementById('handCardSizeFields');
+    handWrap.innerHTML = '';
+    handWrap.appendChild(buildSizeRow(state.handCardSize));
+  }
+
+  function buildSizeRow(target) {
+    const row = document.createElement('div');
+    row.className = 'field-row';
+    [
+      { label: 'Breite', key: 'w' },
+      { label: 'Höhe', key: 'h' },
+    ].forEach((def) => {
+      const field = document.createElement('div');
+      field.className = 'field';
+      const label = document.createElement('label');
+      label.textContent = def.label;
+      const input = document.createElement('input');
+      input.type = 'number'; input.step = '0.1'; input.value = round2(target[def.key]);
+      input.addEventListener('input', () => {
+        const v = parseFloat(input.value);
+        if (Number.isNaN(v)) return;
+        target[def.key] = Math.max(4, v);
+        renderStageOnly();
+      });
+      registerField(input, () => target[def.key]);
+      field.appendChild(label); field.appendChild(input);
+      row.appendChild(field);
+    });
+    return row;
   }
 
   function renderElList() {
@@ -401,11 +566,11 @@
     if (el.kind === 'niche') {
       const note = document.createElement('div');
       note.className = 'note';
-      note.textContent = 'Diese Zone hat im Spiel keine eigene Größe (die Box passt sich automatisch der Kartengröße an) -- nur die Position (Mittelpunkt) ist relevant und wird exportiert.';
+      note.textContent = 'Größe gekoppelt an alle 6 Nischen gemeinsam -- Änderung hier (oder am Eck-Griff auf der Bühne) wirkt auf alle Deck/Grabmal/Held-Boxen (siehe „Kartengröße (Nischen)“ oben). Nur die Position (Mittelpunkt) ist pro Zone einzeln.';
       fieldsWrap.appendChild(note);
       appendFieldRow([
-        { key: 'cx', label: 'Mitte X', get: () => el.x + el.w / 2, set: (v) => { el.x = v - el.w / 2; } },
-        { key: 'cy', label: 'Mitte Y', get: () => el.y + el.h / 2, set: (v) => { el.y = v - el.h / 2; } },
+        { key: 'cx', label: 'Mitte X', get: () => el.cx, set: (v) => { el.cx = v; } },
+        { key: 'cy', label: 'Mitte Y', get: () => el.cy, set: (v) => { el.cy = v; } },
       ]);
     } else {
       appendFieldRow([
@@ -442,6 +607,7 @@
         def.set(v);
         renderStageOnly();
       });
+      registerField(input, def.get);
       field.appendChild(label);
       field.appendChild(input);
       row.appendChild(field);
@@ -454,15 +620,15 @@
   // Beim Tippen in ein Zahlenfeld soll nur die Buehne neu gezeichnet
   // werden, nicht auch das Feld selbst (sonst verliert das Input-Element
   // beim Tippen den Fokus/die Cursorposition).
+  // Fuer laufende Drag/Resize-Schritte UND fuer Feld-Input-Events: baut NUR
+  // die Buehne neu (renderStage) und aktualisiert alle registrierten
+  // Zahlenfelder per .value-Zuweisung (refreshFieldValues) -- das
+  // fokussierte Feld bleibt dabei unangetastet, verliert also beim Tippen
+  // NICHT mehr den Fokus (anders als frueher, wo hier komplett neu gebaut
+  // wurde).
   function renderStageOnly() {
-    const savedActive = document.activeElement;
-    const isFieldFocused = savedActive && savedActive.tagName === 'INPUT';
-    render();
-    if (isFieldFocused) {
-      // Nach dem Neuzeichnen existiert dasselbe Input-Element nicht mehr --
-      // Fokus/Selektion ist in diesem einfachen Tool bewusst nicht
-      // erhalten (naechster Tastendruck fokussiert erneut per Klick).
-    }
+    renderStage();
+    refreshFieldValues();
   }
 
   function selectElement(id) {
@@ -476,6 +642,77 @@
   function stageScale() {
     const rect = stage.getBoundingClientRect();
     return { sx: REF_W / rect.width, sy: REF_H / rect.height, rect };
+  }
+
+  function midLines(lines) {
+    const out = [];
+    for (let i = 0; i < lines.length - 1; i++) out.push((lines[i] + lines[i + 1]) / 2);
+    return out;
+  }
+
+  // --------------------------------------------------------------------
+  // Smart Alignment Guides (immer aktiv, unabhaengig von Shift): vergleicht
+  // Kanten (left/right/top/bottom) UND Mittelpunkte (cx/cy) des gezogenen
+  // Elements mit denen ALLER anderen Elemente. Bei Uebereinstimmung
+  // innerhalb SMART_TOL: Guide-Linie + soft snap (ueberstimmbar, kein
+  // harter Snap wie Shift-Grid). Enthaelt zusaetzlich den Symmetrie-Check:
+  // gleiche Y UND gleicher Abstand zur Board-Mittelachse (auf der
+  // GEGENUEBERLIEGENDEN Seite) = Spiegel-Paar erkannt -- eigene Cyan-Linie
+  // plus Snap auf die exakt gespiegelte X-Position.
+  // box: {x,y,w,h}-Kandidat (schon evtl. shift-grid-gesnapped). xProps/
+  // yProps: welche eigenen Eigenschaften ueberhaupt verglichen werden
+  // (beim Drag alle drei, beim Resize nur die eine zur gezogenen Ecke
+  // gehoerende -- z.B. 'right' fuer eine Ost-Ecke).
+  // --------------------------------------------------------------------
+  function computeSmartGuidesForBox(activeId, box, xProps, yProps) {
+    const guides = { v: [], h: [] };
+    let bestX = null, bestY = null;
+    const bLeft = box.x, bRight = box.x + box.w, bCx = box.x + box.w / 2;
+    const bTop = box.y, bBottom = box.y + box.h, bCy = box.y + box.h / 2;
+    const activeVal = { left: bLeft, right: bRight, cx: bCx, top: bTop, bottom: bBottom, cy: bCy };
+
+    const boardEl = getEl('board');
+    const boardCenterX = activeId === 'board' ? bCx : boardEl.x + boardEl.w / 2;
+    const checkSymmetry = xProps.includes('cx') && yProps.includes('cy');
+
+    state.elements.forEach((other) => {
+      if (other.id === activeId) return;
+      const oLeft = other.x, oRight = other.x + other.w, oCx = other.x + other.w / 2;
+      const oTop = other.y, oBottom = other.y + other.h, oCy = other.y + other.h / 2;
+      const oVal = { left: oLeft, right: oRight, cx: oCx, top: oTop, bottom: oBottom, cy: oCy };
+
+      xProps.forEach((p) => {
+        const d = Math.abs(activeVal[p] - oVal[p]);
+        if (d <= SMART_TOL) {
+          guides.v.push({ pos: oVal[p] });
+          if (!bestX || d < bestX.dist) bestX = { dist: d, prop: p, value: oVal[p] };
+        }
+      });
+      yProps.forEach((p) => {
+        const d = Math.abs(activeVal[p] - oVal[p]);
+        if (d <= SMART_TOL) {
+          guides.h.push({ pos: oVal[p] });
+          if (!bestY || d < bestY.dist) bestY = { dist: d, prop: p, value: oVal[p] };
+        }
+      });
+
+      if (checkSymmetry) {
+        const activeDist = bCx - boardCenterX;
+        const otherDist = oCx - boardCenterX;
+        const dy = Math.abs(bCy - oCy);
+        const dDist = Math.abs(Math.abs(activeDist) - Math.abs(otherDist));
+        if (activeDist !== 0 && Math.sign(activeDist) !== Math.sign(otherDist) && dy <= SMART_TOL && dDist <= SMART_TOL) {
+          guides.h.push({ pos: oCy, symmetry: true });
+          if (!bestY || dy <= bestY.dist) bestY = { dist: dy, prop: 'cy', value: oCy };
+          const mirroredCx = boardCenterX - otherDist;
+          guides.v.push({ pos: mirroredCx, symmetry: true });
+          const dSym = Math.abs(bCx - mirroredCx);
+          if (dSym <= SMART_TOL && (!bestX || dSym <= bestX.dist)) bestX = { dist: dSym, prop: 'cx', value: mirroredCx };
+        }
+      }
+    });
+
+    return { guides, bestX, bestY };
   }
 
   function startDrag(e, id) {
@@ -505,23 +742,37 @@
           ny = snapValue(ny, gridLinesY());
         }
       }
+      // Smart Guides: IMMER (unabhaengig von Shift) zusaetzlich pruefen --
+      // ueberschreibt den Grid-Snap, falls ein naeherer Treffer existiert.
+      const { guides, bestX, bestY } = computeSmartGuidesForBox(
+        id, { x: nx, y: ny, w: el.w, h: el.h }, ['left', 'right', 'cx'], ['top', 'bottom', 'cy']
+      );
+      if (bestX) {
+        if (bestX.prop === 'left') nx = bestX.value;
+        else if (bestX.prop === 'right') nx = bestX.value - el.w;
+        else if (bestX.prop === 'cx') nx = bestX.value - el.w / 2;
+      }
+      if (bestY) {
+        if (bestY.prop === 'top') ny = bestY.value;
+        else if (bestY.prop === 'bottom') ny = bestY.value - el.h;
+        else if (bestY.prop === 'cy') ny = bestY.value - el.h / 2;
+      }
+      state.activeGuides = guides;
+
       el.x = nx; el.y = ny;
+      if (el.kind === 'niche') { el.cx = nx + el.w / 2; el.cy = ny + el.h / 2; }
       renderStageOnly();
       updateSnapIndicator(ev.shiftKey);
     }
     function onUp() {
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
+      state.activeGuides = null;
       updateSnapIndicator(false);
+      renderStageOnly();
     }
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
-  }
-
-  function midLines(lines) {
-    const out = [];
-    for (let i = 0; i < lines.length - 1; i++) out.push((lines[i] + lines[i + 1]) / 2);
-    return out;
   }
 
   function startResize(e, id, corner) {
@@ -532,6 +783,10 @@
     const { sx, sy } = stageScale();
     const startX = e.clientX, startY = e.clientY;
     const orig = { x: el.x, y: el.y, w: el.w, h: el.h };
+    // Welche eigene Kante gehoert zu dieser Ecke -- fuer Smart Guides UND
+    // fuer's Anwenden eines Treffers auf x/w bzw. y/h.
+    const xProp = corner.includes('e') ? 'right' : 'left';
+    const yProp = corner.includes('s') ? 'bottom' : 'top';
 
     function onMove(ev) {
       const dxRef = (ev.clientX - startX) * sx;
@@ -549,7 +804,65 @@
         if (corner.includes('s')) { const bottom = snapValue(y + h, linesY); h = bottom - y; }
         if (corner.includes('n')) { const top = snapValue(y, linesY); h = h + (y - top); y = top; }
       }
+
+      // Smart Guides: nur die zur gezogenen Ecke gehoerende Kante pruefen.
+      const { guides, bestX, bestY } = computeSmartGuidesForBox(id, { x, y, w, h }, [xProp], [yProp]);
+      if (bestX) {
+        if (xProp === 'right') { w = bestX.value - x; }
+        else { const newLeft = bestX.value; w = w + (x - newLeft); x = newLeft; }
+      }
+      if (bestY) {
+        if (yProp === 'bottom') { h = bestY.value - y; }
+        else { const newTop = bestY.value; h = h + (y - newTop); y = newTop; }
+      }
+      state.activeGuides = guides;
+
       el.x = x; el.y = y; el.w = Math.max(4, w); el.h = Math.max(4, h);
+      renderStageOnly();
+      updateSnapIndicator(ev.shiftKey);
+    }
+    function onUp() {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      state.activeGuides = null;
+      updateSnapIndicator(false);
+      renderStageOnly();
+    }
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }
+
+  // Nischen-Resize: schreibt bewusst NICHT in das einzelne Element, sondern
+  // in das GLOBALE state.cardSize -- alle 6 Boxen aktualisieren sich
+  // gemeinsam (siehe Auftrag Punkt 3). Jede Ecke zieht die Kartengroesse
+  // "nach aussen" (vom jeweiligen Zentrum weg) -- fuer eine SE-Ecke also
+  // z.B. dw=dxRef/dh=dyRef, fuer eine NW-Ecke dw=-dxRef/dh=-dyRef.
+  function startResizeNiche(e, id, corner) {
+    e.preventDefault();
+    e.stopPropagation();
+    selectElement(id);
+    const { sx, sy } = stageScale();
+    const startX = e.clientX, startY = e.clientY;
+    const orig = { w: state.cardSize.w, h: state.cardSize.h };
+    const signX = corner.includes('e') ? 1 : -1;
+    const signY = corner.includes('s') ? 1 : -1;
+
+    function onMove(ev) {
+      const dxRef = (ev.clientX - startX) * sx * signX;
+      const dyRef = (ev.clientY - startY) * sy * signY;
+      let w = orig.w + dxRef, h = orig.h + dyRef;
+      if (ev.shiftKey) {
+        // Grid-Snap fuer Kartengroesse: auf ganzzahlige Vielfache einer
+        // halben Zellengroesse einrasten (grobe, aber nuetzliche Rasterung
+        // ohne Bezug zu einer bestimmten Nischen-Position).
+        const b = getEl('board');
+        const stepW = b.w / BOARD_COLS / 2, stepH = b.h / BOARD_ROWS / 2;
+        w = Math.round(w / stepW) * stepW;
+        h = Math.round(h / stepH) * stepH;
+      }
+      state.cardSize.w = Math.max(4, w);
+      state.cardSize.h = Math.max(4, h);
+      state.activeGuides = null; // Smart Guides ergeben fuer eine globale Groessenaenderung keinen sinnvollen Bezugspunkt -- bewusst ausgelassen.
       renderStageOnly();
       updateSnapIndicator(ev.shiftKey);
     }
@@ -572,6 +885,7 @@
   // foermiges JS-Objekt als Text (Copy-Paste zurueck in index.html).
   // ------------------------------------------------------------------
   function buildExportText() {
+    syncNicheGeometry();
     const board = getEl('board');
     const boardOrigin = { x: round2(board.x), y: round2(board.y) };
     const cellSize = { w: round2(board.w / BOARD_COLS), h: round2(board.h / BOARD_ROWS) };
@@ -579,8 +893,7 @@
     const nicheOrder = ['deckOpponent', 'graveyardOpponent', 'heroOpponent', 'heroMine', 'graveyardMine', 'deckMine'];
     const nicheLines = nicheOrder.map((key) => {
       const el = getEl('niche_' + key);
-      const cx = round2(el.x + el.w / 2), cy = round2(el.y + el.h / 2);
-      return `    ${key.padEnd(18)}: { cx: ${cx}, cy: ${cy} },`;
+      return `    ${key.padEnd(18)}: { cx: ${round2(el.cx)}, cy: ${round2(el.cy)} },`;
     });
 
     const trapOpp = getEl('trapZoneOpponent');
@@ -589,12 +902,25 @@
     const wallRight = getEl('wallTrayRight');
 
     return `const TABLE_LAYOUT = {
-  refWidth: TABLE_REF_W,
-  refHeight: TABLE_REF_H,
+  // Editor-Erweiterung Punkt 2: refWidth/refHeight sind jetzt ein
+  // EDITIERBARES Ergebnis aus dem Editor, keine feste Referenz auf
+  // TABLE_REF_W/TABLE_REF_H mehr. Falls abweichend von den bisherigen
+  // 1584/672: die beiden "const TABLE_REF_W ="/"const TABLE_REF_H ="-
+  // Zeilen ganz oben in index.html manuell auf dieselben Werte anpassen
+  // (pctX/pctY rechnen dagegen).
+  refWidth: ${REF_W},
+  refHeight: ${REF_H},
   boardCols: 8,
   boardRows: 8,
   boardOrigin: { x: ${boardOrigin.x}, y: ${boardOrigin.y} },
   cellSize: { w: ${cellSize.w}, h: ${cellSize.h} },
+  // Referenz-Kartengroesse fuer alle 6 Nischen gemeinsam (Nische = Karte +
+  // 2px Rand pro Seite, siehe --card-w/-h-standard in index.html).
+  cardSize: { width: ${round2(state.cardSize.w)}, height: ${round2(state.cardSize.h)} },
+  // Referenz-Kartengroesse fuer die Hand-Leisten (ausserhalb des Tisches,
+  // unabhaengig von cardSize) -- entspricht sinngemaess den clamp()-Werten
+  // von .hand-row in index.html.
+  handCardSize: { width: ${round2(state.handCardSize.w)}, height: ${round2(state.handCardSize.h)} },
   niches: {
 ${nicheLines.join('\n')}
   },
@@ -608,7 +934,13 @@ ${nicheLines.join('\n')}
 // Hinweis: boardArea (fuer board-inset.png / .board-grid) wird in index.html
 // direkt NACH diesem Objekt aus boardOrigin + cellSize*boardCols/boardRows
 // abgeleitet -- dieser Block hier muss NICHT manuell mit ausgetauscht werden,
-// er entsteht automatisch aus den obigen Werten.`;
+// er entsteht automatisch aus den obigen Werten.
+// cardSize/handCardSize sind NEU (siehe Auftrag "Editor erweitern") und
+// existieren im aktuellen index.html-Code noch NICHT als TABLE_LAYOUT-
+// Felder -- die tatsaechliche Kartengroesse kommt dort weiterhin aus
+// --card-w/-h-standard (CSS) bzw. der .hand-row-clamp()-Regel. Um diese
+// Editor-Werte wirksam zu machen, muessten die entsprechenden CSS-Stellen
+// in index.html separat darauf umgestellt werden (nicht Teil dieses Tools).`;
   }
 
   document.getElementById('exportBtn').addEventListener('click', () => {
