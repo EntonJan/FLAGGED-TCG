@@ -614,7 +614,7 @@ button.danger:hover { background: rgba(163, 51, 51, 0.15); }
 .stack-item.negated { opacity: 0.5; text-decoration: line-through; }
 .stack-item-owner { font-size: 0.75rem; color: #9aa0ab; }
 .stack-panel .status { font-weight: 700; }
-.board-wrap { display: flex; justify-content: center; align-items: center; margin-bottom: 1rem; flex: 1 1 auto; min-width: 0; min-height: 0; }
+.board-wrap { display: flex; justify-content: center; align-items: center; margin-bottom: 0.4rem; flex: 1 1 auto; min-width: 0; min-height: 0; }
 @media (max-width: 900px) {
   /* Muss NACH der Basisregel oben stehen (gleiches Quellreihenfolge-Prinzip
      wie bei .board-and-stack weiter oben). Ohne diese Regel wuerde flex:1
@@ -660,7 +660,7 @@ button.danger:hover { background: rgba(163, 51, 51, 0.15); }
 .board-frame {
   --card-w-standard: var(--wall-token-size, 40px);
   --card-h-standard: calc(var(--wall-token-size, 40px) * 1323 / 961);
-  position: relative; width: min(92vw, 1600px); max-width: 100%; max-height: 100%; aspect-ratio: 1584 / 672;
+  position: relative; width: min(96vw, 2200px); max-width: 100%; max-height: 100%; aspect-ratio: 1584 / 672;
   background-image: linear-gradient(rgba(47,31,19,0.88), rgba(47,31,19,0.88)), url('images/textures/wood-tile.jpg');
   background-blend-mode: multiply;
   background-repeat: repeat;
@@ -760,7 +760,13 @@ button.danger:hover { background: rgba(163, 51, 51, 0.15); }
    normale Flex-Kinder von .game-content-area (siehe JSX), NICHT absolut
    gegen .board-frame positioniert. Groesse kommt aus der eigenen Hoehe
    (clamp, viewport-basiert) statt aus einer festen Bild-Ablageflaeche. */
-.hand-row { display: flex; align-items: center; justify-content: center; gap: 0.6rem; flex-wrap: wrap; padding: 0.3rem 1rem; flex: 0 0 auto; height: clamp(88px, 13vh, 165px); }
+/* Tisch-Korrektur Punkt 3: Hand-Leisten waren mit 13vh (bis 165px) recht
+   grosszuegig bemessen -- das ging direkt vom verfuegbaren Platz fuer
+   .board-wrap ab (.board-and-stack/.board-wrap sind flex:1 1 auto und
+   bekommen exakt das, was NACH den beiden Hand-Leisten von der
+   .game-content-area-Hoehe uebrig bleibt, siehe boardFrameSizeRef-Effekt
+   in GameBoard). Kleinere Leisten = mehr Hoehe fuer den Tisch. */
+.hand-row { display: flex; align-items: center; justify-content: center; gap: 0.6rem; flex-wrap: wrap; padding: 0.2rem 1rem; flex: 0 0 auto; height: clamp(64px, 9vh, 120px); }
 /* flex-shrink war bisher 0 (nie verkleinern) -- bei 5 Handkarten reichte die
    Breite nicht immer. Die Karten skalieren dynamisch ueber die Anzahl in der
    Hand: .zone-hand-card-image-wrap treibt seine Breite primaer aus dem
@@ -6458,32 +6464,82 @@ function GameBoard({ matchId, user, onLeaveMatch }) {
     const wrap = boardWrapRef.current;
     if (!wrap || typeof ResizeObserver === 'undefined') return;
     const RATIO = 1584 / 672;
+    // Tisch-Korrektur Punkt 3: das Brett darf jetzt DEUTLICH mehr vom
+    // verfuegbaren Platz ausnutzen (siehe .hand-row-Verkleinerung in CSS) --
+    // dadurch kann der beim Contain-Fit uebrig bleibende Rand so klein
+    // werden, dass die Info-Tafel (Punkt 6, unten oder rechts vom Brett
+    // platziert) das Brett ueberlappt. Die beiden Modi der Tafel brauchen
+    // UNTERSCHIEDLICH viel Mindestrand (siehe .board-side-actions-JSX):
+    // im Bottom-Modus passt sich ihre Hoehe via max(60, marginBottom-8) an
+    // (Boden ~68px genuegt, der Rest scrollt intern), im Right-Modus ist
+    // ihre Breite dagegen FEST 176px + 0.75rem Abstand (~200px noetig).
+    // NACH dem normalen Contain-Fit wird -- falls der GENUTZTE Rand (der
+    // groessere von marginBottom/marginRight, exakt der, den die Tafel
+    // auch tatsaechlich verwendet) zu klein fuer seinen Modus ist --
+    // gleichmaessig (Seitenverhaeltnis exakt erhalten, per Skalierungsfaktor
+    // auf das bereits RATIO-korrekte w/h-Paar) verkleinert, bis er reicht.
+    // Da beide Margins beim gleichmaessigen Verkleinern GEMEINSAM wachsen
+    // (das Brett bleibt immer im Seitenverhaeltnis RATIO), reicht ein
+    // einzelner Rechenschritt nicht: welcher Modus (unten/rechts) am Ende
+    // tatsaechlich gewaehlt wird, haengt vom FINALEN Verhaeltnis ab, nicht
+    // vom Verhaeltnis VOR dem Verkleinern (siehe Kritik-Runde -- ein erster
+    // Versuch zielte auf den Bottom-Schwellwert, landete aber am Ende trotzdem
+    // im Right-Modus, weil marginRight beim Verkleinern schneller waechst als
+    // marginBottom -- Panel ueberlappte das Brett). Deshalb: beide moeglichen
+    // Ziel-Konfigurationen (Bottom-Schwelle erreicht bzw. Right-Schwelle
+    // erreicht) explizit durchrechnen, nur die SELBSTKONSISTENTEN behalten
+    // (bei denen der jeweils andere Rand die eigene Schwelle nicht ueberholt)
+    // und davon die groessere waehlen.
+    function fitFor(availW, availH, wrapMarginBottom, targetMargin, mode) {
+      let w, h;
+      if (mode === 'bottom') {
+        const hNew = availH - 2 * (targetMargin - wrapMarginBottom);
+        h = hNew; w = hNew * RATIO;
+      } else {
+        const wNew = availW - 2 * targetMargin;
+        w = wNew; h = wNew / RATIO;
+      }
+      const marginBottom = Math.max(0, (availH - h) / 2) + wrapMarginBottom;
+      const marginRight = Math.max(0, (availW - w) / 2);
+      return { w, h, marginBottom, marginRight };
+    }
     function measureFrame() {
       const availW = wrap.clientWidth;
       const availH = wrap.clientHeight;
       if (availW <= 0 || availH <= 0) return;
+      const wrapMarginBottom = parseFloat(getComputedStyle(wrap).marginBottom) || 0;
       let w, h;
       if (availW / availH > RATIO) { h = availH; w = h * RATIO; }
       else { w = availW; h = w / RATIO; }
       // marginBottom/marginRight: der Rand, der beim Contain-Fit zwangslaeufig
       // uebrig bleibt (bei diesem sehr breiten Bildformat je nach Viewport
       // entweder unten -- breiter Viewport -- oder rechts -- hoher Viewport).
-      // .board-side-actions (Punkt 6) wird EXAKT dort platziert, nie ueber
-      // dem Brett selbst, egal wie das Verhaeltnis gerade ausfaellt.
       // WICHTIG (Kritik-Runde nach Punkt 1): .board-wrap zentriert das Brett
       // per align-items/justify-content:center -- der volle Leerraum
       // (availH-h bzw. availW-w) verteilt sich also HAELFTIG ueber BEIDE
       // Seiten, nicht komplett auf eine. Nur die Haelfte liegt tatsaechlich
       // unterhalb/rechts vom Brett. Ausserdem hat .board-wrap selbst noch
-      // margin-bottom:1rem -- der zaehlt zusaetzlich zum echten Randbereich
-      // dazu (er liegt AUSSERHALB von .board-wrap, aber INNERHALB von
-      // .board-and-stack, dem Containing Block von .board-side-actions).
-      // Ohne beides ueberschaetzte marginBottom den verfuegbaren Platz um
-      // mehr als das Doppelte -- die Tafel ueberlappte dadurch reproduzierbar
-      // den unteren Rand des Bretts.
-      const wrapMarginBottom = parseFloat(getComputedStyle(wrap).marginBottom) || 0;
-      const marginBottom = Math.max(0, (availH - h) / 2) + wrapMarginBottom;
-      const marginRight = Math.max(0, (availW - w) / 2);
+      // margin-bottom -- der zaehlt zusaetzlich zum echten Randbereich dazu.
+      let marginBottom = Math.max(0, (availH - h) / 2) + wrapMarginBottom;
+      let marginRight = Math.max(0, (availW - w) / 2);
+      // Bottom-Modus: Tafel-Hoehe passt sich via max(60, marginBottom-8) an
+      // -- 72px genuegt (Rest scrollt intern). Right-Modus: Tafel-Breite ist
+      // FEST 176px + 0.75rem Abstand -- braucht ~200px.
+      const BOTTOM_MIN = 72, RIGHT_MIN = 200;
+      const bottomOk = marginBottom >= BOTTOM_MIN;
+      const rightOk = marginRight >= RIGHT_MIN;
+      const usedMode = marginBottom >= marginRight ? 'bottom' : 'right';
+      if ((usedMode === 'bottom' && !bottomOk) || (usedMode === 'right' && !rightOk)) {
+        const candB = fitFor(availW, availH, wrapMarginBottom, BOTTOM_MIN, 'bottom');
+        const candR = fitFor(availW, availH, wrapMarginBottom, RIGHT_MIN, 'right');
+        const candBValid = candB.marginRight <= candB.marginBottom + 0.01;
+        const candRValid = candR.marginBottom <= candR.marginRight + 0.01;
+        let best = null;
+        if (candBValid) best = candB;
+        if (candRValid && (!best || candR.w > best.w)) best = candR;
+        if (!best) best = candB.w < candR.w ? candB : candR; // Notfall: kleinere (sicherere) Variante
+        w = best.w; h = best.h; marginBottom = best.marginBottom; marginRight = best.marginRight;
+      }
       setFrameSize({ w: Math.floor(w), h: Math.floor(h), marginBottom: Math.floor(marginBottom), marginRight: Math.floor(marginRight) });
     }
     const ro = new ResizeObserver(measureFrame);
