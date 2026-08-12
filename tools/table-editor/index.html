@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>TABLE_LAYOUT Editor</title>
+<style>
+  :root {
+    --panel-bg: #1a1712;
+    --panel-border: #3a3120;
+    --gold: #e0b83a;
+    --gold-dim: #a8863a;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: #0b0c0f; color: #e8e2d4;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+  }
+  .app { display: flex; height: 100vh; }
+  .stage-wrap {
+    flex: 1 1 auto; display: flex; align-items: center; justify-content: center;
+    padding: 1.5rem; min-width: 0; overflow: auto;
+  }
+  /* Stage: exakt dasselbe Seitenverhaeltnis wie .board-frame im Hauptspiel
+     (1584/672), damit die im Editor eingestellten Ref-Koordinaten 1:1 den
+     echten Prozentwerten (pctX/pctY) entsprechen. */
+  .stage {
+    position: relative; width: min(92vw, 1400px); aspect-ratio: 1584 / 672;
+    background-image: linear-gradient(rgba(47,31,19,0.88), rgba(47,31,19,0.88)), url('../../images/textures/wood-tile.jpg');
+    background-blend-mode: multiply;
+    background-repeat: repeat;
+    border: 2px solid #000; box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    user-select: none;
+  }
+  .board-inset { position: absolute; object-fit: cover; pointer-events: none; }
+  .grid-svg { position: absolute; pointer-events: none; }
+  .center-line {
+    position: absolute; top: 0; bottom: 0; width: 0;
+    border-left: 1px dashed rgba(255, 60, 60, 0.85);
+    pointer-events: none; z-index: 50;
+  }
+  .el {
+    position: absolute; display: flex; align-items: center; justify-content: center;
+    cursor: move; box-sizing: border-box;
+  }
+  .el .el-fill { position: absolute; inset: 0; background: rgba(80, 140, 255, 0.16); border: 1px solid rgba(120, 170, 255, 0.6); border-radius: 3px; }
+  .el.selected .el-fill { background: rgba(255, 200, 60, 0.22); border: 2px solid var(--gold); }
+  .el .el-label {
+    position: relative; z-index: 2; font-size: 0.62rem; font-weight: 600; text-align: center;
+    color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.9); pointer-events: none; padding: 2px;
+    line-height: 1.15;
+  }
+  .el-corner {
+    position: absolute; background-image: url('../../images/frames/corner-gold.png');
+    background-size: 100% 100%; background-repeat: no-repeat; pointer-events: none; opacity: 0.9;
+  }
+  .el-tl { top: 0; left: 0; width: 42%; height: 42%; }
+  .el-tr { top: 0; right: 0; width: 42%; height: 42%; transform: scaleX(-1); }
+  .el-bl { bottom: 0; left: 0; width: 42%; height: 42%; transform: scaleY(-1); }
+  .el-br { bottom: 0; right: 0; width: 42%; height: 42%; transform: scale(-1,-1); }
+  .el-gold-label { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 2px; width: 70%; height: auto; pointer-events: none; }
+  .el-gold-label.inside { bottom: auto; top: 2px; margin-bottom: 0; width: 26%; }
+  .handle {
+    position: absolute; width: 11px; height: 11px; background: var(--gold);
+    border: 1px solid #3a2c0a; border-radius: 2px; z-index: 10;
+  }
+  .handle.nw { top: -6px; left: -6px; cursor: nwse-resize; }
+  .handle.ne { top: -6px; right: -6px; cursor: nesw-resize; }
+  .handle.sw { bottom: -6px; left: -6px; cursor: nesw-resize; }
+  .handle.se { bottom: -6px; right: -6px; cursor: nwse-resize; }
+  .no-resize .handle { display: none; }
+
+  .panel {
+    width: 340px; flex: 0 0 auto; background: var(--panel-bg); border-left: 1px solid var(--panel-border);
+    padding: 1rem; overflow-y: auto;
+  }
+  .panel h1 { font-size: 1.05rem; margin: 0 0 0.2rem; color: var(--gold); }
+  .panel .hint { font-size: 0.74rem; color: #9c9484; margin: 0 0 1rem; line-height: 1.4; }
+  .panel h2 { font-size: 0.85rem; margin: 1rem 0 0.4rem; color: var(--gold-dim); border-bottom: 1px solid var(--panel-border); padding-bottom: 0.25rem; }
+  .el-list { display: flex; flex-direction: column; gap: 0.15rem; margin-bottom: 0.5rem; }
+  .el-list button {
+    text-align: left; background: #26211a; border: 1px solid #3a3120; color: #d8d0bc;
+    padding: 0.35rem 0.5rem; border-radius: 4px; cursor: pointer; font-size: 0.76rem;
+  }
+  .el-list button:hover { background: #322b20; }
+  .el-list button.active { background: rgba(224,184,58,0.18); border-color: var(--gold); color: #fff; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.5rem; }
+  .field { display: flex; flex-direction: column; gap: 0.2rem; }
+  .field label { font-size: 0.68rem; color: #a89f8c; }
+  .field input {
+    background: #100e0a; border: 1px solid #3a3120; color: #f0ead8; border-radius: 4px;
+    padding: 0.3rem 0.4rem; font-size: 0.82rem; width: 100%;
+  }
+  .field input:focus { outline: 1px solid var(--gold); }
+  .note { font-size: 0.7rem; color: #8a8272; background: #211c15; border: 1px dashed #3a3120; border-radius: 4px; padding: 0.5rem; margin-bottom: 0.5rem; line-height: 1.4; }
+  .snap-indicator { font-size: 0.7rem; padding: 0.3rem 0.5rem; border-radius: 4px; margin-bottom: 0.5rem; }
+  .snap-on { background: rgba(224,184,58,0.2); color: var(--gold); }
+  .snap-off { color: #6a6354; }
+  #exportBtn {
+    width: 100%; padding: 0.55rem; margin-top: 0.6rem; background: rgba(224,184,58,0.85);
+    color: #14100a; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 0.85rem;
+  }
+  #exportBtn:hover { background: rgba(224,184,58,1); }
+  #exportWrap { margin-top: 0.6rem; }
+  #exportOutput {
+    width: 100%; height: 260px; background: #0d0c09; color: #cdeccd; border: 1px solid #3a3120;
+    border-radius: 6px; font-family: 'Consolas', monospace; font-size: 0.72rem; padding: 0.5rem; white-space: pre;
+  }
+  #copyBtn { margin-top: 0.4rem; width: 100%; padding: 0.4rem; background: #26211a; color: #d8d0bc; border: 1px solid #3a3120; border-radius: 4px; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="stage-wrap">
+    <div class="stage" id="stage"></div>
+  </div>
+  <div class="panel">
+    <h1>TABLE_LAYOUT Editor</h1>
+    <p class="hint">
+      Zieht Elemente per Maus (Position) oder an den goldenen Eck-Griffen
+      (Größe). <strong>Shift</strong> gedrückt halten = am 8×8-Brett-Raster
+      einrasten. Werte unten sind exakt dieselben Ref-Koordinaten
+      (1584×672) wie in <code>TABLE_LAYOUT</code>.
+    </p>
+
+    <h2>Elemente</h2>
+    <div class="el-list" id="elList"></div>
+
+    <h2>Ausgewählt: <span id="selName">–</span></h2>
+    <div id="fieldsWrap"></div>
+
+    <div class="snap-indicator" id="snapIndicator">Shift = Grid-Snap</div>
+
+    <button id="exportBtn">Als TABLE_LAYOUT exportieren</button>
+    <div id="exportWrap" style="display:none;">
+      <textarea id="exportOutput" readonly></textarea>
+      <button id="copyBtn">In Zwischenablage kopieren</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  const REF_W = 1584, REF_H = 672;
+  const BOARD_COLS = 8, BOARD_ROWS = 8;
+
+  // ------------------------------------------------------------------
+  // Ausgangswerte 1:1 aus TABLE_LAYOUT in index.html kopiert (Stand siehe
+  // Commit-Historie "Tisch-Korrektur"). Dieses Tool haelt keine Verbindung
+  // zum laufenden Spiel-Code -- Export ist bewusst manuelles Copy-Paste
+  // zurueck in index.html (siehe Auftrag).
+  // ------------------------------------------------------------------
+  const INITIAL = {
+    boardOrigin: { x: 606.6, y: 106.2 },
+    cellSize: { w: 46.71, h: 52.49 },
+    niches: {
+      deckOpponent:      { cx: 524.3,  cy: 171.8 },
+      graveyardOpponent: { cx: 524.3,  cy: 330.2 },
+      heroOpponent:      { cx: 524.3,  cy: 501.3 },
+      heroMine:          { cx: 1059.7, cy: 171.8 },
+      graveyardMine:     { cx: 1059.7, cy: 330.2 },
+      deckMine:          { cx: 1059.7, cy: 501.3 },
+    },
+    trapZoneOpponent: { x: 590.8, y: 5.4,   w: 449.9, h: 104.2 },
+    trapZoneMine:     { x: 590.8, y: 561.1, w: 449.9, h: 95.4 },
+    wallTray: {
+      left:  { x: 329.4,  y: 20.2, w: 136.2, h: 631.7, count: 10 },
+      right: { x: 1118.4, y: 20.2, w: 136.2, h: 631.7, count: 10 },
+    },
+  };
+
+  // Referenz-Kartengroesse wie im Hauptspiel (Abschnitt "Zonen-Groessen-
+  // Verifikation"): Breite = cellSize.w, Hoehe per Kartenverhaeltnis
+  // 961:1323 abgeleitet. Nur fuer die DARSTELLUNG der 6 (im echten Spiel
+  // groessenfixen) Nischen-Platzhalter -- siehe Hinweis im Panel.
+  const CARD_W = INITIAL.cellSize.w;
+  const CARD_H = CARD_W * 1323 / 961;
+  const NICHE_BOX_W = CARD_W + 4;
+  const NICHE_BOX_H = CARD_H + 4;
+
+  const NICHE_LABELS = {
+    deckOpponent: ['Deck', 'Gegner', 'images/frames/label-deck.png'],
+    graveyardOpponent: ['Grabmal', 'Gegner', 'images/frames/label-graveyard.png'],
+    heroOpponent: ['Held', 'Gegner', 'images/frames/label-hero.png'],
+    heroMine: ['Held', 'Ich', 'images/frames/label-hero.png'],
+    graveyardMine: ['Grabmal', 'Ich', 'images/frames/label-graveyard.png'],
+    deckMine: ['Deck', 'Ich', 'images/frames/label-deck.png'],
+  };
+
+  // ------------------------------------------------------------------
+  // Uniformes Editor-Modell: JEDES Element hat x/y/w/h (linke obere Ecke +
+  // Groesse) in Ref-Koordinaten. Fuer die 6 Nischen ist w/h NUR ein
+  // Anzeige-Platzhalter (im echten Spiel bestimmt die Kartengroesse die
+  // Box, nicht TABLE_LAYOUT) -- deshalb "resizable:false" fuer die und nur
+  // x/y (als Mittelpunkt) editierbar/exportiert.
+  // ------------------------------------------------------------------
+  function buildElements(src) {
+    const els = [];
+    els.push({
+      id: 'board', label: 'Board (8×8-Gitter)', kind: 'board', resizable: true,
+      x: src.boardOrigin.x, y: src.boardOrigin.y,
+      w: src.cellSize.w * BOARD_COLS, h: src.cellSize.h * BOARD_ROWS,
+    });
+    Object.keys(src.niches).forEach((key) => {
+      const n = src.niches[key];
+      const [type, side, labelImg] = NICHE_LABELS[key];
+      els.push({
+        id: 'niche_' + key, label: type + ' (' + side + ')', kind: 'niche', nicheKey: key,
+        resizable: false, labelImg,
+        x: n.cx - NICHE_BOX_W / 2, y: n.cy - NICHE_BOX_H / 2, w: NICHE_BOX_W, h: NICHE_BOX_H,
+      });
+    });
+    els.push({
+      id: 'trapZoneOpponent', label: 'Trap-Zone (Gegner)', kind: 'trap', resizable: true, labelImg: 'images/frames/label-trap.png',
+      x: src.trapZoneOpponent.x, y: src.trapZoneOpponent.y, w: src.trapZoneOpponent.w, h: src.trapZoneOpponent.h,
+    });
+    els.push({
+      id: 'trapZoneMine', label: 'Trap-Zone (Ich)', kind: 'trap', resizable: true, labelImg: 'images/frames/label-trap.png',
+      x: src.trapZoneMine.x, y: src.trapZoneMine.y, w: src.trapZoneMine.w, h: src.trapZoneMine.h,
+    });
+    els.push({
+      id: 'wallTrayLeft', label: 'Wand-Ablage (links)', kind: 'wall', resizable: true, count: src.wallTray.left.count,
+      x: src.wallTray.left.x, y: src.wallTray.left.y, w: src.wallTray.left.w, h: src.wallTray.left.h,
+    });
+    els.push({
+      id: 'wallTrayRight', label: 'Wand-Ablage (rechts)', kind: 'wall', resizable: true, count: src.wallTray.right.count,
+      x: src.wallTray.right.x, y: src.wallTray.right.y, w: src.wallTray.right.w, h: src.wallTray.right.h,
+    });
+    return els;
+  }
+
+  const state = {
+    elements: buildElements(INITIAL),
+    selectedId: 'board',
+  };
+
+  const stage = document.getElementById('stage');
+  const elListEl = document.getElementById('elList');
+  const fieldsWrap = document.getElementById('fieldsWrap');
+  const selNameEl = document.getElementById('selName');
+  const snapIndicator = document.getElementById('snapIndicator');
+
+  function getEl(id) { return state.elements.find((e) => e.id === id); }
+  function pctX(v) { return (v / REF_W) * 100; }
+  function pctY(v) { return (v / REF_H) * 100; }
+
+  // ------------------------------------------------------------------
+  // Grid-Snap: Linien kommen aus dem AKTUELLEN board-Element (falls es
+  // selbst verschoben/skaliert wird, verschieben sich die Snap-Linien mit).
+  // ------------------------------------------------------------------
+  function gridLinesX() {
+    const b = getEl('board');
+    const lines = [];
+    for (let i = 0; i <= BOARD_COLS; i++) lines.push(b.x + (b.w / BOARD_COLS) * i);
+    return lines;
+  }
+  function gridLinesY() {
+    const b = getEl('board');
+    const lines = [];
+    for (let i = 0; i <= BOARD_ROWS; i++) lines.push(b.y + (b.h / BOARD_ROWS) * i);
+    return lines;
+  }
+  function snapValue(v, lines) {
+    let best = v, bestDist = Infinity;
+    for (const l of lines) {
+      const d = Math.abs(l - v);
+      if (d < bestDist) { bestDist = d; best = l; }
+    }
+    return bestDist <= 14 ? best : v; // 14 Ref-px Fangradius (~0.9% der Brettbreite)
+  }
+
+  // ------------------------------------------------------------------
+  // Rendering
+  // ------------------------------------------------------------------
+  function render() {
+    stage.innerHTML = '';
+
+    // Board-Landschaft (nur Deko-Referenz, benutzt board-inset.png).
+    const boardEl = getEl('board');
+    const inset = document.createElement('img');
+    inset.src = '../../images/scenes/board-inset.png';
+    inset.className = 'board-inset';
+    inset.alt = '';
+    inset.style.left = pctX(boardEl.x) + '%';
+    inset.style.top = pctY(boardEl.y) + '%';
+    inset.style.width = pctX(boardEl.w) + '%';
+    inset.style.height = pctY(boardEl.h) + '%';
+    stage.appendChild(inset);
+
+    // 8x8-Gitterlinien als SVG-Overlay.
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('class', 'grid-svg');
+    svg.style.left = pctX(boardEl.x) + '%';
+    svg.style.top = pctY(boardEl.y) + '%';
+    svg.style.width = pctX(boardEl.w) + '%';
+    svg.style.height = pctY(boardEl.h) + '%';
+    svg.setAttribute('viewBox', `0 0 ${boardEl.w} ${boardEl.h}`);
+    svg.setAttribute('preserveAspectRatio', 'none');
+    for (let i = 0; i <= BOARD_COLS; i++) {
+      const x = (boardEl.w / BOARD_COLS) * i;
+      const line = document.createElementNS(svgNS, 'line');
+      line.setAttribute('x1', x); line.setAttribute('y1', 0);
+      line.setAttribute('x2', x); line.setAttribute('y2', boardEl.h);
+      line.setAttribute('stroke', 'rgba(224,184,58,0.55)'); line.setAttribute('stroke-width', '1');
+      svg.appendChild(line);
+    }
+    for (let i = 0; i <= BOARD_ROWS; i++) {
+      const y = (boardEl.h / BOARD_ROWS) * i;
+      const line = document.createElementNS(svgNS, 'line');
+      line.setAttribute('x1', 0); line.setAttribute('y1', y);
+      line.setAttribute('x2', boardEl.w); line.setAttribute('y2', y);
+      line.setAttribute('stroke', 'rgba(224,184,58,0.55)'); line.setAttribute('stroke-width', '1');
+      svg.appendChild(line);
+    }
+    stage.appendChild(svg);
+
+    // Symmetrie-Hilfslinie: vertikale Mittelachse DES BOARDS (nicht der
+    // ganzen Buehne), permanent sichtbar.
+    const centerLine = document.createElement('div');
+    centerLine.className = 'center-line';
+    centerLine.style.left = pctX(boardEl.x + boardEl.w / 2) + '%';
+    stage.appendChild(centerLine);
+
+    // Alle Elemente.
+    state.elements.forEach((el) => {
+      const div = document.createElement('div');
+      div.className = 'el' + (el.id === state.selectedId ? ' selected' : '') + (el.resizable ? '' : ' no-resize');
+      div.dataset.id = el.id;
+      div.style.left = pctX(el.x) + '%';
+      div.style.top = pctY(el.y) + '%';
+      div.style.width = pctX(el.w) + '%';
+      div.style.height = pctY(el.h) + '%';
+
+      const fill = document.createElement('div');
+      fill.className = 'el-fill';
+      div.appendChild(fill);
+
+      if (el.kind === 'niche' || el.kind === 'trap') {
+        ['el-tl', 'el-tr', 'el-bl', 'el-br'].forEach((cls) => {
+          const c = document.createElement('div');
+          c.className = 'el-corner ' + cls;
+          c.style.backgroundImage = "url('../../images/frames/corner-gold.png')";
+          div.appendChild(c);
+        });
+        if (el.labelImg) {
+          const img = document.createElement('img');
+          img.src = '../../' + el.labelImg;
+          img.alt = '';
+          img.className = 'el-gold-label' + (el.kind === 'trap' ? ' inside' : '');
+          div.appendChild(img);
+        }
+      }
+
+      const labelSpan = document.createElement('div');
+      labelSpan.className = 'el-label';
+      labelSpan.textContent = el.label;
+      div.appendChild(labelSpan);
+
+      if (el.resizable) {
+        ['nw', 'ne', 'sw', 'se'].forEach((corner) => {
+          const h = document.createElement('div');
+          h.className = 'handle ' + corner;
+          h.dataset.corner = corner;
+          h.addEventListener('pointerdown', (e) => startResize(e, el.id, corner));
+          div.appendChild(h);
+        });
+      }
+
+      div.addEventListener('pointerdown', (e) => {
+        if (e.target.classList.contains('handle')) return;
+        selectElement(el.id);
+        startDrag(e, el.id);
+      });
+
+      stage.appendChild(div);
+    });
+
+    renderElList();
+    renderFields();
+  }
+
+  function renderElList() {
+    elListEl.innerHTML = '';
+    state.elements.forEach((el) => {
+      const btn = document.createElement('button');
+      btn.textContent = el.label;
+      btn.className = el.id === state.selectedId ? 'active' : '';
+      btn.addEventListener('click', () => selectElement(el.id));
+      elListEl.appendChild(btn);
+    });
+  }
+
+  function renderFields() {
+    const el = getEl(state.selectedId);
+    selNameEl.textContent = el ? el.label : '–';
+    fieldsWrap.innerHTML = '';
+    if (!el) return;
+
+    if (el.kind === 'niche') {
+      const note = document.createElement('div');
+      note.className = 'note';
+      note.textContent = 'Diese Zone hat im Spiel keine eigene Größe (die Box passt sich automatisch der Kartengröße an) -- nur die Position (Mittelpunkt) ist relevant und wird exportiert.';
+      fieldsWrap.appendChild(note);
+      appendFieldRow([
+        { key: 'cx', label: 'Mitte X', get: () => el.x + el.w / 2, set: (v) => { el.x = v - el.w / 2; } },
+        { key: 'cy', label: 'Mitte Y', get: () => el.y + el.h / 2, set: (v) => { el.y = v - el.h / 2; } },
+      ]);
+    } else {
+      appendFieldRow([
+        { key: 'x', label: 'X', get: () => el.x, set: (v) => { el.x = v; } },
+        { key: 'y', label: 'Y', get: () => el.y, set: (v) => { el.y = v; } },
+      ]);
+      appendFieldRow([
+        { key: 'w', label: 'Breite', get: () => el.w, set: (v) => { el.w = Math.max(4, v); } },
+        { key: 'h', label: 'Höhe', get: () => el.h, set: (v) => { el.h = Math.max(4, v); } },
+      ]);
+    }
+    if (el.kind === 'wall') {
+      appendFieldRow([
+        { key: 'count', label: 'Anzahl Slots', get: () => el.count, set: (v) => { el.count = Math.round(v); } },
+      ]);
+    }
+  }
+
+  function appendFieldRow(defs) {
+    const row = document.createElement('div');
+    row.className = 'field-row';
+    defs.forEach((def) => {
+      const field = document.createElement('div');
+      field.className = 'field';
+      const label = document.createElement('label');
+      label.textContent = def.label;
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.step = '0.1';
+      input.value = round2(def.get());
+      input.addEventListener('input', () => {
+        const v = parseFloat(input.value);
+        if (Number.isNaN(v)) return;
+        def.set(v);
+        renderStageOnly();
+      });
+      field.appendChild(label);
+      field.appendChild(input);
+      row.appendChild(field);
+    });
+    fieldsWrap.appendChild(row);
+  }
+
+  function round2(v) { return Math.round(v * 100) / 100; }
+
+  // Beim Tippen in ein Zahlenfeld soll nur die Buehne neu gezeichnet
+  // werden, nicht auch das Feld selbst (sonst verliert das Input-Element
+  // beim Tippen den Fokus/die Cursorposition).
+  function renderStageOnly() {
+    const savedActive = document.activeElement;
+    const isFieldFocused = savedActive && savedActive.tagName === 'INPUT';
+    render();
+    if (isFieldFocused) {
+      // Nach dem Neuzeichnen existiert dasselbe Input-Element nicht mehr --
+      // Fokus/Selektion ist in diesem einfachen Tool bewusst nicht
+      // erhalten (naechster Tastendruck fokussiert erneut per Klick).
+    }
+  }
+
+  function selectElement(id) {
+    state.selectedId = id;
+    render();
+  }
+
+  // ------------------------------------------------------------------
+  // Drag (Position) und Resize (an den 4 Eck-Griffen).
+  // ------------------------------------------------------------------
+  function stageScale() {
+    const rect = stage.getBoundingClientRect();
+    return { sx: REF_W / rect.width, sy: REF_H / rect.height, rect };
+  }
+
+  function startDrag(e, id) {
+    e.preventDefault();
+    const el = getEl(id);
+    const { sx, sy } = stageScale();
+    const startX = e.clientX, startY = e.clientY;
+    const origX = el.x, origY = el.y;
+
+    function onMove(ev) {
+      const dxRef = (ev.clientX - startX) * sx;
+      const dyRef = (ev.clientY - startY) * sy;
+      let nx = origX + dxRef;
+      let ny = origY + dyRef;
+      if (ev.shiftKey) {
+        if (el.kind === 'niche') {
+          // Fuer Nischen zaehlt nur der Mittelpunkt -- der darf auf
+          // Rand- ODER Zellen-Mittellinien einrasten (beides sind
+          // sinnvolle Ziele für einen Zonen-Mittelpunkt).
+          const cx = nx + el.w / 2, cy = ny + el.h / 2;
+          const xLines = gridLinesX().concat(midLines(gridLinesX()));
+          const yLines = gridLinesY().concat(midLines(gridLinesY()));
+          nx = snapValue(cx, xLines) - el.w / 2;
+          ny = snapValue(cy, yLines) - el.h / 2;
+        } else {
+          nx = snapValue(nx, gridLinesX());
+          ny = snapValue(ny, gridLinesY());
+        }
+      }
+      el.x = nx; el.y = ny;
+      renderStageOnly();
+      updateSnapIndicator(ev.shiftKey);
+    }
+    function onUp() {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      updateSnapIndicator(false);
+    }
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }
+
+  function midLines(lines) {
+    const out = [];
+    for (let i = 0; i < lines.length - 1; i++) out.push((lines[i] + lines[i + 1]) / 2);
+    return out;
+  }
+
+  function startResize(e, id, corner) {
+    e.preventDefault();
+    e.stopPropagation();
+    selectElement(id);
+    const el = getEl(id);
+    const { sx, sy } = stageScale();
+    const startX = e.clientX, startY = e.clientY;
+    const orig = { x: el.x, y: el.y, w: el.w, h: el.h };
+
+    function onMove(ev) {
+      const dxRef = (ev.clientX - startX) * sx;
+      const dyRef = (ev.clientY - startY) * sy;
+      let { x, y, w, h } = orig;
+      if (corner.includes('e')) w = orig.w + dxRef;
+      if (corner.includes('w')) { x = orig.x + dxRef; w = orig.w - dxRef; }
+      if (corner.includes('s')) h = orig.h + dyRef;
+      if (corner.includes('n')) { y = orig.y + dyRef; h = orig.h - dyRef; }
+
+      if (ev.shiftKey) {
+        const linesX = gridLinesX(), linesY = gridLinesY();
+        if (corner.includes('e')) { const right = snapValue(x + w, linesX); w = right - x; }
+        if (corner.includes('w')) { const left = snapValue(x, linesX); w = w + (x - left); x = left; }
+        if (corner.includes('s')) { const bottom = snapValue(y + h, linesY); h = bottom - y; }
+        if (corner.includes('n')) { const top = snapValue(y, linesY); h = h + (y - top); y = top; }
+      }
+      el.x = x; el.y = y; el.w = Math.max(4, w); el.h = Math.max(4, h);
+      renderStageOnly();
+      updateSnapIndicator(ev.shiftKey);
+    }
+    function onUp() {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      updateSnapIndicator(false);
+    }
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }
+
+  function updateSnapIndicator(active) {
+    snapIndicator.textContent = active ? '⚡ Grid-Snap aktiv' : 'Shift = Grid-Snap';
+    snapIndicator.className = 'snap-indicator ' + (active ? 'snap-on' : 'snap-off');
+  }
+
+  // ------------------------------------------------------------------
+  // Export: baut aus dem aktuellen Editor-Zustand ein TABLE_LAYOUT-
+  // foermiges JS-Objekt als Text (Copy-Paste zurueck in index.html).
+  // ------------------------------------------------------------------
+  function buildExportText() {
+    const board = getEl('board');
+    const boardOrigin = { x: round2(board.x), y: round2(board.y) };
+    const cellSize = { w: round2(board.w / BOARD_COLS), h: round2(board.h / BOARD_ROWS) };
+
+    const nicheOrder = ['deckOpponent', 'graveyardOpponent', 'heroOpponent', 'heroMine', 'graveyardMine', 'deckMine'];
+    const nicheLines = nicheOrder.map((key) => {
+      const el = getEl('niche_' + key);
+      const cx = round2(el.x + el.w / 2), cy = round2(el.y + el.h / 2);
+      return `    ${key.padEnd(18)}: { cx: ${cx}, cy: ${cy} },`;
+    });
+
+    const trapOpp = getEl('trapZoneOpponent');
+    const trapMine = getEl('trapZoneMine');
+    const wallLeft = getEl('wallTrayLeft');
+    const wallRight = getEl('wallTrayRight');
+
+    return `const TABLE_LAYOUT = {
+  refWidth: TABLE_REF_W,
+  refHeight: TABLE_REF_H,
+  boardCols: 8,
+  boardRows: 8,
+  boardOrigin: { x: ${boardOrigin.x}, y: ${boardOrigin.y} },
+  cellSize: { w: ${cellSize.w}, h: ${cellSize.h} },
+  niches: {
+${nicheLines.join('\n')}
+  },
+  trapZoneOpponent: { x: ${round2(trapOpp.x)}, y: ${round2(trapOpp.y)}, w: ${round2(trapOpp.w)}, h: ${round2(trapOpp.h)} },
+  trapZoneMine:     { x: ${round2(trapMine.x)}, y: ${round2(trapMine.y)}, w: ${round2(trapMine.w)}, h: ${round2(trapMine.h)} },
+  wallTray: {
+    left:  { x: ${round2(wallLeft.x)}, y: ${round2(wallLeft.y)}, w: ${round2(wallLeft.w)}, h: ${round2(wallLeft.h)}, count: ${wallLeft.count} },
+    right: { x: ${round2(wallRight.x)}, y: ${round2(wallRight.y)}, w: ${round2(wallRight.w)}, h: ${round2(wallRight.h)}, count: ${wallRight.count} },
+  },
+};
+// Hinweis: boardArea (fuer board-inset.png / .board-grid) wird in index.html
+// direkt NACH diesem Objekt aus boardOrigin + cellSize*boardCols/boardRows
+// abgeleitet -- dieser Block hier muss NICHT manuell mit ausgetauscht werden,
+// er entsteht automatisch aus den obigen Werten.`;
+  }
+
+  document.getElementById('exportBtn').addEventListener('click', () => {
+    const text = buildExportText();
+    const wrap = document.getElementById('exportWrap');
+    const out = document.getElementById('exportOutput');
+    out.value = text;
+    wrap.style.display = 'block';
+  });
+  document.getElementById('copyBtn').addEventListener('click', async () => {
+    const out = document.getElementById('exportOutput');
+    out.select();
+    try {
+      await navigator.clipboard.writeText(out.value);
+      const btn = document.getElementById('copyBtn');
+      const orig = btn.textContent;
+      btn.textContent = 'Kopiert!';
+      setTimeout(() => { btn.textContent = orig; }, 1200);
+    } catch (err) {
+      // Clipboard-API evtl. blockiert (file://-Kontext) -- Textarea ist
+      // bereits selektiert, manuelles Strg+C funktioniert als Fallback.
+    }
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
