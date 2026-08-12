@@ -1079,7 +1079,7 @@
     const nicheOrder = ['deckOpponent', 'graveyardOpponent', 'heroOpponent', 'heroMine', 'graveyardMine', 'deckMine'];
     const nicheLines = nicheOrder.map((key) => {
       const el = getEl('niche_' + key);
-      return `    ${key.padEnd(18)}: { cx: ${round2(el.cx)}, cy: ${round2(el.cy)} },`;
+      return `    ${key.padEnd(18)}: { cx: ${round2(el.cx)}, cy: ${round2(el.cy)}, asset: ${JSON.stringify(el.asset)} },`;
     });
 
     const trapOpp = getEl('trapZoneOpponent');
@@ -1102,11 +1102,20 @@
   // NICHT als TABLE_LAYOUT-Feld (.board-frame nutzt bisher die volle
   // Canvas); um diesen Wert wirksam zu machen, muesste .board-frame in
   // index.html separat darauf umgestellt werden (nicht Teil dieses Tools).
-  tableBounds: { x: ${round2(tableBounds.x)}, y: ${round2(tableBounds.y)}, w: ${round2(tableBounds.w)}, h: ${round2(tableBounds.h)} },
+  tableBounds: { x: ${round2(tableBounds.x)}, y: ${round2(tableBounds.y)}, w: ${round2(tableBounds.w)}, h: ${round2(tableBounds.h)}, asset: ${JSON.stringify(tableBounds.asset)} },
   boardCols: 8,
   boardRows: 8,
   boardOrigin: { x: ${boardOrigin.x}, y: ${boardOrigin.y} },
   cellSize: { w: ${cellSize.w}, h: ${cellSize.h} },
+  // Editor-Erweiterung Punkt 3: pro Element das im Editor zugewiesene Bild
+  // (asset-Feld) mit exportiert -- damit das echte Spiel bei Bedarf exakt
+  // dieselben Assets an derselben Stelle laden kann wie im Editor zu sehen.
+  // Existiert im aktuellen index.html-Code noch NICHT als gelesenes Feld
+  // (die echten Komponenten haben ihre Bildpfade bisher fest verdrahtet,
+  // z.B. GoldFrameDecor/label-*.png) -- um das wirksam zu machen, muessten
+  // die entsprechenden JSX-Stellen separat auf TABLE_LAYOUT...asset
+  // umgestellt werden (nicht Teil dieses Tools).
+  boardAsset: ${JSON.stringify(board.asset)},
   // Referenz-Kartengroesse fuer alle 6 Nischen gemeinsam (Nische = Karte +
   // 2px Rand pro Seite, siehe --card-w/-h-standard in index.html).
   cardSize: { width: ${round2(state.cardSize.w)}, height: ${round2(state.cardSize.h)} },
@@ -1117,11 +1126,11 @@
   niches: {
 ${nicheLines.join('\n')}
   },
-  trapZoneOpponent: { x: ${round2(trapOpp.x)}, y: ${round2(trapOpp.y)}, w: ${round2(trapOpp.w)}, h: ${round2(trapOpp.h)} },
-  trapZoneMine:     { x: ${round2(trapMine.x)}, y: ${round2(trapMine.y)}, w: ${round2(trapMine.w)}, h: ${round2(trapMine.h)} },
+  trapZoneOpponent: { x: ${round2(trapOpp.x)}, y: ${round2(trapOpp.y)}, w: ${round2(trapOpp.w)}, h: ${round2(trapOpp.h)}, asset: ${JSON.stringify(trapOpp.asset)} },
+  trapZoneMine:     { x: ${round2(trapMine.x)}, y: ${round2(trapMine.y)}, w: ${round2(trapMine.w)}, h: ${round2(trapMine.h)}, asset: ${JSON.stringify(trapMine.asset)} },
   wallTray: {
-    left:  { x: ${round2(wallLeft.x)}, y: ${round2(wallLeft.y)}, w: ${round2(wallLeft.w)}, h: ${round2(wallLeft.h)}, count: ${wallLeft.count} },
-    right: { x: ${round2(wallRight.x)}, y: ${round2(wallRight.y)}, w: ${round2(wallRight.w)}, h: ${round2(wallRight.h)}, count: ${wallRight.count} },
+    left:  { x: ${round2(wallLeft.x)}, y: ${round2(wallLeft.y)}, w: ${round2(wallLeft.w)}, h: ${round2(wallLeft.h)}, count: ${wallLeft.count}, asset: ${JSON.stringify(wallLeft.asset)} },
+    right: { x: ${round2(wallRight.x)}, y: ${round2(wallRight.y)}, w: ${round2(wallRight.w)}, h: ${round2(wallRight.h)}, count: ${wallRight.count}, asset: ${JSON.stringify(wallRight.asset)} },
   },
 };
 // Hinweis: boardArea (fuer board-inset.png / .board-grid) wird in index.html
