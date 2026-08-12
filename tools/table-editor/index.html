@@ -132,6 +132,27 @@
     border-radius: 6px; font-family: 'Consolas', monospace; font-size: 0.72rem; padding: 0.5rem; white-space: pre;
   }
   #copyBtn { margin-top: 0.4rem; width: 100%; padding: 0.4rem; background: #26211a; color: #d8d0bc; border: 1px solid #3a3120; border-radius: 4px; cursor: pointer; }
+
+  /* Asset-Bibliothek (Editor-Erweiterung Punkt 2) */
+  .asset-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.4rem; margin-bottom: 0.75rem; }
+  .asset-tile {
+    background: #100e0a; border: 1px solid #3a3120; border-radius: 5px; padding: 0.3rem;
+    cursor: pointer; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 0.2rem;
+  }
+  .asset-tile:hover { border-color: var(--gold-dim); }
+  .asset-tile.assigned { border-color: var(--gold); background: rgba(224,184,58,0.14); }
+  .asset-tile .thumb-wrap {
+    width: 100%; height: 42px; display: flex; align-items: center; justify-content: center;
+    background: repeating-conic-gradient(#1c1a16 0% 25%, #24211b 0% 50%) 0 0 / 10px 10px; border-radius: 3px; overflow: hidden;
+  }
+  .asset-tile .thumb-wrap img { max-width: 100%; max-height: 100%; object-fit: contain; }
+  .asset-tile .asset-name { font-size: 0.58rem; color: #a89f8c; word-break: break-all; line-height: 1.2; }
+  .asset-tile.assigned .asset-name { color: #fff; }
+
+  /* Echte Bild-Vorschauen im Canvas statt reiner Farbboxen */
+  .el-card-preview { position: absolute; object-fit: cover; border-radius: 2px; pointer-events: none; box-shadow: 0 1px 4px rgba(0,0,0,0.6); }
+  .el-wall-icons { position: absolute; inset: 6%; display: flex; flex-direction: column; justify-content: space-between; align-items: center; pointer-events: none; overflow: hidden; }
+  .el-wall-icons img { width: auto; opacity: 0.85; flex-shrink: 0; }
 </style>
 </head>
 <body>
@@ -166,6 +187,14 @@
 
     <h2>Ausgewählt: <span id="selName">–</span></h2>
     <div id="fieldsWrap"></div>
+
+    <h2>Assets</h2>
+    <p class="hint" style="margin-bottom:0.5rem;">
+      Erst ein Element (oben oder auf der Bühne) auswählen, dann hier auf
+      ein Bild klicken, um es zuzuweisen. Aktuell zugewiesenes Bild ist
+      hervorgehoben.
+    </p>
+    <div class="asset-grid" id="assetGrid"></div>
 
     <div class="snap-indicator" id="snapIndicator">Shift = Grid-Snap</div>
 
@@ -232,6 +261,31 @@
     graveyardMine: ['Grabmal', 'Ich', 'images/frames/label-graveyard.png'],
     deckMine: ['Deck', 'Ich', 'images/frames/label-deck.png'],
   };
+
+  // ------------------------------------------------------------------
+  // Editor-Erweiterung Punkt 2: Asset-Bibliothek. Vollstaendige Liste
+  // durch Absuchen von index.html nach Bildpfaden im Tisch/Zonen/Wand-
+  // Kontext zusammengestellt (grep nach .png/.jpg-Referenzen in Board-,
+  // Zonen- und Wand-Tray-Komponenten) -- siehe Commit-Beschreibung.
+  // CARD_BACK/eine Wand-Icon-SVG existierten im echten Code nur als
+  // Inline-Base64 bzw. Inline-SVG (kein Datei-Pfad) -- dafuer wurden
+  // images/card-back.jpg und images/frames/wall-token-icon.svg als
+  // eigenstaendige Dateien angelegt (index.html selbst unangetastet,
+  // siehe vorheriger Commit).
+  // ------------------------------------------------------------------
+  const ASSET_LIST = [
+    { path: 'images/textures/wood-tile.jpg', name: 'wood-tile.jpg' },
+    { path: 'images/scenes/board-inset.png', name: 'board-inset.png' },
+    { path: 'images/frames/corner-gold.png', name: 'corner-gold.png' },
+    { path: 'images/frames/line-gold.png', name: 'line-gold.png' },
+    { path: 'images/frames/label-deck.png', name: 'label-deck.png' },
+    { path: 'images/frames/label-graveyard.png', name: 'label-graveyard.png' },
+    { path: 'images/frames/label-hero.png', name: 'label-hero.png' },
+    { path: 'images/frames/label-trap.png', name: 'label-trap.png' },
+    { path: 'images/card-back.jpg', name: 'card-back.jpg' },
+    { path: 'images/001.jpg', name: '001.jpg (Beispiel-Kartenvorderseite)' },
+    { path: 'images/frames/wall-token-icon.svg', name: 'wall-token-icon.svg' },
+  ];
 
   // ------------------------------------------------------------------
   // Uniformes Editor-Modell: JEDES Element hat x/y/w/h (linke obere Ecke +
@@ -381,6 +435,36 @@
     renderCardSizeFields();
     renderElList();
     renderFields();
+    renderAssetGrid();
+  }
+
+  function renderAssetGrid() {
+    const grid = document.getElementById('assetGrid');
+    grid.innerHTML = '';
+    const el = getEl(state.selectedId);
+    ASSET_LIST.forEach((asset) => {
+      const tile = document.createElement('div');
+      tile.className = 'asset-tile' + (el && el.asset === asset.path ? ' assigned' : '');
+      tile.title = asset.path;
+      const thumbWrap = document.createElement('div');
+      thumbWrap.className = 'thumb-wrap';
+      const img = document.createElement('img');
+      img.src = '../../' + asset.path;
+      img.alt = asset.name;
+      thumbWrap.appendChild(img);
+      const name = document.createElement('div');
+      name.className = 'asset-name';
+      name.textContent = asset.name;
+      tile.appendChild(thumbWrap);
+      tile.appendChild(name);
+      tile.addEventListener('click', () => {
+        const target = getEl(state.selectedId);
+        if (!target || !('asset' in target)) return;
+        target.asset = asset.path;
+        render();
+      });
+      grid.appendChild(tile);
+    });
   }
 
   // Baut das DOM-Element fuer EIN Element (Tisch-Begrenzung, Board, Nische,
@@ -416,6 +500,33 @@
         c.style.backgroundImage = "url('../../images/frames/corner-gold.png')";
         div.appendChild(c);
       });
+      // Beispielkarte als Vorschau IN der Box (nicht ueber die Asset-
+      // Bibliothek zuweisbar -- rein illustrativ, wie im echten Spiel
+      // DeckStack/GraveyardTop/HeroCard). Bei Nischen exakt auf
+      // Kartengroesse+2px-Rand berechnet (siehe .zone-card-slot in
+      // index.html), bei Trap-Zonen nur eine grobe Vorschau (dort zeigt
+      // das echte Spiel bis zu 5 Slots, hier bewusst vereinfacht).
+      if (el.kind === 'niche' && el.cardAsset) {
+        const innerW = state.cardSize.w / (state.cardSize.w + 4) * 100;
+        const innerH = state.cardSize.h / (state.cardSize.h + 4) * 100;
+        const card = document.createElement('img');
+        card.src = '../../' + el.cardAsset;
+        card.alt = '';
+        card.className = 'el-card-preview';
+        card.style.left = '50%'; card.style.top = '50%';
+        card.style.width = innerW + '%'; card.style.height = innerH + '%';
+        card.style.transform = 'translate(-50%, -50%)';
+        div.appendChild(card);
+      } else if (el.kind === 'trap') {
+        const card = document.createElement('img');
+        card.src = '../../images/card-back.jpg';
+        card.alt = '';
+        card.className = 'el-card-preview';
+        card.style.left = '8%'; card.style.top = '50%';
+        card.style.width = '13%'; card.style.height = '80%';
+        card.style.transform = 'translateY(-50%)';
+        div.appendChild(card);
+      }
       if (el.asset) {
         const img = document.createElement('img');
         img.src = '../../' + el.asset;
@@ -423,6 +534,23 @@
         img.className = 'el-gold-label' + (el.kind === 'trap' ? ' inside' : '');
         div.appendChild(img);
       }
+    }
+
+    if (el.kind === 'wall' && el.asset) {
+      const iconWrap = document.createElement('div');
+      iconWrap.className = 'el-wall-icons';
+      // Icon-Hoehe von der Slot-Anzahl ableiten (nicht fest), sonst
+      // wuerden z.B. 10 Icons in einer schmalen Spalte ueber den Rand
+      // hinaus laufen (space-between skaliert NICHT automatisch runter).
+      const iconPct = Math.min(60, 85 / Math.max(1, el.count));
+      for (let i = 0; i < el.count; i++) {
+        const img = document.createElement('img');
+        img.src = '../../' + el.asset;
+        img.alt = '';
+        img.style.height = iconPct + '%';
+        iconWrap.appendChild(img);
+      }
+      div.appendChild(iconWrap);
     }
 
     const labelSpan = document.createElement('div');
