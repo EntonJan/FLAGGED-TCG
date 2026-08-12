@@ -714,9 +714,16 @@ button.danger:hover { background: rgba(163, 51, 51, 0.15); }
 .zone-gold-corner-tr { transform: scaleX(-1); }
 .zone-gold-corner-bl { transform: scaleY(-1); }
 .zone-gold-corner-br { transform: scale(-1, -1); }
+/* Zonen-Groessen-Verifikation (Nachbesserung): die Nischen-Box ist jetzt
+   exakt kartengross (Karte + 2px je Seite, siehe .zone-card-slot) -- dafuer
+   ist innerhalb der Box kein Platz mehr fuer ein Label, ohne die Karte zu
+   ueberlappen (und die Karte darf dafuer nicht kleiner werden, das ist die
+   feste Referenzgroesse). Das Label sitzt daher jetzt AUSSERHALB/UEBER der
+   Box (bottom:100% der Box-Oberkante + kleiner Abstand) statt innerhalb --
+   Kartengroesse und Box-Rand bleiben dadurch unangetastet exakt 2px. */
 .zone-gold-label {
-  position: absolute; top: 1%; left: 50%; transform: translateX(-50%);
-  max-width: 70%; height: auto; pointer-events: none; user-select: none; z-index: 3;
+  position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 2px;
+  width: calc(var(--card-w-standard) * 1.5); height: auto; pointer-events: none; user-select: none; z-index: 3;
 }
 /* Abschnitt 4: Trap-Zone ist deutlich breiter als hoch (alte Hand-Position) --
    Innenabstand haelt die TrapTray-Reihe vom Label oben und den Ecken-
