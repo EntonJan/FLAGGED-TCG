@@ -24,14 +24,31 @@
   /* Stage: exakt dasselbe Seitenverhaeltnis wie .board-frame im Hauptspiel
      (1584/672), damit die im Editor eingestellten Ref-Koordinaten 1:1 den
      echten Prozentwerten (pctX/pctY) entsprechen. */
+  /* Editor-Erweiterung: die Holz-Textur haengt NICHT mehr fest an .stage --
+     sie kommt jetzt vom "Tisch-Begrenzung"-Element (.el-tableBounds, siehe
+     unten), das wie jedes andere Element frei verschieb-/skalierbar ist.
+     .stage selbst ist nur noch eine neutrale Flaeche, die zeigt, wo die
+     Tisch-Begrenzung NICHT hinreicht (falls kleiner als die volle Canvas). */
   .stage {
     position: relative; width: min(92vw, 1400px); aspect-ratio: 1584 / 672;
-    background-image: linear-gradient(rgba(47,31,19,0.88), rgba(47,31,19,0.88)), url('../../images/textures/wood-tile.jpg');
-    background-blend-mode: multiply;
-    background-repeat: repeat;
+    background: repeating-conic-gradient(#141210 0% 25%, #1a1712 0% 50%) 0 0 / 24px 24px;
     border: 2px solid #000; box-shadow: 0 10px 40px rgba(0,0,0,0.6);
     user-select: none;
   }
+  .el-tableBounds-bg {
+    position: absolute; inset: 0;
+    background-image: linear-gradient(rgba(47,31,19,0.88), rgba(47,31,19,0.88)), url('../../images/textures/wood-tile.jpg');
+    background-blend-mode: multiply;
+    background-repeat: repeat;
+    pointer-events: none;
+  }
+  .el.el-tableBounds .el-fill { background: transparent; border: 2px dashed rgba(224,184,58,0.55); border-radius: 0; }
+  .el.el-tableBounds.selected .el-fill { border: 2px dashed var(--gold); background: rgba(255,200,60,0.06); }
+  /* Tisch-Begrenzung deckt oft die gesamte Buehne ab -- ein mittig
+     zentriertes Label wuerde mitten im Board landen. Stattdessen eine
+     kleine Marke oben links, wie ein Ebenen-Tag. */
+  .el.el-tableBounds { align-items: flex-start; justify-content: flex-start; }
+  .el.el-tableBounds .el-label { background: rgba(10,8,5,0.75); border-radius: 3px; margin: 4px; }
   .board-inset { position: absolute; object-fit: cover; pointer-events: none; }
   .grid-svg { position: absolute; pointer-events: none; }
   .center-line {
@@ -227,8 +244,20 @@
   // ------------------------------------------------------------------
   function buildElements(src) {
     const els = [];
+    // Editor-Erweiterung Punkt 1: Tisch-Begrenzung als eigenes Element --
+    // GANZ UNTEN im Stapel gerendert (siehe renderStage), Holz-Textur als
+    // eigene Ebene. Bewusst UNABHAENGIG von Board/Zonen positioniert
+    // (kein automatisches Mitbewegen) -- Default deckt die anfaengliche
+    // Referenz-Canvas komplett ab, kann aber frei verschoben/skaliert
+    // werden, um z.B. einen Innenabstand des Tisches zu simulieren.
+    els.push({
+      id: 'tableBounds', label: 'Tisch-Begrenzung', kind: 'tableBounds', resizable: true,
+      asset: 'images/textures/wood-tile.jpg',
+      x: 0, y: 0, w: REF_W, h: REF_H,
+    });
     els.push({
       id: 'board', label: 'Board (8×8-Gitter)', kind: 'board', resizable: true,
+      asset: 'images/scenes/board-inset.png',
       x: src.boardOrigin.x, y: src.boardOrigin.y,
       w: src.cellSize.w * BOARD_COLS, h: src.cellSize.h * BOARD_ROWS,
     });
@@ -237,24 +266,27 @@
       const [type, side, labelImg] = NICHE_LABELS[key];
       els.push({
         id: 'niche_' + key, label: type + ' (' + side + ')', kind: 'niche', nicheKey: key,
-        resizable: true, labelImg,
+        resizable: true, asset: labelImg,
+        cardAsset: type === 'Deck' ? 'images/card-back.jpg' : 'images/001.jpg',
         cx: n.cx, cy: n.cy, x: 0, y: 0, w: 0, h: 0, // x/y/w/h werden von syncNicheGeometry() gesetzt
       });
     });
     els.push({
-      id: 'trapZoneOpponent', label: 'Trap-Zone (Gegner)', kind: 'trap', resizable: true, labelImg: 'images/frames/label-trap.png',
+      id: 'trapZoneOpponent', label: 'Trap-Zone (Gegner)', kind: 'trap', resizable: true, asset: 'images/frames/label-trap.png',
       x: src.trapZoneOpponent.x, y: src.trapZoneOpponent.y, w: src.trapZoneOpponent.w, h: src.trapZoneOpponent.h,
     });
     els.push({
-      id: 'trapZoneMine', label: 'Trap-Zone (Ich)', kind: 'trap', resizable: true, labelImg: 'images/frames/label-trap.png',
+      id: 'trapZoneMine', label: 'Trap-Zone (Ich)', kind: 'trap', resizable: true, asset: 'images/frames/label-trap.png',
       x: src.trapZoneMine.x, y: src.trapZoneMine.y, w: src.trapZoneMine.w, h: src.trapZoneMine.h,
     });
     els.push({
       id: 'wallTrayLeft', label: 'Wand-Ablage (links)', kind: 'wall', resizable: true, count: src.wallTray.left.count,
+      asset: 'images/frames/wall-token-icon.svg',
       x: src.wallTray.left.x, y: src.wallTray.left.y, w: src.wallTray.left.w, h: src.wallTray.left.h,
     });
     els.push({
       id: 'wallTrayRight', label: 'Wand-Ablage (rechts)', kind: 'wall', resizable: true, count: src.wallTray.right.count,
+      asset: 'images/frames/wall-token-icon.svg',
       x: src.wallTray.right.x, y: src.wallTray.right.y, w: src.wallTray.right.w, h: src.wallTray.right.h,
     });
     return els;
@@ -351,6 +383,75 @@
     renderFields();
   }
 
+  // Baut das DOM-Element fuer EIN Element (Tisch-Begrenzung, Board, Nische,
+  // Trap-Zone, Wand-Ablage) -- gemeinsame Basis fuer Position/Drag/Resize-
+  // Griffe, Inhalt variiert per el.kind. Wird sowohl fuer die Tisch-
+  // Begrenzung (separat, ganz zuerst) als auch fuer den Rest (Schleife in
+  // renderStage) verwendet, damit beide exakt dieselbe Drag/Resize/Smart-
+  // Guide-Mechanik bekommen.
+  function buildElementDiv(el) {
+    const div = document.createElement('div');
+    div.className = 'el' + (el.kind === 'tableBounds' ? ' el-tableBounds' : '') + (el.id === state.selectedId ? ' selected' : '') + (el.resizable ? '' : ' no-resize');
+    div.dataset.id = el.id;
+    div.style.left = pctX(el.x) + '%';
+    div.style.top = pctY(el.y) + '%';
+    div.style.width = pctX(el.w) + '%';
+    div.style.height = pctY(el.h) + '%';
+
+    if (el.kind === 'tableBounds') {
+      const bg = document.createElement('div');
+      bg.className = 'el-tableBounds-bg';
+      bg.style.backgroundImage = `linear-gradient(rgba(47,31,19,0.88), rgba(47,31,19,0.88)), url('../../${el.asset}')`;
+      div.appendChild(bg);
+    }
+
+    const fill = document.createElement('div');
+    fill.className = 'el-fill';
+    div.appendChild(fill);
+
+    if (el.kind === 'niche' || el.kind === 'trap') {
+      ['el-tl', 'el-tr', 'el-bl', 'el-br'].forEach((cls) => {
+        const c = document.createElement('div');
+        c.className = 'el-corner ' + cls;
+        c.style.backgroundImage = "url('../../images/frames/corner-gold.png')";
+        div.appendChild(c);
+      });
+      if (el.asset) {
+        const img = document.createElement('img');
+        img.src = '../../' + el.asset;
+        img.alt = '';
+        img.className = 'el-gold-label' + (el.kind === 'trap' ? ' inside' : '');
+        div.appendChild(img);
+      }
+    }
+
+    const labelSpan = document.createElement('div');
+    labelSpan.className = 'el-label';
+    labelSpan.textContent = el.label;
+    div.appendChild(labelSpan);
+
+    if (el.resizable) {
+      ['nw', 'ne', 'sw', 'se'].forEach((corner) => {
+        const h = document.createElement('div');
+        h.className = 'handle ' + corner;
+        h.dataset.corner = corner;
+        h.addEventListener('pointerdown', (e) => {
+          if (el.kind === 'niche') startResizeNiche(e, el.id, corner);
+          else startResize(e, el.id, corner);
+        });
+        div.appendChild(h);
+      });
+    }
+
+    div.addEventListener('pointerdown', (e) => {
+      if (e.target.classList.contains('handle')) return;
+      selectElement(el.id);
+      startDrag(e, el.id);
+    });
+
+    return div;
+  }
+
   function renderStage() {
     syncNicheGeometry();
     // Punkt 2: Canvas-Seitenverhaeltnis folgt der editierbaren Tisch-
@@ -362,10 +463,17 @@
 
     stage.innerHTML = '';
 
-    // Board-Landschaft (nur Deko-Referenz, benutzt board-inset.png).
+    // Punkt 1: Tisch-Begrenzung GANZ UNTEN im Stapel -- eigenes Element,
+    // unabhaengig von Board/Zonen positioniert, rendert die Holz-Textur
+    // als eigene Ebene. Wird per buildElementDiv() genau wie jedes andere
+    // Element aufgebaut (Drag/Resize/Smart-Guides funktionieren identisch),
+    // nur eben ZUERST angehaengt.
+    stage.appendChild(buildElementDiv(getEl('tableBounds')));
+
+    // Board-Landschaft (nur Deko-Referenz, benutzt board.asset).
     const boardEl = getEl('board');
     const inset = document.createElement('img');
-    inset.src = '../../images/scenes/board-inset.png';
+    inset.src = '../../' + boardEl.asset;
     inset.className = 'board-inset';
     inset.alt = '';
     inset.style.left = pctX(boardEl.x) + '%';
@@ -409,61 +517,10 @@
     centerLine.style.left = pctX(boardEl.x + boardEl.w / 2) + '%';
     stage.appendChild(centerLine);
 
-    // Alle Elemente.
+    // Alle uebrigen Elemente (Tisch-Begrenzung ist oben schon gerendert).
     state.elements.forEach((el) => {
-      const div = document.createElement('div');
-      div.className = 'el' + (el.id === state.selectedId ? ' selected' : '') + (el.resizable ? '' : ' no-resize');
-      div.dataset.id = el.id;
-      div.style.left = pctX(el.x) + '%';
-      div.style.top = pctY(el.y) + '%';
-      div.style.width = pctX(el.w) + '%';
-      div.style.height = pctY(el.h) + '%';
-
-      const fill = document.createElement('div');
-      fill.className = 'el-fill';
-      div.appendChild(fill);
-
-      if (el.kind === 'niche' || el.kind === 'trap') {
-        ['el-tl', 'el-tr', 'el-bl', 'el-br'].forEach((cls) => {
-          const c = document.createElement('div');
-          c.className = 'el-corner ' + cls;
-          c.style.backgroundImage = "url('../../images/frames/corner-gold.png')";
-          div.appendChild(c);
-        });
-        if (el.labelImg) {
-          const img = document.createElement('img');
-          img.src = '../../' + el.labelImg;
-          img.alt = '';
-          img.className = 'el-gold-label' + (el.kind === 'trap' ? ' inside' : '');
-          div.appendChild(img);
-        }
-      }
-
-      const labelSpan = document.createElement('div');
-      labelSpan.className = 'el-label';
-      labelSpan.textContent = el.label;
-      div.appendChild(labelSpan);
-
-      if (el.resizable) {
-        ['nw', 'ne', 'sw', 'se'].forEach((corner) => {
-          const h = document.createElement('div');
-          h.className = 'handle ' + corner;
-          h.dataset.corner = corner;
-          h.addEventListener('pointerdown', (e) => {
-            if (el.kind === 'niche') startResizeNiche(e, el.id, corner);
-            else startResize(e, el.id, corner);
-          });
-          div.appendChild(h);
-        });
-      }
-
-      div.addEventListener('pointerdown', (e) => {
-        if (e.target.classList.contains('handle')) return;
-        selectElement(el.id);
-        startDrag(e, el.id);
-      });
-
-      stage.appendChild(div);
+      if (el.kind === 'tableBounds') return;
+      stage.appendChild(buildElementDiv(el));
     });
 
     // Smart Guides: volle Canvas-Hoehe/-Breite, ueber allem anderen.
@@ -886,6 +943,7 @@
   // ------------------------------------------------------------------
   function buildExportText() {
     syncNicheGeometry();
+    const tableBounds = getEl('tableBounds');
     const board = getEl('board');
     const boardOrigin = { x: round2(board.x), y: round2(board.y) };
     const cellSize = { w: round2(board.w / BOARD_COLS), h: round2(board.h / BOARD_ROWS) };
@@ -910,6 +968,13 @@
   // (pctX/pctY rechnen dagegen).
   refWidth: ${REF_W},
   refHeight: ${REF_H},
+  // Editor-Erweiterung Punkt 1: eigenes, unabhaengiges Element fuer den
+  // aeusseren Holz-Tisch-Container (.board-frame) -- bewusst NICHT an
+  // Board/Zonen gekoppelt. Existiert im aktuellen index.html-Code noch
+  // NICHT als TABLE_LAYOUT-Feld (.board-frame nutzt bisher die volle
+  // Canvas); um diesen Wert wirksam zu machen, muesste .board-frame in
+  // index.html separat darauf umgestellt werden (nicht Teil dieses Tools).
+  tableBounds: { x: ${round2(tableBounds.x)}, y: ${round2(tableBounds.y)}, w: ${round2(tableBounds.w)}, h: ${round2(tableBounds.h)} },
   boardCols: 8,
   boardRows: 8,
   boardOrigin: { x: ${boardOrigin.x}, y: ${boardOrigin.y} },
