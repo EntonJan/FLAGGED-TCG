@@ -148,6 +148,19 @@
   .asset-tile .thumb-wrap img { max-width: 100%; max-height: 100%; object-fit: contain; }
   .asset-tile .asset-name { font-size: 0.58rem; color: #a89f8c; word-break: break-all; line-height: 1.2; }
   .asset-tile.assigned .asset-name { color: #fff; }
+  .asset-tile.custom { border-style: dashed; }
+  .asset-tile .thumb-wrap { position: relative; }
+  .asset-remove {
+    position: absolute; top: 2px; right: 2px; width: 16px; height: 16px; line-height: 14px; padding: 0;
+    background: rgba(20,16,10,0.85); border: 1px solid #5a4c2a; border-radius: 50%; color: #e8c96a;
+    font-size: 0.75rem; cursor: pointer;
+  }
+  .asset-remove:hover { background: #7a2323; border-color: #a23a3a; color: #fff; }
+  #uploadAssetBtn {
+    width: 100%; padding: 0.4rem; margin-bottom: 0.5rem; background: #26211a; color: #d8d0bc;
+    border: 1px dashed #3a3120; border-radius: 5px; cursor: pointer; font-size: 0.78rem;
+  }
+  #uploadAssetBtn:hover { border-color: var(--gold-dim); color: #fff; }
 
   /* Echte Bild-Vorschauen im Canvas statt reiner Farbboxen */
   .el-card-preview { position: absolute; object-fit: cover; border-radius: 2px; pointer-events: none; box-shadow: 0 1px 4px rgba(0,0,0,0.6); }
@@ -194,6 +207,8 @@
       ein Bild klicken, um es zuzuweisen. Aktuell zugewiesenes Bild ist
       hervorgehoben.
     </p>
+    <button id="uploadAssetBtn" type="button">+ Eigenes Bild hinzufügen</button>
+    <input type="file" id="assetUploadInput" accept="image/*" multiple style="display:none;">
     <div class="asset-grid" id="assetGrid"></div>
 
     <div class="snap-indicator" id="snapIndicator">Shift = Grid-Snap</div>
@@ -287,6 +302,15 @@
     { path: 'images/frames/wall-token-icon.svg', name: 'wall-token-icon.svg' },
   ];
 
+  // Liefert den korrekten <img src>/background-image-Wert fuer einen Asset-
+  // Pfad: eigene, per Upload hinzugefuegte Bilder sind data:-URIs (siehe
+  // handleAssetUpload) und duerfen NICHT mit '../../' praefixiert werden --
+  // eingebaute Assets sind repo-relative Pfade und brauchen das Praefix,
+  // weil dieses Tool zwei Ordner unter dem Repo-Root liegt.
+  function assetSrc(path) {
+    return path.startsWith('data:') ? path : '../../' + path;
+  }
+
   // ------------------------------------------------------------------
   // Uniformes Editor-Modell: JEDES Element hat x/y/w/h (linke obere Ecke +
   // Groesse) in Ref-Koordinaten -- fuer die 6 Nischen sind x/y/w/h ein
@@ -352,6 +376,7 @@
     cardSize: { w: initialCardW, h: initialCardH },
     handCardSize: { w: initialCardW, h: initialCardH },
     activeGuides: null, // {v:[{pos,symmetry}], h:[{pos,symmetry}]} waehrend Drag/Resize, sonst null
+    customAssets: [], // per Upload hinzugefuegte Bilder: [{path: dataURL, name, custom:true}]
   };
 
   const stage = document.getElementById('stage');
@@ -442,16 +467,33 @@
     const grid = document.getElementById('assetGrid');
     grid.innerHTML = '';
     const el = getEl(state.selectedId);
-    ASSET_LIST.forEach((asset) => {
+    ASSET_LIST.concat(state.customAssets).forEach((asset) => {
       const tile = document.createElement('div');
-      tile.className = 'asset-tile' + (el && el.asset === asset.path ? ' assigned' : '');
-      tile.title = asset.path;
+      tile.className = 'asset-tile' + (el && el.asset === asset.path ? ' assigned' : '') + (asset.custom ? ' custom' : '');
+      tile.title = asset.custom ? asset.name + ' (eigener Upload)' : asset.path;
       const thumbWrap = document.createElement('div');
       thumbWrap.className = 'thumb-wrap';
       const img = document.createElement('img');
-      img.src = '../../' + asset.path;
+      img.src = assetSrc(asset.path);
       img.alt = asset.name;
       thumbWrap.appendChild(img);
+      if (asset.custom) {
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'asset-remove';
+        removeBtn.title = 'Eigenes Bild wieder entfernen';
+        removeBtn.textContent = '×';
+        removeBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          state.customAssets = state.customAssets.filter((a) => a !== asset);
+          // Elemente, die genau dieses Bild zugewiesen hatten, fallen NICHT
+          // automatisch auf einen Default zurueck (der Pfad bleibt einfach
+          // stehen, das <img> zeigt dann ein gebrochenes Bild) -- bewusst
+          // einfach gehalten, der User sieht sofort, dass er neu zuweisen muss.
+          render();
+        });
+        thumbWrap.appendChild(removeBtn);
+      }
       const name = document.createElement('div');
       name.className = 'asset-name';
       name.textContent = asset.name;
@@ -464,6 +506,22 @@
         render();
       });
       grid.appendChild(tile);
+    });
+  }
+
+  // Eigene Bilder hochladen: als data:-URI eingelesen (kein Server, keine
+  // Datei-Kopie ins Repo noetig -- funktioniert direkt im Editor). Landen
+  // als zusaetzliche Kacheln in der Asset-Bibliothek, ganz normal per Klick
+  // zuweisbar wie die eingebauten Assets.
+  function handleAssetUpload(fileList) {
+    Array.from(fileList).forEach((file) => {
+      if (!file.type.startsWith('image/')) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        state.customAssets.push({ path: reader.result, name: file.name, custom: true });
+        render();
+      };
+      reader.readAsDataURL(file);
     });
   }
 
@@ -485,7 +543,7 @@
     if (el.kind === 'tableBounds') {
       const bg = document.createElement('div');
       bg.className = 'el-tableBounds-bg';
-      bg.style.backgroundImage = `linear-gradient(rgba(47,31,19,0.88), rgba(47,31,19,0.88)), url('../../${el.asset}')`;
+      bg.style.backgroundImage = `linear-gradient(rgba(47,31,19,0.88), rgba(47,31,19,0.88)), url('${assetSrc(el.asset)}')`;
       div.appendChild(bg);
     }
 
@@ -529,7 +587,7 @@
       }
       if (el.asset) {
         const img = document.createElement('img');
-        img.src = '../../' + el.asset;
+        img.src = assetSrc(el.asset);
         img.alt = '';
         img.className = 'el-gold-label' + (el.kind === 'trap' ? ' inside' : '');
         div.appendChild(img);
@@ -545,7 +603,7 @@
       const iconPct = Math.min(60, 85 / Math.max(1, el.count));
       for (let i = 0; i < el.count; i++) {
         const img = document.createElement('img');
-        img.src = '../../' + el.asset;
+        img.src = assetSrc(el.asset);
         img.alt = '';
         img.style.height = iconPct + '%';
         iconWrap.appendChild(img);
@@ -601,7 +659,7 @@
     // Board-Landschaft (nur Deko-Referenz, benutzt board.asset).
     const boardEl = getEl('board');
     const inset = document.createElement('img');
-    inset.src = '../../' + boardEl.asset;
+    inset.src = assetSrc(boardEl.asset);
     inset.className = 'board-inset';
     inset.alt = '';
     inset.style.left = pctX(boardEl.x) + '%';
@@ -1087,7 +1145,21 @@
     const wallLeft = getEl('wallTrayLeft');
     const wallRight = getEl('wallTrayRight');
 
-    return `const TABLE_LAYOUT = {
+    // Eigene Uploads sind data:-URIs -- technisch als asset-Wert gueltig
+    // (funktioniert 1:1 wie ein Datei-Pfad), aber unhandlich als Ergebnis
+    // (sehr lange Zeile) und nicht Teil des Repos. Warnhinweis, falls
+    // irgendein Element gerade ein hochgeladenes Bild zugewiesen hat.
+    const usesCustomAsset = state.elements.some((el) => el.asset && el.asset.startsWith('data:'));
+    const customAssetWarning = usesCustomAsset ? `// ACHTUNG: mindestens ein Element hat gerade ein SELBST HOCHGELADENES
+// Bild zugewiesen (asset-Wert beginnt mit "data:..."). Das funktioniert
+// technisch 1:1 wie ein normaler Datei-Pfad, macht die Zeile hier aber sehr
+// lang und das Bild existiert nicht als echte Datei im Repo. Praktikabler:
+// die Datei nach images/... kopieren und den asset-Wert unten auf den
+// entsprechenden repo-relativen Pfad (z.B. "images/frames/mein-bild.png")
+// aendern, bevor du das hier einfuegst.
+` : '';
+
+    return `${customAssetWarning}const TABLE_LAYOUT = {
   // Editor-Erweiterung Punkt 2: refWidth/refHeight sind jetzt ein
   // EDITIERBARES Ergebnis aus dem Editor, keine feste Referenz auf
   // TABLE_REF_W/TABLE_REF_H mehr. Falls abweichend von den bisherigen
@@ -1144,6 +1216,14 @@ ${nicheLines.join('\n')}
 // Editor-Werte wirksam zu machen, muessten die entsprechenden CSS-Stellen
 // in index.html separat darauf umgestellt werden (nicht Teil dieses Tools).`;
   }
+
+  document.getElementById('uploadAssetBtn').addEventListener('click', () => {
+    document.getElementById('assetUploadInput').click();
+  });
+  document.getElementById('assetUploadInput').addEventListener('change', (e) => {
+    handleAssetUpload(e.target.files);
+    e.target.value = ''; // erlaubt, dieselbe Datei erneut auszuwaehlen
+  });
 
   document.getElementById('exportBtn').addEventListener('click', () => {
     const text = buildExportText();
