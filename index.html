@@ -649,21 +649,31 @@ button.danger:hover { background: rgba(163, 51, 51, 0.15); }
    Kartenseitenverhaeltnis 961:1323 abgeleitet. EINE Referenzgroesse fuer
    alle Zonen-Karten (Deck/Grabmal/Held/Falle, beide Seiten) -- keine Zone
    skaliert die Karte mehr individuell in % ihrer eigenen Box. */
+/* Tisch-Editor: der Holz-Hintergrund haengt nicht mehr fest an .board-frame,
+   sondern kommt jetzt von einer eigenen, per TABLE_LAYOUT.tableBounds
+   positionierten Ebene (.table-bounds-bg, siehe JSX) -- damit laesst sich
+   der Tisch-Innenbereich unabhaengig von Board/Zonen justieren (z.B. ein
+   Rand um den Holzhintergrund), matcht aber im Default (volle Referenz-
+   Canvas) exakt das bisherige Verhalten. --card-w/-h-standard kommen jetzt
+   ebenfalls aus TABLE_LAYOUT.cardSize (per pctX/pctY inline gesetzt, siehe
+   JSX) statt aus der live gemessenen --wall-token-size. */
+.board-frame {
+  position: relative; width: min(96vw, 2200px); max-width: 100%; max-height: 100%; aspect-ratio: 1584 / 672;
+}
 /* Tisch-Korrektur Punkt 1: die Poly-Haven-Textur selbst ist ein helles
    Honig-Tan, deutlich heller/oranger als das Zielbraun aus game-table-
    detail.png (~#2F1F13, per Pixel-Sample gemessen). Ein dunkelbraunes
-   Overlay im multiply-Blend (NUR auf den background-image-Layer, nicht per
+   Overlay im multiply-Blend (NUR auf diesem Hintergrund-Layer, nicht per
    filter auf .board-frame selbst -- filter wuerde auch alle Kinder wie
    Karten/Gold-Rahmen/Grid mit abdunkeln) trifft den Zielton praezise
    (per Playwright-Pixel-Sample iterativ gesucht: rgba(47,31,19,0.88)
    multiply ergibt ein gerendertes #302012, Ziel #2F1F13 -- Differenz < 2). */
-.board-frame {
-  --card-w-standard: var(--wall-token-size, 40px);
-  --card-h-standard: calc(var(--wall-token-size, 40px) * 1323 / 961);
-  position: relative; width: min(96vw, 2200px); max-width: 100%; max-height: 100%; aspect-ratio: 1584 / 672;
+.table-bounds-bg {
+  position: absolute;
   background-image: linear-gradient(rgba(47,31,19,0.88), rgba(47,31,19,0.88)), url('images/textures/wood-tile.jpg');
   background-blend-mode: multiply;
   background-repeat: repeat;
+  pointer-events: none; user-select: none;
 }
 .board-frame-inner { position: absolute; inset: 0; }
 .board-frame-inner.board-frame-rotated { transform: rotate(180deg); }
@@ -766,7 +776,11 @@ button.danger:hover { background: rgba(163, 51, 51, 0.15); }
    bekommen exakt das, was NACH den beiden Hand-Leisten von der
    .game-content-area-Hoehe uebrig bleibt, siehe boardFrameSizeRef-Effekt
    in GameBoard). Kleinere Leisten = mehr Hoehe fuer den Tisch. */
-.hand-row { display: flex; align-items: center; justify-content: center; gap: 0.6rem; flex-wrap: wrap; padding: 0.2rem 1rem; flex: 0 0 auto; height: clamp(64px, 9vh, 120px); }
+/* Oberer clamp()-Wert kommt jetzt aus TABLE_LAYOUT.handCardSize.height
+   (per --hand-card-h inline gesetzt, siehe JSX) statt fest 120px -- der
+   Rest (unterer/mittlerer clamp()-Term) bleibt viewport-relativ, da die
+   Hand-Leiste ausserhalb von .board-frame lebt. */
+.hand-row { display: flex; align-items: center; justify-content: center; gap: 0.6rem; flex-wrap: wrap; padding: 0.2rem 1rem; flex: 0 0 auto; height: clamp(64px, 9vh, var(--hand-card-h, 120px)); }
 /* flex-shrink war bisher 0 (nie verkleinern) -- bei 5 Handkarten reichte die
    Breite nicht immer. Die Karten skalieren dynamisch ueber die Anzahl in der
    Hand: .zone-hand-card-image-wrap treibt seine Breite primaer aus dem
@@ -4392,6 +4406,24 @@ const TABLE_LAYOUT = {
   // (siehe cellSizePx in GameBoard), nicht von diesem statischen Wert --
   // robuster gegenueber Layout-/Viewport-Aenderungen.
   cellSize: { w: 46.71, h: 52.49 },
+  // Editor-Werte verdrahtet: aeusserer Holz-Tisch-Container als eigene,
+  // unabhaengige Flaeche (siehe .table-bounds-bg) -- Default deckt die
+  // volle Referenz-Canvas ab (identisch zum bisherigen Verhalten, wo der
+  // Holz-Hintergrund einfach .board-frame komplett ausgefuellt hat).
+  tableBounds: { x: 0, y: 0, w: TABLE_REF_W, h: TABLE_REF_H },
+  // Bisher hart im JSX verdrahteter Pfad (images/scenes/board-inset.png).
+  boardAsset: 'images/scenes/board-inset.png',
+  // Referenz-Kartengroesse fuer alle 6 Nischen + Trap-Slots gemeinsam
+  // (Nische/Slot = Karte + 2px Rand pro Seite, siehe --card-w/-h-standard).
+  // Default = cellSize.w als Breite (Karte ist schmaler als eine Zelle
+  // hoch ist), Hoehe per festem Kartenverhaeltnis 961:1323 abgeleitet --
+  // entspricht dem bisherigen Live-Messwert exakt.
+  cardSize: { width: 46.71, height: 64.3 },
+  // Referenz-Kartengroesse fuer die Hand-Leisten (ausserhalb des Tisches,
+  // in echten CSS-Pixeln statt Ref-Koordinaten, da .hand-row viewport-
+  // relativ statt board-frame-relativ skaliert). Default = bisheriger
+  // fester oberer clamp()-Wert (120px, Breite per Kartenverhaeltnis).
+  handCardSize: { width: 87, height: 120 },
   // Tisch-Korrektur Punkt 2 (Symmetrie): cx/cy statt x/y/w/h -- Mittelpunkt
   // je Nische, per centerBoxStyle() zentriert positioniert (siehe JSX).
   // Linke und rechte Spalte liegen jetzt exakt spiegelsymmetrisch zur
@@ -4401,18 +4433,18 @@ const TABLE_LAYOUT = {
   // gleiche Hoehe) -- Mittelwert der vorher (Abschnitt 1) einzeln
   // gemessenen, leicht abweichenden linken/rechten Werte.
   niches: {
-    deckOpponent:      { cx: 524.3,  cy: 171.8 },
-    graveyardOpponent: { cx: 524.3,  cy: 330.2 },
-    heroOpponent:      { cx: 524.3,  cy: 501.3 },
-    heroMine:          { cx: 1059.7, cy: 171.8 },
-    graveyardMine:     { cx: 1059.7, cy: 330.2 },
-    deckMine:          { cx: 1059.7, cy: 501.3 },
+    deckOpponent:      { cx: 524.3,  cy: 171.8, asset: 'images/frames/label-deck.png' },
+    graveyardOpponent: { cx: 524.3,  cy: 330.2, asset: 'images/frames/label-graveyard.png' },
+    heroOpponent:      { cx: 524.3,  cy: 501.3, asset: 'images/frames/label-hero.png' },
+    heroMine:          { cx: 1059.7, cy: 171.8, asset: 'images/frames/label-hero.png' },
+    graveyardMine:     { cx: 1059.7, cy: 330.2, asset: 'images/frames/label-graveyard.png' },
+    deckMine:          { cx: 1059.7, cy: 501.3, asset: 'images/frames/label-deck.png' },
   },
   // Ersetzen die alten .zone-hand-top/.zone-hand-bottom-Positionen AUF dem
   // Tisch (Abschnitt 4: Hand wandert vom Tisch runter, hier entsteht
   // stattdessen die Trap-Zone).
-  trapZoneOpponent: { x: 590.8, y: 5.4,   w: 449.9, h: 104.2 },
-  trapZoneMine:     { x: 590.8, y: 561.1, w: 449.9, h: 95.4 },
+  trapZoneOpponent: { x: 590.8, y: 5.4,   w: 449.9, h: 104.2, asset: 'images/frames/label-trap.png' },
+  trapZoneMine:     { x: 590.8, y: 561.1, w: 449.9, h: 95.4, asset: 'images/frames/label-trap.png' },
   // Tisch-Korrektur Punkt 2: x links/rechts symmetrisiert (vorher 326.3/
   // 1115.3 -- ca. 6 Ref-px asymmetrisch, Mittelwert der beiden Abstaende
   // zur Brett-Mittelachse 792 uebernommen).
@@ -7390,7 +7422,7 @@ function GameBoard({ matchId, user, onLeaveMatch }) {
       {/* Abschnitt 4: Gegner-Hand liegt jetzt in einer eigenen Leiste DIREKT
           UEBER dem Tisch-Container, nicht mehr auf dem Tisch-Bild selbst --
           immer sichtbar, nur Kartenrücken (nur die Anzahl ist oeffentlich). */}
-      <div className="hand-row hand-row-opponent">
+      <div className="hand-row hand-row-opponent" style={{ '--hand-card-h': TABLE_LAYOUT.handCardSize.height + 'px' }}>
         {state.players[opponentId].hand.map((_, i) => (
           <img key={i} src={CARD_BACK_IMAGE} alt="Gegnerkarte" className="zone-opp-hand-card-img" />
         ))}
@@ -7513,11 +7545,26 @@ function GameBoard({ matchId, user, onLeaveMatch }) {
           className="board-frame"
           style={{
             '--wall-token-size': cellSizePx + 'px',
+            // WICHTIG: als echter px-Wert setzen, NICHT als CSS-Prozentstring
+            // (pctX(...)+'%') -- ein %-Wert in einer Custom Property loest
+            // erst BEIM VERWENDEN auf, gegen das jeweils LOKALE containing
+            // block der Stelle, die var(--card-w-standard) tatsaechlich
+            // benutzt. Das klappt zufaellig fuer die absolut positionierte
+            // .zone-box (dort bubbelt % korrekt bis .board-frame hoch),
+            // bricht aber fuer normale verschachtelte Kinder wie
+            // .zone-deck-stack/.trap-token (die loesen gegen ihren viel
+            // kleineren direkten Elternteil auf -- per Playwright-Messung
+            // gefunden: Karte wurde ca. 10x zu klein). Ein fertig
+            // berechneter px-Wert ist ueberall identisch gueltig, genau wie
+            // vorher bei --wall-token-size.
+            '--card-w-standard': (frameSize ? pctX(TABLE_LAYOUT.cardSize.width) / 100 * frameSize.w : TABLE_LAYOUT.cardSize.width) + 'px',
+            '--card-h-standard': (frameSize ? pctY(TABLE_LAYOUT.cardSize.height) / 100 * frameSize.h : TABLE_LAYOUT.cardSize.height) + 'px',
             ...(frameSize ? { width: frameSize.w + 'px', height: frameSize.h + 'px' } : {}),
           }}
         >
+          <div className="table-bounds-bg" style={boxToStyle(TABLE_LAYOUT.tableBounds)} />
           <div className={`board-frame-inner${flipBoard ? ' board-frame-rotated' : ''}`}>
-          <img src="images/scenes/board-inset.png" alt="Spielfeld" className="board-inset-image" style={boxToStyle(TABLE_LAYOUT.boardArea)} />
+          <img src={TABLE_LAYOUT.boardAsset} alt="Spielfeld" className="board-inset-image" style={boxToStyle(TABLE_LAYOUT.boardArea)} />
 
           <div
             ref={boardGridRef}
@@ -7596,16 +7643,16 @@ function GameBoard({ matchId, user, onLeaveMatch }) {
                   style={centerBoxStyle(TABLE_LAYOUT.niches.deckOpponent.cx, TABLE_LAYOUT.niches.deckOpponent.cy, true)}
                   onContextMenu={(e) => e.preventDefault()}
                 >
-                  <GoldFrameDecor label="images/frames/label-deck.png" />
+                  <GoldFrameDecor label={TABLE_LAYOUT.niches.deckOpponent.asset} />
                   <div className="zone-info-tooltip">Gegner-Deck: {opponent.deck.length} Karten</div>
                   <DeckStack count={opponent.deck.length} />
                 </div>
                 <div className="zone-box zone-graveyard zone-left-mid zone-gold-frame zone-card-slot" style={centerBoxStyle(TABLE_LAYOUT.niches.graveyardOpponent.cx, TABLE_LAYOUT.niches.graveyardOpponent.cy, true)} onClick={() => setGraveyardView(opponent.id)}>
-                  <GoldFrameDecor label="images/frames/label-graveyard.png" />
+                  <GoldFrameDecor label={TABLE_LAYOUT.niches.graveyardOpponent.asset} />
                   <GraveyardTop player={opponent} isMine={false} />
                 </div>
                 <div className="zone-box zone-hero zone-right-top zone-gold-frame zone-card-slot" style={centerBoxStyle(TABLE_LAYOUT.niches.heroOpponent.cx, TABLE_LAYOUT.niches.heroOpponent.cy, true)}>
-                  <GoldFrameDecor label="images/frames/label-hero.png" />
+                  <GoldFrameDecor label={TABLE_LAYOUT.niches.heroOpponent.asset} />
                   <HeroCard player={opponent} />
                 </div>
 
@@ -7627,7 +7674,7 @@ function GameBoard({ matchId, user, onLeaveMatch }) {
                     startCardFlow(card, 'origin');
                   }}
                 >
-                  <GoldFrameDecor label="images/frames/label-hero.png" />
+                  <GoldFrameDecor label={TABLE_LAYOUT.niches.heroMine.asset} />
                   <div className="zone-info-tooltip">
                     Bewegung: {state.turnBudget.fieldsMoved}/{state.turnBudget.maxFields}<br />
                     Karten: {state.turnBudget.cardsPlayed}/{state.turnBudget.maxCards}<br />
@@ -7636,7 +7683,7 @@ function GameBoard({ matchId, user, onLeaveMatch }) {
                   <HeroCard player={me} />
                 </div>
                 <div className="zone-box zone-graveyard zone-right-mid zone-gold-frame zone-card-slot" style={centerBoxStyle(TABLE_LAYOUT.niches.graveyardMine.cx, TABLE_LAYOUT.niches.graveyardMine.cy, false)} onClick={() => setGraveyardView(me.id)}>
-                  <GoldFrameDecor label="images/frames/label-graveyard.png" />
+                  <GoldFrameDecor label={TABLE_LAYOUT.niches.graveyardMine.asset} />
                   <GraveyardTop player={me} isMine={true} />
                 </div>
                 <div
@@ -7648,7 +7695,7 @@ function GameBoard({ matchId, user, onLeaveMatch }) {
                     setDeckContextMenu({ x: e.clientX, y: e.clientY });
                   }}
                 >
-                  <GoldFrameDecor label="images/frames/label-deck.png" />
+                  <GoldFrameDecor label={TABLE_LAYOUT.niches.deckMine.asset} />
                   <div className="zone-info-tooltip">Dein Deck: {me.deck.length} Karten</div>
                   <DeckStack count={me.deck.length} />
                 </div>
@@ -7676,11 +7723,11 @@ function GameBoard({ matchId, user, onLeaveMatch }) {
                   return (
                     <React.Fragment>
                       <div className="zone-box zone-gold-frame zone-gold-frame-rotated zone-trap-zone" style={boxToStyle(TABLE_LAYOUT.trapZoneOpponent)}>
-                        <GoldFrameDecor label="images/frames/label-trap.png" />
+                        <GoldFrameDecor label={TABLE_LAYOUT.trapZoneOpponent.asset} />
                         <TrapTray cardIds={[]} faceDownCount={Math.min(opponentTrapCount, 5)} horizontal />
                       </div>
                       <div className="zone-box zone-gold-frame zone-trap-zone" style={boxToStyle(TABLE_LAYOUT.trapZoneMine)}>
-                        <GoldFrameDecor label="images/frames/label-trap.png" />
+                        <GoldFrameDecor label={TABLE_LAYOUT.trapZoneMine.asset} />
                         <TrapTray cardIds={myTrapCardIds} baseCanAct={baseCanAct} hasFlag={hasFlag} draggedCardRef={draggedCardRef} horizontal />
                       </div>
                     </React.Fragment>
@@ -7749,7 +7796,7 @@ function GameBoard({ matchId, user, onLeaveMatch }) {
 
       {/* Abschnitt 4: eigene Hand liegt in einer eigenen Leiste DIREKT UNTER
           dem Tisch-Container, nicht mehr auf dem Tisch-Bild selbst. */}
-      <div className="hand-row hand-row-mine" ref={handZoneRef}>
+      <div className="hand-row hand-row-mine" ref={handZoneRef} style={{ '--hand-card-h': TABLE_LAYOUT.handCardSize.height + 'px' }}>
         {/* Fallenkarten (cardType 'Falle') werden NICHT hier, sondern in der
             neuen Trap-Zone auf dem Tisch gezeigt (Abschnitt 4) -- gleiche
             Karten, gleicher Spielzug-Mechanismus (startCardFlow), nur eine
