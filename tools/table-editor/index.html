@@ -44,11 +44,6 @@
   }
   .el.el-tableBounds .el-fill { background: transparent; border: 2px dashed rgba(224,184,58,0.55); border-radius: 0; }
   .el.el-tableBounds.selected .el-fill { border: 2px dashed var(--gold); background: rgba(255,200,60,0.06); }
-  /* Tisch-Begrenzung deckt oft die gesamte Buehne ab -- ein mittig
-     zentriertes Label wuerde mitten im Board landen. Stattdessen eine
-     kleine Marke oben links, wie ein Ebenen-Tag. */
-  .el.el-tableBounds { align-items: flex-start; justify-content: flex-start; }
-  .el.el-tableBounds .el-label { background: rgba(10,8,5,0.75); border-radius: 3px; margin: 4px; }
   .board-inset { position: absolute; object-fit: cover; pointer-events: none; }
   .grid-svg { position: absolute; pointer-events: none; }
   .center-line {
@@ -65,15 +60,35 @@
   .guide-line.h { left: 0; right: 0; height: 0; border-top: 1px solid rgba(255, 0, 200, 0.9); }
   .guide-line.symmetry { border-color: rgba(40, 230, 220, 0.95); }
   .el {
-    position: absolute; display: flex; align-items: center; justify-content: center;
-    cursor: move; box-sizing: border-box;
+    position: absolute; cursor: move; box-sizing: border-box;
   }
   .el .el-fill { position: absolute; inset: 0; background: rgba(80, 140, 255, 0.16); border: 1px solid rgba(120, 170, 255, 0.6); border-radius: 3px; }
   .el.selected .el-fill { background: rgba(255, 200, 60, 0.22); border: 2px solid var(--gold); }
+  /* Nachtrag: Zonen-Name IN der Box statt darueber (vorher: normal-flow
+     Text, per Flex auf der .el zentriert -- bei den seit der Karten-
+     Kopplung sehr kleinen Nischen/Trap-Boxen ragte der Text bei 2 Zeilen
+     ueber den Rand hinaus). Jetzt fest oben in der Box verankert
+     (position:absolute statt Flex-Zentrierung -- kann daher nicht mehr
+     ueber den Rand hinauswachsen) mit dunklem Hintergrund-Chip fuer
+     Lesbarkeit ueber den Eck-Ornamenten/Karten-Vorschaubildern. Betrifft
+     NUR diesen Editor-eigenen Namens-Text -- die echten Spiel-Label-Bilder
+     (.el-gold-label, z.B. label-deck.png) bleiben unveraendert ueber der
+     Box (siehe Kommentar dort). */
   .el .el-label {
-    position: relative; z-index: 2; font-size: 0.62rem; font-weight: 600; text-align: center;
-    color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.9); pointer-events: none; padding: 2px;
-    line-height: 1.15;
+    position: absolute; top: 2px; left: 50%; transform: translateX(-50%);
+    z-index: 3; font-size: 0.56rem; font-weight: 600; text-align: center;
+    color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.95);
+    background: rgba(10,8,5,0.72); border-radius: 3px; padding: 1px 4px;
+    line-height: 1.15; max-width: 92%;
+    /* Einzeilig + Ellipsis statt Zeilenumbruch: bei sehr schmalen Boxen
+       (Nischen, ~40-90px breit) fuehrte word-break:break-word zu einer
+       hochkant gestapelten Buchstabensaeule quer durch die ganze Box
+       (unlesbar, kollidiert mit dem Karten-Vorschaubild). Ellipsis
+       schneidet stattdessen sauber ab -- voller Text per title-Tooltip
+       beim Hovern (siehe pointer-events: auto, noetig damit der Browser
+       ueberhaupt einen Tooltip anzeigt) oder in der Elemente-Liste rechts. */
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    pointer-events: auto; cursor: move;
   }
   .el-corner {
     position: absolute; background-image: url('../../images/frames/corner-gold.png');
@@ -645,6 +660,10 @@
     const labelSpan = document.createElement('div');
     labelSpan.className = 'el-label';
     labelSpan.textContent = el.label;
+    // Titel-Tooltip als Fallback: bei sehr schmalen Boxen (z.B. Nischen)
+    // schneidet die einzeilige Beschriftung (siehe CSS text-overflow) lange
+    // Namen ab -- Hover zeigt den vollen Text.
+    labelSpan.title = el.label;
     div.appendChild(labelSpan);
 
     if (el.resizable) {
