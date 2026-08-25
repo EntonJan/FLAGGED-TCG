@@ -83,8 +83,10 @@
   .el-tr { top: 0; right: 0; width: 42%; height: 42%; transform: scaleX(-1); }
   .el-bl { bottom: 0; left: 0; width: 42%; height: 42%; transform: scaleY(-1); }
   .el-br { bottom: 0; right: 0; width: 42%; height: 42%; transform: scale(-1,-1); }
+  /* Nachtrag: Trap-Zone-Label sitzt jetzt genau wie bei den Nischen UEBER
+     der Box (nicht mehr "inside") -- seit der Kopplung ist die Box-Hoehe
+     nur noch Kartenhoehe+2px, kein Platz mehr fuer ein Label darin. */
   .el-gold-label { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 2px; width: 70%; height: auto; pointer-events: none; }
-  .el-gold-label.inside { bottom: auto; top: 2px; margin-bottom: 0; width: 26%; }
   .handle {
     position: absolute; width: 11px; height: 11px; background: var(--gold);
     border: 1px solid #3a2c0a; border-radius: 2px; z-index: 10;
@@ -265,6 +267,16 @@
   // davon -- reines Zahlenfeld, kein Canvas-Element (die Hand liegt
   // ausserhalb des Tisches).
   const CARD_ASPECT = 1323 / 961;
+  // Nachtrag (Trap-Zone in die Kartengroessen-Kopplung aufnehmen): die
+  // Trap-Zone zeigt IMMER 5 Karten-Slots nebeneinander (siehe TrapTray in
+  // index.html, Array.from({length:5})) -- Container-Breite ist daher
+  // NICHT frei einstellbar, sondern wird aus derselben gemeinsamen
+  // Kartengroesse abgeleitet: 5 Slots (je Karte + 2px Rand pro Seite, exakt
+  // wie eine einzelne Nische) + feste Abstaende dazwischen + etwas
+  // Innenabstand links/rechts fuer die Eck-Ornamente.
+  const TRAP_SLOTS = 5;
+  const TRAP_SLOT_GAP = 6;
+  const TRAP_H_PADDING = 8;
   const initialCardW = INITIAL.cellSize.w;
   const initialCardH = initialCardW * CARD_ASPECT;
 
@@ -410,12 +422,22 @@
   // state.cardSize -- muss vor jeder Stelle laufen, die el.x/y/w/h einer
   // Nische liest (Rendering, Smart Guides, Export). Nische = Karte + 2px
   // Rand pro Seite (siehe letzter Auftrag, .zone-card-slot).
+  // Nachtrag: schreibt jetzt AUCH fuer die 2 Trap-Zonen die abgeleitete
+  // Groesse -- w/h kommen aus derselben state.cardSize (5 Slots + Abstaende,
+  // siehe TRAP_SLOTS/TRAP_SLOT_GAP/TRAP_H_PADDING), x/y bleiben die frei
+  // gezogene, unabhaengig gespeicherte Position (KEIN cx/cy wie bei den
+  // Nischen -- Trap-Zonen sind weiterhin ueber die linke obere Ecke
+  // verankert, siehe Auftrag Punkt 3: "bleibt frei positionierbar").
   function syncNicheGeometry() {
     const w = state.cardSize.w + 4, h = state.cardSize.h + 4;
+    const trapW = TRAP_SLOTS * w + (TRAP_SLOTS - 1) * TRAP_SLOT_GAP + 2 * TRAP_H_PADDING;
     state.elements.forEach((el) => {
-      if (el.kind !== 'niche') return;
-      el.w = w; el.h = h;
-      el.x = el.cx - w / 2; el.y = el.cy - h / 2;
+      if (el.kind === 'niche') {
+        el.w = w; el.h = h;
+        el.x = el.cx - w / 2; el.y = el.cy - h / 2;
+      } else if (el.kind === 'trap') {
+        el.w = trapW; el.h = h;
+      }
     });
   }
 
@@ -558,12 +580,14 @@
         c.style.backgroundImage = "url('../../images/frames/corner-gold.png')";
         div.appendChild(c);
       });
-      // Beispielkarte als Vorschau IN der Box (nicht ueber die Asset-
+      // Beispielkarte(n) als Vorschau IN der Box (nicht ueber die Asset-
       // Bibliothek zuweisbar -- rein illustrativ, wie im echten Spiel
-      // DeckStack/GraveyardTop/HeroCard). Bei Nischen exakt auf
-      // Kartengroesse+2px-Rand berechnet (siehe .zone-card-slot in
-      // index.html), bei Trap-Zonen nur eine grobe Vorschau (dort zeigt
-      // das echte Spiel bis zu 5 Slots, hier bewusst vereinfacht).
+      // DeckStack/GraveyardTop/HeroCard/TrapTray). Exakt auf Kartengroesse+
+      // 2px-Rand berechnet (siehe .zone-card-slot/.trap-token in
+      // index.html) -- bei Trap-Zonen ALLE 5 Slots, exakt an derselben
+      // Geometrie wie die Container-Breite selbst (TRAP_SLOTS/-GAP/
+      // -PADDING), damit sichtbar wird, dass die Breite wirklich aus
+      // Kartengroesse*5+Abstaenden folgt.
       if (el.kind === 'niche' && el.cardAsset) {
         const innerW = state.cardSize.w / (state.cardSize.w + 4) * 100;
         const innerH = state.cardSize.h / (state.cardSize.h + 4) * 100;
@@ -576,20 +600,27 @@
         card.style.transform = 'translate(-50%, -50%)';
         div.appendChild(card);
       } else if (el.kind === 'trap') {
-        const card = document.createElement('img');
-        card.src = '../../images/card-back.jpg';
-        card.alt = '';
-        card.className = 'el-card-preview';
-        card.style.left = '8%'; card.style.top = '50%';
-        card.style.width = '13%'; card.style.height = '80%';
-        card.style.transform = 'translateY(-50%)';
-        div.appendChild(card);
+        const slotW = state.cardSize.w + 4;
+        const innerH = state.cardSize.h / (state.cardSize.h + 4) * 100;
+        for (let i = 0; i < TRAP_SLOTS; i++) {
+          const slotLeft = TRAP_H_PADDING + i * (slotW + TRAP_SLOT_GAP);
+          const card = document.createElement('img');
+          card.src = '../../images/card-back.jpg';
+          card.alt = '';
+          card.className = 'el-card-preview';
+          card.style.left = (slotLeft / el.w * 100) + '%';
+          card.style.top = '50%';
+          card.style.width = (slotW / el.w * 100) + '%';
+          card.style.height = innerH + '%';
+          card.style.transform = 'translateY(-50%)';
+          div.appendChild(card);
+        }
       }
       if (el.asset) {
         const img = document.createElement('img');
         img.src = assetSrc(el.asset);
         img.alt = '';
-        img.className = 'el-gold-label' + (el.kind === 'trap' ? ' inside' : '');
+        img.className = 'el-gold-label';
         div.appendChild(img);
       }
     }
@@ -622,7 +653,11 @@
         h.className = 'handle ' + corner;
         h.dataset.corner = corner;
         h.addEventListener('pointerdown', (e) => {
-          if (el.kind === 'niche') startResizeNiche(e, el.id, corner);
+          // Nachtrag: Trap-Zonen resizen jetzt genau wie Nischen -- nur
+          // Eck-Griffe, schreibt in die gemeinsame state.cardSize statt
+          // frei zu verzerren (Container-Breite folgt daraus automatisch,
+          // siehe syncNicheGeometry).
+          if (el.kind === 'niche' || el.kind === 'trap') startResizeNiche(e, el.id, corner);
           else startResize(e, el.id, corner);
         });
         div.appendChild(h);
@@ -815,6 +850,19 @@
         { key: 'cx', label: 'Mitte X', get: () => el.cx, set: (v) => { el.cx = v; } },
         { key: 'cy', label: 'Mitte Y', get: () => el.cy, set: (v) => { el.cy = v; } },
       ]);
+    } else if (el.kind === 'trap') {
+      const note = document.createElement('div');
+      note.className = 'note';
+      note.textContent = 'Karten-Slot-Größe an gemeinsame Nischen-Kartengröße gekoppelt -- Container-Breite skaliert automatisch mit Slot-Anzahl (5 Karten + Abstände). Nur die Position (linke obere Ecke) ist pro Trap-Zone frei.';
+      fieldsWrap.appendChild(note);
+      appendFieldRow([
+        { key: 'x', label: 'X', get: () => el.x, set: (v) => { el.x = v; } },
+        { key: 'y', label: 'Y', get: () => el.y, set: (v) => { el.y = v; } },
+      ]);
+      const sizeInfo = document.createElement('div');
+      sizeInfo.className = 'note';
+      sizeInfo.textContent = `Abgeleitete Größe: ${round2(el.w)} × ${round2(el.h)} Ref-px`;
+      fieldsWrap.appendChild(sizeInfo);
     } else {
       appendFieldRow([
         { key: 'x', label: 'X', get: () => el.x, set: (v) => { el.x = v; } },
@@ -1075,11 +1123,20 @@
     window.addEventListener('pointerup', onUp);
   }
 
-  // Nischen-Resize: schreibt bewusst NICHT in das einzelne Element, sondern
-  // in das GLOBALE state.cardSize -- alle 6 Boxen aktualisieren sich
-  // gemeinsam (siehe Auftrag Punkt 3). Jede Ecke zieht die Kartengroesse
+  // Gekoppelter Karten-Resize: schreibt bewusst NICHT in das einzelne
+  // Element, sondern in das GLOBALE state.cardSize -- ALLE 8 Zonen (6
+  // Nischen + 2 Trap-Zonen, seit dem Nachtrag) aktualisieren sich gemeinsam
+  // (siehe syncNicheGeometry). Verwendet fuer BEIDE Zonentypen identisch --
+  // fuer Nischen wachsen die einzelnen Boxen direkt, fuer Trap-Zonen
+  // wächst die abgeleitete Container-Breite (5 Slots * Kartenbreite +
+  // Abstaende, siehe syncNicheGeometry). Jede Ecke zieht die Kartengroesse
   // "nach aussen" (vom jeweiligen Zentrum weg) -- fuer eine SE-Ecke also
   // z.B. dw=dxRef/dh=dyRef, fuer eine NW-Ecke dw=-dxRef/dh=-dyRef.
+  // Seitenverhaeltnis-Sperre: die Karten-Bilder selbst haben ein festes
+  // Verhaeltnis (961:1323) -- state.cardSize.h folgt daher IMMER
+  // state.cardSize.w * CARD_ASPECT, nie unabhaengig. Getrieben wird von der
+  // Achse mit der (aspect-normalisierten) groesseren Bewegung, damit sich
+  // eine diagonale Ecken-Ziehbewegung natuerlich anfuehlt.
   function startResizeNiche(e, id, corner) {
     e.preventDefault();
     e.stopPropagation();
@@ -1093,15 +1150,26 @@
     function onMove(ev) {
       const dxRef = (ev.clientX - startX) * sx * signX;
       const dyRef = (ev.clientY - startY) * sy * signY;
-      let w = orig.w + dxRef, h = orig.h + dyRef;
+      // Groessere (aspect-normalisierte) Bewegung treibt das Ergebnis,
+      // die jeweils andere Dimension wird strikt aus CARD_ASPECT abgeleitet
+      // -- so bleibt das Kartenverhaeltnis IMMER exakt 961:1323.
+      let w, h;
+      if (Math.abs(dxRef) >= Math.abs(dyRef) / CARD_ASPECT) {
+        w = orig.w + dxRef;
+        h = w * CARD_ASPECT;
+      } else {
+        h = orig.h + dyRef;
+        w = h / CARD_ASPECT;
+      }
       if (ev.shiftKey) {
-        // Grid-Snap fuer Kartengroesse: auf ganzzahlige Vielfache einer
-        // halben Zellengroesse einrasten (grobe, aber nuetzliche Rasterung
-        // ohne Bezug zu einer bestimmten Nischen-Position).
+        // Grid-Snap fuer Kartengroesse: Breite auf ganzzahlige Vielfache
+        // einer halben Zellenbreite einrasten, Hoehe bleibt ueber
+        // CARD_ASPECT an der (gesnappten) Breite gekoppelt -- sonst wuerde
+        // Snapping die Seitenverhaeltnis-Sperre wieder aufbrechen.
         const b = getEl('board');
-        const stepW = b.w / BOARD_COLS / 2, stepH = b.h / BOARD_ROWS / 2;
+        const stepW = b.w / BOARD_COLS / 2;
         w = Math.round(w / stepW) * stepW;
-        h = Math.round(h / stepH) * stepH;
+        h = w * CARD_ASPECT;
       }
       state.cardSize.w = Math.max(4, w);
       state.cardSize.h = Math.max(4, h);
