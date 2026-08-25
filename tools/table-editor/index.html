@@ -364,7 +364,17 @@
       id: 'board', label: 'Board (8×8-Gitter)', kind: 'board', resizable: true,
       asset: 'images/scenes/board-inset.png',
       x: src.boardOrigin.x, y: src.boardOrigin.y,
-      w: src.cellSize.w * BOARD_COLS, h: src.cellSize.h * BOARD_ROWS,
+      // Board ist jetzt IMMER exakt quadratisch (w === h, siehe Auftrag
+      // "Board soll immer genau quadratisch sein") -- die urspruengliche
+      // TABLE_LAYOUT-Quelle hatte rechteckige Zellen (cellSize 46.71x52.49,
+      // Board also 373.7x419.9 Ref-px), daher hier einmalig auf den
+      // Mittelwert beider Seiten normalisiert statt willkuerlich eine Seite
+      // zu bevorzugen. Ab jetzt bleibt es ueber jeden Resize-Griff
+      // (startResizeBoard) und jedes Panel-Feld (renderFields) zwangslaeufig
+      // quadratisch -- die Trap-Zonen-Breite folgt automatisch mit (siehe
+      // syncNicheGeometry).
+      w: (src.cellSize.w * BOARD_COLS + src.cellSize.h * BOARD_ROWS) / 2,
+      h: (src.cellSize.w * BOARD_COLS + src.cellSize.h * BOARD_ROWS) / 2,
     });
     Object.keys(src.niches).forEach((key) => {
       const n = src.niches[key];
@@ -445,7 +455,14 @@
   // verankert, siehe Auftrag Punkt 3: "bleibt frei positionierbar").
   function syncNicheGeometry() {
     const w = state.cardSize.w + 4, h = state.cardSize.h + 4;
-    const trapW = TRAP_SLOTS * w + (TRAP_SLOTS - 1) * TRAP_SLOT_GAP + 2 * TRAP_H_PADDING;
+    // Nachtrag: Trap-Zonen-BREITE folgt jetzt immer der Board-Breite (siehe
+    // Auftrag "Breite der Trapzone soll mit der Breite des Boards immer
+    // uebereinstimmen") statt der bisherigen 5-Slot-Formel aus der
+    // Kartengroesse -- die Karten-Slot-Vorschau im Inneren skaliert
+    // stattdessen AUF diese Breite (siehe buildElementDiv). Hoehe bleibt
+    // weiterhin an die gemeinsame Kartengroesse gekoppelt (Karte + 2px Rand,
+    // wie bei den Nischen).
+    const trapW = getEl('board').w;
     state.elements.forEach((el) => {
       if (el.kind === 'niche') {
         el.w = w; el.h = h;
@@ -615,7 +632,11 @@
         card.style.transform = 'translate(-50%, -50%)';
         div.appendChild(card);
       } else if (el.kind === 'trap') {
-        const slotW = state.cardSize.w + 4;
+        // slotW kommt jetzt aus der tatsaechlichen (Board-)Breite der Box
+        // statt direkt aus der Kartengroesse (siehe syncNicheGeometry) --
+        // so fuellen die 5 Slots + Abstaende + Innenabstand IMMER exakt
+        // el.w aus, unabhaengig davon wie breit das Board gerade ist.
+        const slotW = (el.w - 2 * TRAP_H_PADDING - (TRAP_SLOTS - 1) * TRAP_SLOT_GAP) / TRAP_SLOTS;
         const innerH = state.cardSize.h / (state.cardSize.h + 4) * 100;
         for (let i = 0; i < TRAP_SLOTS; i++) {
           const slotLeft = TRAP_H_PADDING + i * (slotW + TRAP_SLOT_GAP);
@@ -677,6 +698,7 @@
           // frei zu verzerren (Container-Breite folgt daraus automatisch,
           // siehe syncNicheGeometry).
           if (el.kind === 'niche' || el.kind === 'trap') startResizeNiche(e, el.id, corner);
+          else if (el.kind === 'board') startResizeBoard(e, el.id, corner);
           else startResize(e, el.id, corner);
         });
         div.appendChild(h);
@@ -872,7 +894,7 @@
     } else if (el.kind === 'trap') {
       const note = document.createElement('div');
       note.className = 'note';
-      note.textContent = 'Karten-Slot-Größe an gemeinsame Nischen-Kartengröße gekoppelt -- Container-Breite skaliert automatisch mit Slot-Anzahl (5 Karten + Abstände). Nur die Position (linke obere Ecke) ist pro Trap-Zone frei.';
+      note.textContent = 'Breite ist immer an die Board-Breite gekoppelt (siehe Board-Element). Höhe folgt der gemeinsamen Nischen-Kartengröße. Nur die Position (linke obere Ecke) ist pro Trap-Zone frei.';
       fieldsWrap.appendChild(note);
       appendFieldRow([
         { key: 'x', label: 'X', get: () => el.x, set: (v) => { el.x = v; } },
@@ -882,6 +904,19 @@
       sizeInfo.className = 'note';
       sizeInfo.textContent = `Abgeleitete Größe: ${round2(el.w)} × ${round2(el.h)} Ref-px`;
       fieldsWrap.appendChild(sizeInfo);
+    } else if (el.kind === 'board') {
+      const note = document.createElement('div');
+      note.className = 'note';
+      note.textContent = 'Board ist immer quadratisch -- Breite und Höhe sind fest gekoppelt (Änderung an einer Seite passt automatisch die andere an, ebenso am Eck-Griff auf der Bühne). Die Trap-Zonen-Breite folgt automatisch dieser Breite.';
+      fieldsWrap.appendChild(note);
+      appendFieldRow([
+        { key: 'x', label: 'X', get: () => el.x, set: (v) => { el.x = v; } },
+        { key: 'y', label: 'Y', get: () => el.y, set: (v) => { el.y = v; } },
+      ]);
+      appendFieldRow([
+        { key: 'w', label: 'Breite', get: () => el.w, set: (v) => { el.w = Math.max(4, v); el.h = el.w; } },
+        { key: 'h', label: 'Höhe', get: () => el.h, set: (v) => { el.h = Math.max(4, v); el.w = el.h; } },
+      ]);
     } else {
       appendFieldRow([
         { key: 'x', label: 'X', get: () => el.x, set: (v) => { el.x = v; } },
@@ -1137,6 +1172,50 @@
       state.activeGuides = null;
       updateSnapIndicator(false);
       renderStageOnly();
+    }
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }
+
+  // Board-Resize: erzwingt IMMER w === h (siehe Auftrag "Board soll immer
+  // genau quadratisch sein"). Analog zum Karten-Seitenverhaeltnis-Lock bei
+  // den Nischen (startResizeNiche): die Achse mit der groesseren Bewegung
+  // treibt die neue Seitenlaenge, die jeweils gegenueberliegende, NICHT
+  // gezogene Kante bleibt fix (normales Ecken-Resize-Gefuehl -- z.B. bei
+  // einer NW-Ecke bleibt die Bottom-Right-Ecke unveraendert an Ort und
+  // Stelle). Smart Guides UND Shift-Grid-Snap bewusst ausgelassen (wuerden
+  // pro Kante einzeln ansetzen und die Quadrat-Sperre wieder aufbrechen,
+  // siehe gleiche Begruendung bei startResizeNiche). Trap-Zonen-Breite
+  // folgt automatisch mit (siehe syncNicheGeometry, liest getEl('board').w).
+  function startResizeBoard(e, id, corner) {
+    e.preventDefault();
+    e.stopPropagation();
+    selectElement(id);
+    const el = getEl(id);
+    const { sx, sy } = stageScale();
+    const startX = e.clientX, startY = e.clientY;
+    const orig = { x: el.x, y: el.y, w: el.w, h: el.h };
+
+    function onMove(ev) {
+      const dxRef = (ev.clientX - startX) * sx;
+      const dyRef = (ev.clientY - startY) * sy;
+      let w = orig.w, h = orig.h;
+      if (corner.includes('e')) w = orig.w + dxRef;
+      if (corner.includes('w')) w = orig.w - dxRef;
+      if (corner.includes('s')) h = orig.h + dyRef;
+      if (corner.includes('n')) h = orig.h - dyRef;
+
+      const side = Math.max(4, Math.abs(w - orig.w) >= Math.abs(h - orig.h) ? w : h);
+      let x = orig.x, y = orig.y;
+      if (corner.includes('w')) x = orig.x + orig.w - side;
+      if (corner.includes('n')) y = orig.y + orig.h - side;
+
+      el.x = x; el.y = y; el.w = side; el.h = side;
+      renderStageOnly();
+    }
+    function onUp() {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
     }
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
