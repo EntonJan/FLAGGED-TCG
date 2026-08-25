@@ -1,0 +1,30 @@
+{
+  "name": "table-layout-editor",
+  "version": "1.0.0",
+  "description": "Standalone-Fenster fuer den TABLE_LAYOUT Editor (FLAGGED-TCG)",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win portable"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "build": {
+    "appId": "com.flaggedtcg.tableeditor",
+    "productName": "TABLE_LAYOUT Editor",
+    "directories": {
+      "output": "C:/Users/Jan/AppData/Local/Temp/claude/C--Users-Jan-Documents-GitHub-FLAGGED-TCG/0cef4128-42b1-4625-aca2-3b08f375782a/scratchpad/table-editor-build"
+    },
+    "files": [
+      "main.js",
+      "app/**/*"
+    ],
+    "win": {
+      "target": "portable",
+      "signAndEditExecutable": false
+    }
+  }
+}

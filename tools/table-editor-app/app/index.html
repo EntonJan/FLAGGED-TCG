@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>TABLE_LAYOUT Editor</title>
+<style>
+  :root {
+    --panel-bg: #1a1712;
+    --panel-border: #3a3120;
+    --gold: #e0b83a;
+    --gold-dim: #a8863a;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: #0b0c0f; color: #e8e2d4;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+  }
+  .app { display: flex; height: 100vh; }
+  .stage-wrap {
+    flex: 1 1 auto; display: flex; align-items: center; justify-content: center;
+    padding: 1.5rem; min-width: 0; overflow: auto;
+  }
+  /* Stage: exakt dasselbe Seitenverhaeltnis wie .board-frame im Hauptspiel
+     (1584/672), damit die im Editor eingestellten Ref-Koordinaten 1:1 den
+     echten Prozentwerten (pctX/pctY) entsprechen. */
+  /* Editor-Erweiterung: die Holz-Textur haengt NICHT mehr fest an .stage --
+     sie kommt jetzt vom "Tisch-Begrenzung"-Element (.el-tableBounds, siehe
+     unten), das wie jedes andere Element frei verschieb-/skalierbar ist.
+     .stage selbst ist nur noch eine neutrale Flaeche, die zeigt, wo die
+     Tisch-Begrenzung NICHT hinreicht (falls kleiner als die volle Canvas). */
+  .stage {
+    position: relative; width: min(92vw, 1400px); aspect-ratio: 1584 / 672;
+    background: repeating-conic-gradient(#141210 0% 25%, #1a1712 0% 50%) 0 0 / 24px 24px;
+    border: 2px solid #000; box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    user-select: none;
+  }
+  .el-tableBounds-bg {
+    position: absolute; inset: 0;
+    background-image: linear-gradient(rgba(47,31,19,0.88), rgba(47,31,19,0.88)), url('./images/textures/wood-tile.jpg');
+    background-blend-mode: multiply;
+    background-repeat: repeat;
+    pointer-events: none;
+  }
+  .el.el-tableBounds .el-fill { background: transparent; border: 2px dashed rgba(224,184,58,0.55); border-radius: 0; }
+  .el.el-tableBounds.selected .el-fill { border: 2px dashed var(--gold); background: rgba(255,200,60,0.06); }
+  /* Tisch-Begrenzung deckt oft die gesamte Buehne ab -- ein mittig
+     zentriertes Label wuerde mitten im Board landen. Stattdessen eine
+     kleine Marke oben links, wie ein Ebenen-Tag. */
+  .el.el-tableBounds { align-items: flex-start; justify-content: flex-start; }
+  .el.el-tableBounds .el-label { background: rgba(10,8,5,0.75); border-radius: 3px; margin: 4px; }
+  .board-inset { position: absolute; object-fit: cover; pointer-events: none; }
+  .grid-svg { position: absolute; pointer-events: none; }
+  .center-line {
+    position: absolute; top: 0; bottom: 0; width: 0;
+    border-left: 1px dashed rgba(255, 60, 60, 0.85);
+    pointer-events: none; z-index: 50;
+  }
+  /* Smart Alignment Guides: volle Canvas-Hoehe/-Breite, gut sichtbares
+     Magenta. Symmetrie-Treffer (Spiegel-Paar erkannt) in Cyan, damit man
+     sie optisch von einer simplen Kanten/Mitten-Uebereinstimmung
+     unterscheiden kann. */
+  .guide-line { position: absolute; pointer-events: none; z-index: 60; }
+  .guide-line.v { top: 0; bottom: 0; width: 0; border-left: 1px solid rgba(255, 0, 200, 0.9); }
+  .guide-line.h { left: 0; right: 0; height: 0; border-top: 1px solid rgba(255, 0, 200, 0.9); }
+  .guide-line.symmetry { border-color: rgba(40, 230, 220, 0.95); }
+  .el {
+    position: absolute; display: flex; align-items: center; justify-content: center;
+    cursor: move; box-sizing: border-box;
+  }
+  .el .el-fill { position: absolute; inset: 0; background: rgba(80, 140, 255, 0.16); border: 1px solid rgba(120, 170, 255, 0.6); border-radius: 3px; }
+  .el.selected .el-fill { background: rgba(255, 200, 60, 0.22); border: 2px solid var(--gold); }
+  .el .el-label {
+    position: relative; z-index: 2; font-size: 0.62rem; font-weight: 600; text-align: center;
+    color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.9); pointer-events: none; padding: 2px;
+    line-height: 1.15;
+  }
+  .el-corner {
+    position: absolute; background-image: url('./images/frames/corner-gold.png');
+    background-size: 100% 100%; background-repeat: no-repeat; pointer-events: none; opacity: 0.9;
+  }
+  .el-tl { top: 0; left: 0; width: 42%; height: 42%; }
+  .el-tr { top: 0; right: 0; width: 42%; height: 42%; transform: scaleX(-1); }
+  .el-bl { bottom: 0; left: 0; width: 42%; height: 42%; transform: scaleY(-1); }
+  .el-br { bottom: 0; right: 0; width: 42%; height: 42%; transform: scale(-1,-1); }
+  /* Nachtrag: Trap-Zone-Label sitzt jetzt genau wie bei den Nischen UEBER
+     der Box (nicht mehr "inside") -- seit der Kopplung ist die Box-Hoehe
+     nur noch Kartenhoehe+2px, kein Platz mehr fuer ein Label darin. */
+  .el-gold-label { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 2px; width: 70%; height: auto; pointer-events: none; }
+  .handle {
+    position: absolute; width: 11px; height: 11px; background: var(--gold);
+    border: 1px solid #3a2c0a; border-radius: 2px; z-index: 10;
+  }
+  .handle.nw { top: -6px; left: -6px; cursor: nwse-resize; }
+  .handle.ne { top: -6px; right: -6px; cursor: nesw-resize; }
+  .handle.sw { bottom: -6px; left: -6px; cursor: nesw-resize; }
+  .handle.se { bottom: -6px; right: -6px; cursor: nwse-resize; }
+  .no-resize .handle { display: none; }
+
+  .panel {
+    width: 340px; flex: 0 0 auto; background: var(--panel-bg); border-left: 1px solid var(--panel-border);
+    padding: 1rem; overflow-y: auto;
+  }
+  .panel h1 { font-size: 1.05rem; margin: 0 0 0.2rem; color: var(--gold); }
+  .panel .hint { font-size: 0.74rem; color: #9c9484; margin: 0 0 1rem; line-height: 1.4; }
+  .panel h2 { font-size: 0.85rem; margin: 1rem 0 0.4rem; color: var(--gold-dim); border-bottom: 1px solid var(--panel-border); padding-bottom: 0.25rem; }
+  .el-list { display: flex; flex-direction: column; gap: 0.15rem; margin-bottom: 0.5rem; }
+  .el-list button {
+    text-align: left; background: #26211a; border: 1px solid #3a3120; color: #d8d0bc;
+    padding: 0.35rem 0.5rem; border-radius: 4px; cursor: pointer; font-size: 0.76rem;
+  }
+  .el-list button:hover { background: #322b20; }
+  .el-list button.active { background: rgba(224,184,58,0.18); border-color: var(--gold); color: #fff; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.5rem; }
+  .field { display: flex; flex-direction: column; gap: 0.2rem; }
+  .field label { font-size: 0.68rem; color: #a89f8c; }
+  .field input {
+    background: #100e0a; border: 1px solid #3a3120; color: #f0ead8; border-radius: 4px;
+    padding: 0.3rem 0.4rem; font-size: 0.82rem; width: 100%;
+  }
+  .field input:focus { outline: 1px solid var(--gold); }
+  .note { font-size: 0.7rem; color: #8a8272; background: #211c15; border: 1px dashed #3a3120; border-radius: 4px; padding: 0.5rem; margin-bottom: 0.5rem; line-height: 1.4; }
+  .snap-indicator { font-size: 0.7rem; padding: 0.3rem 0.5rem; border-radius: 4px; margin-bottom: 0.5rem; }
+  .snap-on { background: rgba(224,184,58,0.2); color: var(--gold); }
+  .snap-off { color: #6a6354; }
+  #exportBtn {
+    width: 100%; padding: 0.55rem; margin-top: 0.6rem; background: rgba(224,184,58,0.85);
+    color: #14100a; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 0.85rem;
+  }
+  #exportBtn:hover { background: rgba(224,184,58,1); }
+  #exportWrap { margin-top: 0.6rem; }
+  #exportOutput {
+    width: 100%; height: 260px; background: #0d0c09; color: #cdeccd; border: 1px solid #3a3120;
+    border-radius: 6px; font-family: 'Consolas', monospace; font-size: 0.72rem; padding: 0.5rem; white-space: pre;
+  }
+  #copyBtn { margin-top: 0.4rem; width: 100%; padding: 0.4rem; background: #26211a; color: #d8d0bc; border: 1px solid #3a3120; border-radius: 4px; cursor: pointer; }
+
+  /* Asset-Bibliothek (Editor-Erweiterung Punkt 2) */
+  .asset-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.4rem; margin-bottom: 0.75rem; }
+  .asset-tile {
+    background: #100e0a; border: 1px solid #3a3120; border-radius: 5px; padding: 0.3rem;
+    cursor: pointer; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 0.2rem;
+  }
+  .asset-tile:hover { border-color: var(--gold-dim); }
+  .asset-tile.assigned { border-color: var(--gold); background: rgba(224,184,58,0.14); }
+  .asset-tile .thumb-wrap {
+    width: 100%; height: 42px; display: flex; align-items: center; justify-content: center;
+    background: repeating-conic-gradient(#1c1a16 0% 25%, #24211b 0% 50%) 0 0 / 10px 10px; border-radius: 3px; overflow: hidden;
+  }
+  .asset-tile .thumb-wrap img { max-width: 100%; max-height: 100%; object-fit: contain; }
+  .asset-tile .asset-name { font-size: 0.58rem; color: #a89f8c; word-break: break-all; line-height: 1.2; }
+  .asset-tile.assigned .asset-name { color: #fff; }
+  .asset-tile.custom { border-style: dashed; }
+  .asset-tile .thumb-wrap { position: relative; }
+  .asset-remove {
+    position: absolute; top: 2px; right: 2px; width: 16px; height: 16px; line-height: 14px; padding: 0;
+    background: rgba(20,16,10,0.85); border: 1px solid #5a4c2a; border-radius: 50%; color: #e8c96a;
+    font-size: 0.75rem; cursor: pointer;
+  }
+  .asset-remove:hover { background: #7a2323; border-color: #a23a3a; color: #fff; }
+  #uploadAssetBtn {
+    width: 100%; padding: 0.4rem; margin-bottom: 0.5rem; background: #26211a; color: #d8d0bc;
+    border: 1px dashed #3a3120; border-radius: 5px; cursor: pointer; font-size: 0.78rem;
+  }
+  #uploadAssetBtn:hover { border-color: var(--gold-dim); color: #fff; }
+
+  /* Echte Bild-Vorschauen im Canvas statt reiner Farbboxen */
+  .el-card-preview { position: absolute; object-fit: cover; border-radius: 2px; pointer-events: none; box-shadow: 0 1px 4px rgba(0,0,0,0.6); }
+  .el-wall-icons { position: absolute; inset: 6%; display: flex; flex-direction: column; justify-content: space-between; align-items: center; pointer-events: none; overflow: hidden; }
+  .el-wall-icons img { width: auto; opacity: 0.85; flex-shrink: 0; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="stage-wrap">
+    <div class="stage" id="stage"></div>
+  </div>
+  <div class="panel">
+    <h1>TABLE_LAYOUT Editor</h1>
+    <p class="hint">
+      Zieht Elemente per Maus (Position) oder an den goldenen Eck-Griffen
+      (Größe). <strong>Shift</strong> gedrückt halten = am 8×8-Brett-Raster
+      einrasten. Magenta/Cyan-Linien beim Ziehen = Smart Guides (immer
+      aktiv, auch ohne Shift). Werte unten sind Ref-Koordinaten (aktuelle
+      Tisch-Größe: <span id="refSizeLabel"></span>) wie in
+      <code>TABLE_LAYOUT</code>.
+    </p>
+
+    <h2>Tisch-Größe (Referenz-Canvas)</h2>
+    <div id="refSizeFields"></div>
+
+    <h2>Kartengröße (Nischen)</h2>
+    <div class="note">Gilt gemeinsam für alle 6 Deck/Grabmal/Held-Boxen -- Nische = Kartengröße + 2px Rand pro Seite.</div>
+    <div id="cardSizeFields"></div>
+
+    <h2>Kartengröße (Hand)</h2>
+    <div class="note">Unabhängig von der Nischen-Kartengröße -- die Hand liegt außerhalb des Tisches, kein Canvas-Element dafür.</div>
+    <div id="handCardSizeFields"></div>
+
+    <h2>Elemente</h2>
+    <div class="el-list" id="elList"></div>
+
+    <h2>Ausgewählt: <span id="selName">–</span></h2>
+    <div id="fieldsWrap"></div>
+
+    <h2>Assets</h2>
+    <p class="hint" style="margin-bottom:0.5rem;">
+      Erst ein Element (oben oder auf der Bühne) auswählen, dann hier auf
+      ein Bild klicken, um es zuzuweisen. Aktuell zugewiesenes Bild ist
+      hervorgehoben.
+    </p>
+    <button id="uploadAssetBtn" type="button">+ Eigenes Bild hinzufügen</button>
+    <input type="file" id="assetUploadInput" accept="image/*" multiple style="display:none;">
+    <div class="asset-grid" id="assetGrid"></div>
+
+    <div class="snap-indicator" id="snapIndicator">Shift = Grid-Snap</div>
+
+    <button id="exportBtn">Als TABLE_LAYOUT exportieren</button>
+    <div id="exportWrap" style="display:none;">
+      <textarea id="exportOutput" readonly></textarea>
+      <button id="copyBtn">In Zwischenablage kopieren</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  // Editor-Erweiterung Punkt 2: Referenz-Canvas ist jetzt selbst editierbar
+  // (Panel-Felder "Tisch-Breite"/"Tisch-Höhe") -- deshalb `let` statt
+  // `const`, und ein breiterer Default (statt der bisherigen 1584x672 aus
+  // TABLE_LAYOUT) als Ausgangspunkt zum Ausprobieren.
+  let REF_W = 1920, REF_H = 720;
+  const BOARD_COLS = 8, BOARD_ROWS = 8;
+  const SMART_TOL = 4; // Ref-px Toleranz fuer Smart Guides
+
+  // ------------------------------------------------------------------
+  // Ausgangswerte 1:1 aus TABLE_LAYOUT in index.html kopiert (Stand siehe
+  // Commit-Historie "Tisch-Korrektur"). Dieses Tool haelt keine Verbindung
+  // zum laufenden Spiel-Code -- Export ist bewusst manuelles Copy-Paste
+  // zurueck in index.html (siehe Auftrag).
+  // ------------------------------------------------------------------
+  const INITIAL = {
+    boardOrigin: { x: 606.6, y: 106.2 },
+    cellSize: { w: 46.71, h: 52.49 },
+    niches: {
+      deckOpponent:      { cx: 524.3,  cy: 171.8 },
+      graveyardOpponent: { cx: 524.3,  cy: 330.2 },
+      heroOpponent:      { cx: 524.3,  cy: 501.3 },
+      heroMine:          { cx: 1059.7, cy: 171.8 },
+      graveyardMine:     { cx: 1059.7, cy: 330.2 },
+      deckMine:          { cx: 1059.7, cy: 501.3 },
+    },
+    trapZoneOpponent: { x: 590.8, y: 5.4,   w: 449.9, h: 104.2 },
+    trapZoneMine:     { x: 590.8, y: 561.1, w: 449.9, h: 95.4 },
+    wallTray: {
+      left:  { x: 329.4,  y: 20.2, w: 136.2, h: 631.7, count: 10 },
+      right: { x: 1118.4, y: 20.2, w: 136.2, h: 631.7, count: 10 },
+    },
+  };
+
+  // Editor-Erweiterung Punkt 3: Kartengroesse ist jetzt EDITIERBAR (Panel-
+  // Feld "Kartengröße (Nischen)") statt fest aus cellSize abgeleitet --
+  // Ausgangswert bleibt aber identisch zum bisherigen Verhalten (Breite =
+  // cellSize.w, Hoehe per Kartenverhaeltnis 961:1323). Gilt gemeinsam fuer
+  // alle 6 Nischen (siehe syncNicheGeometry). handCardSize ist unabhaengig
+  // davon -- reines Zahlenfeld, kein Canvas-Element (die Hand liegt
+  // ausserhalb des Tisches).
+  const CARD_ASPECT = 1323 / 961;
+  // Nachtrag (Trap-Zone in die Kartengroessen-Kopplung aufnehmen): die
+  // Trap-Zone zeigt IMMER 5 Karten-Slots nebeneinander (siehe TrapTray in
+  // index.html, Array.from({length:5})) -- Container-Breite ist daher
+  // NICHT frei einstellbar, sondern wird aus derselben gemeinsamen
+  // Kartengroesse abgeleitet: 5 Slots (je Karte + 2px Rand pro Seite, exakt
+  // wie eine einzelne Nische) + feste Abstaende dazwischen + etwas
+  // Innenabstand links/rechts fuer die Eck-Ornamente.
+  const TRAP_SLOTS = 5;
+  const TRAP_SLOT_GAP = 6;
+  const TRAP_H_PADDING = 8;
+  const initialCardW = INITIAL.cellSize.w;
+  const initialCardH = initialCardW * CARD_ASPECT;
+
+  const NICHE_LABELS = {
+    deckOpponent: ['Deck', 'Gegner', 'images/frames/label-deck.png'],
+    graveyardOpponent: ['Grabmal', 'Gegner', 'images/frames/label-graveyard.png'],
+    heroOpponent: ['Held', 'Gegner', 'images/frames/label-hero.png'],
+    heroMine: ['Held', 'Ich', 'images/frames/label-hero.png'],
+    graveyardMine: ['Grabmal', 'Ich', 'images/frames/label-graveyard.png'],
+    deckMine: ['Deck', 'Ich', 'images/frames/label-deck.png'],
+  };
+
+  // ------------------------------------------------------------------
+  // Editor-Erweiterung Punkt 2: Asset-Bibliothek. Vollstaendige Liste
+  // durch Absuchen von index.html nach Bildpfaden im Tisch/Zonen/Wand-
+  // Kontext zusammengestellt (grep nach .png/.jpg-Referenzen in Board-,
+  // Zonen- und Wand-Tray-Komponenten) -- siehe Commit-Beschreibung.
+  // CARD_BACK/eine Wand-Icon-SVG existierten im echten Code nur als
+  // Inline-Base64 bzw. Inline-SVG (kein Datei-Pfad) -- dafuer wurden
+  // images/card-back.jpg und images/frames/wall-token-icon.svg als
+  // eigenstaendige Dateien angelegt (index.html selbst unangetastet,
+  // siehe vorheriger Commit).
+  // ------------------------------------------------------------------
+  const ASSET_LIST = [
+    { path: 'images/textures/wood-tile.jpg', name: 'wood-tile.jpg' },
+    { path: 'images/scenes/board-inset.png', name: 'board-inset.png' },
+    { path: 'images/frames/corner-gold.png', name: 'corner-gold.png' },
+    { path: 'images/frames/line-gold.png', name: 'line-gold.png' },
+    { path: 'images/frames/label-deck.png', name: 'label-deck.png' },
+    { path: 'images/frames/label-graveyard.png', name: 'label-graveyard.png' },
+    { path: 'images/frames/label-hero.png', name: 'label-hero.png' },
+    { path: 'images/frames/label-trap.png', name: 'label-trap.png' },
+    { path: 'images/card-back.jpg', name: 'card-back.jpg' },
+    { path: 'images/001.jpg', name: '001.jpg (Beispiel-Kartenvorderseite)' },
+    { path: 'images/frames/wall-token-icon.svg', name: 'wall-token-icon.svg' },
+  ];
+
+  // Liefert den korrekten <img src>/background-image-Wert fuer einen Asset-
+  // Pfad: eigene, per Upload hinzugefuegte Bilder sind data:-URIs (siehe
+  // handleAssetUpload) und duerfen NICHT mit './' praefixiert werden --
+  // eingebaute Assets sind repo-relative Pfade und brauchen das Praefix,
+  // weil dieses Tool zwei Ordner unter dem Repo-Root liegt.
+  function assetSrc(path) {
+    return path.startsWith('data:') ? path : './' + path;
+  }
+
+  // ------------------------------------------------------------------
+  // Uniformes Editor-Modell: JEDES Element hat x/y/w/h (linke obere Ecke +
+  // Groesse) in Ref-Koordinaten -- fuer die 6 Nischen sind x/y/w/h ein
+  // ABGELEITETER Wert (siehe syncNicheGeometry, laeuft vor jedem Render),
+  // die eigentliche gespeicherte Position ist cx/cy, die Groesse kommt aus
+  // dem GLOBALEN state.cardSize. Alle 6 sind jetzt "resizable:true" wie
+  // die anderen Elemente -- ihr Resize-Handler schreibt aber bewusst in
+  // state.cardSize statt in das einzelne Element (siehe startResize).
+  // ------------------------------------------------------------------
+  function buildElements(src) {
+    const els = [];
+    // Editor-Erweiterung Punkt 1: Tisch-Begrenzung als eigenes Element --
+    // GANZ UNTEN im Stapel gerendert (siehe renderStage), Holz-Textur als
+    // eigene Ebene. Bewusst UNABHAENGIG von Board/Zonen positioniert
+    // (kein automatisches Mitbewegen) -- Default deckt die anfaengliche
+    // Referenz-Canvas komplett ab, kann aber frei verschoben/skaliert
+    // werden, um z.B. einen Innenabstand des Tisches zu simulieren.
+    els.push({
+      id: 'tableBounds', label: 'Tisch-Begrenzung', kind: 'tableBounds', resizable: true,
+      asset: 'images/textures/wood-tile.jpg',
+      x: 0, y: 0, w: REF_W, h: REF_H,
+    });
+    els.push({
+      id: 'board', label: 'Board (8×8-Gitter)', kind: 'board', resizable: true,
+      asset: 'images/scenes/board-inset.png',
+      x: src.boardOrigin.x, y: src.boardOrigin.y,
+      w: src.cellSize.w * BOARD_COLS, h: src.cellSize.h * BOARD_ROWS,
+    });
+    Object.keys(src.niches).forEach((key) => {
+      const n = src.niches[key];
+      const [type, side, labelImg] = NICHE_LABELS[key];
+      els.push({
+        id: 'niche_' + key, label: type + ' (' + side + ')', kind: 'niche', nicheKey: key,
+        resizable: true, asset: labelImg,
+        cardAsset: type === 'Deck' ? 'images/card-back.jpg' : 'images/001.jpg',
+        cx: n.cx, cy: n.cy, x: 0, y: 0, w: 0, h: 0, // x/y/w/h werden von syncNicheGeometry() gesetzt
+      });
+    });
+    els.push({
+      id: 'trapZoneOpponent', label: 'Trap-Zone (Gegner)', kind: 'trap', resizable: true, asset: 'images/frames/label-trap.png',
+      x: src.trapZoneOpponent.x, y: src.trapZoneOpponent.y, w: src.trapZoneOpponent.w, h: src.trapZoneOpponent.h,
+    });
+    els.push({
+      id: 'trapZoneMine', label: 'Trap-Zone (Ich)', kind: 'trap', resizable: true, asset: 'images/frames/label-trap.png',
+      x: src.trapZoneMine.x, y: src.trapZoneMine.y, w: src.trapZoneMine.w, h: src.trapZoneMine.h,
+    });
+    els.push({
+      id: 'wallTrayLeft', label: 'Wand-Ablage (links)', kind: 'wall', resizable: true, count: src.wallTray.left.count,
+      asset: 'images/frames/wall-token-icon.svg',
+      x: src.wallTray.left.x, y: src.wallTray.left.y, w: src.wallTray.left.w, h: src.wallTray.left.h,
+    });
+    els.push({
+      id: 'wallTrayRight', label: 'Wand-Ablage (rechts)', kind: 'wall', resizable: true, count: src.wallTray.right.count,
+      asset: 'images/frames/wall-token-icon.svg',
+      x: src.wallTray.right.x, y: src.wallTray.right.y, w: src.wallTray.right.w, h: src.wallTray.right.h,
+    });
+    return els;
+  }
+
+  const state = {
+    elements: buildElements(INITIAL),
+    selectedId: 'board',
+    cardSize: { w: initialCardW, h: initialCardH },
+    handCardSize: { w: initialCardW, h: initialCardH },
+    activeGuides: null, // {v:[{pos,symmetry}], h:[{pos,symmetry}]} waehrend Drag/Resize, sonst null
+    customAssets: [], // per Upload hinzugefuegte Bilder: [{path: dataURL, name, custom:true}]
+  };
+
+  const stage = document.getElementById('stage');
+  const elListEl = document.getElementById('elList');
+  const fieldsWrap = document.getElementById('fieldsWrap');
+  const selNameEl = document.getElementById('selName');
+  const snapIndicator = document.getElementById('snapIndicator');
+  const refSizeLabel = document.getElementById('refSizeLabel');
+
+  function getEl(id) { return state.elements.find((e) => e.id === id); }
+  function pctX(v) { return (v / REF_W) * 100; }
+  function pctY(v) { return (v / REF_H) * 100; }
+
+  // Registry aller Zahlenfelder im Panel ({input, get}), damit waehrend
+  // Drag/Resize UND beim Tippen NUR der ANGEZEIGTE WERT aktualisiert wird
+  // (input.value setzen), statt die Input-Elemente komplett neu zu bauen --
+  // sonst verliert ein Feld beim zweiten Tastendruck den Fokus, weil das
+  // gerade fokussierte <input> durch ein neues DOM-Element ersetzt wuerde.
+  // Wird bei jedem VOLLSTAENDIGEN render() geleert und neu befuellt.
+  let fieldRegistry = [];
+  function registerField(input, get) { fieldRegistry.push({ input, get }); }
+  function refreshFieldValues() {
+    fieldRegistry.forEach(({ input, get }) => {
+      if (document.activeElement === input) return; // Feld, in das der User gerade tippt, unangetastet lassen
+      const v = String(round2(get()));
+      if (input.value !== v) input.value = v;
+    });
+  }
+
+  // Schreibt fuer JEDE Nische x/y/w/h aus cx/cy + dem gemeinsamen
+  // state.cardSize -- muss vor jeder Stelle laufen, die el.x/y/w/h einer
+  // Nische liest (Rendering, Smart Guides, Export). Nische = Karte + 2px
+  // Rand pro Seite (siehe letzter Auftrag, .zone-card-slot).
+  // Nachtrag: schreibt jetzt AUCH fuer die 2 Trap-Zonen die abgeleitete
+  // Groesse -- w/h kommen aus derselben state.cardSize (5 Slots + Abstaende,
+  // siehe TRAP_SLOTS/TRAP_SLOT_GAP/TRAP_H_PADDING), x/y bleiben die frei
+  // gezogene, unabhaengig gespeicherte Position (KEIN cx/cy wie bei den
+  // Nischen -- Trap-Zonen sind weiterhin ueber die linke obere Ecke
+  // verankert, siehe Auftrag Punkt 3: "bleibt frei positionierbar").
+  function syncNicheGeometry() {
+    const w = state.cardSize.w + 4, h = state.cardSize.h + 4;
+    const trapW = TRAP_SLOTS * w + (TRAP_SLOTS - 1) * TRAP_SLOT_GAP + 2 * TRAP_H_PADDING;
+    state.elements.forEach((el) => {
+      if (el.kind === 'niche') {
+        el.w = w; el.h = h;
+        el.x = el.cx - w / 2; el.y = el.cy - h / 2;
+      } else if (el.kind === 'trap') {
+        el.w = trapW; el.h = h;
+      }
+    });
+  }
+
+  // ------------------------------------------------------------------
+  // Grid-Snap: Linien kommen aus dem AKTUELLEN board-Element (falls es
+  // selbst verschoben/skaliert wird, verschieben sich die Snap-Linien mit).
+  // ------------------------------------------------------------------
+  function gridLinesX() {
+    const b = getEl('board');
+    const lines = [];
+    for (let i = 0; i <= BOARD_COLS; i++) lines.push(b.x + (b.w / BOARD_COLS) * i);
+    return lines;
+  }
+  function gridLinesY() {
+    const b = getEl('board');
+    const lines = [];
+    for (let i = 0; i <= BOARD_ROWS; i++) lines.push(b.y + (b.h / BOARD_ROWS) * i);
+    return lines;
+  }
+  function snapValue(v, lines) {
+    let best = v, bestDist = Infinity;
+    for (const l of lines) {
+      const d = Math.abs(l - v);
+      if (d < bestDist) { bestDist = d; best = l; }
+    }
+    return bestDist <= 14 ? best : v; // 14 Ref-px Fangradius (~0.9% der Brettbreite)
+  }
+
+  // ------------------------------------------------------------------
+  // Rendering
+  // ------------------------------------------------------------------
+  // render(): VOLLSTAENDIGER Rebuild (Buehne + gesamtes Panel inkl. Feld-
+  // Registry) -- fuer Init, Element-Auswahl wechseln, Drag/Resize-Ende.
+  // renderStage(): NUR die Buehne (Canvas-Elemente/Guides/Grid) -- fuer
+  // Drag/Resize-Zwischenschritte UND Feld-Tipp-Events (siehe
+  // renderStageOnly), damit fokussierte <input>-Elemente nicht durch neue
+  // DOM-Knoten ersetzt werden (sonst Fokusverlust nach jedem Tastendruck).
+  function render() {
+    fieldRegistry = []; // volle Neuerstellung aller Panel-Felder -- Registry neu aufbauen
+    renderStage();
+    renderRefSizeFields();
+    renderCardSizeFields();
+    renderElList();
+    renderFields();
+    renderAssetGrid();
+  }
+
+  function renderAssetGrid() {
+    const grid = document.getElementById('assetGrid');
+    grid.innerHTML = '';
+    const el = getEl(state.selectedId);
+    ASSET_LIST.concat(state.customAssets).forEach((asset) => {
+      const tile = document.createElement('div');
+      tile.className = 'asset-tile' + (el && el.asset === asset.path ? ' assigned' : '') + (asset.custom ? ' custom' : '');
+      tile.title = asset.custom ? asset.name + ' (eigener Upload)' : asset.path;
+      const thumbWrap = document.createElement('div');
+      thumbWrap.className = 'thumb-wrap';
+      const img = document.createElement('img');
+      img.src = assetSrc(asset.path);
+      img.alt = asset.name;
+      thumbWrap.appendChild(img);
+      if (asset.custom) {
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'asset-remove';
+        removeBtn.title = 'Eigenes Bild wieder entfernen';
+        removeBtn.textContent = '×';
+        removeBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          state.customAssets = state.customAssets.filter((a) => a !== asset);
+          // Elemente, die genau dieses Bild zugewiesen hatten, fallen NICHT
+          // automatisch auf einen Default zurueck (der Pfad bleibt einfach
+          // stehen, das <img> zeigt dann ein gebrochenes Bild) -- bewusst
+          // einfach gehalten, der User sieht sofort, dass er neu zuweisen muss.
+          render();
+        });
+        thumbWrap.appendChild(removeBtn);
+      }
+      const name = document.createElement('div');
+      name.className = 'asset-name';
+      name.textContent = asset.name;
+      tile.appendChild(thumbWrap);
+      tile.appendChild(name);
+      tile.addEventListener('click', () => {
+        const target = getEl(state.selectedId);
+        if (!target || !('asset' in target)) return;
+        target.asset = asset.path;
+        render();
+      });
+      grid.appendChild(tile);
+    });
+  }
+
+  // Eigene Bilder hochladen: als data:-URI eingelesen (kein Server, keine
+  // Datei-Kopie ins Repo noetig -- funktioniert direkt im Editor). Landen
+  // als zusaetzliche Kacheln in der Asset-Bibliothek, ganz normal per Klick
+  // zuweisbar wie die eingebauten Assets.
+  function handleAssetUpload(fileList) {
+    Array.from(fileList).forEach((file) => {
+      if (!file.type.startsWith('image/')) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        state.customAssets.push({ path: reader.result, name: file.name, custom: true });
+        render();
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // Baut das DOM-Element fuer EIN Element (Tisch-Begrenzung, Board, Nische,
+  // Trap-Zone, Wand-Ablage) -- gemeinsame Basis fuer Position/Drag/Resize-
+  // Griffe, Inhalt variiert per el.kind. Wird sowohl fuer die Tisch-
+  // Begrenzung (separat, ganz zuerst) als auch fuer den Rest (Schleife in
+  // renderStage) verwendet, damit beide exakt dieselbe Drag/Resize/Smart-
+  // Guide-Mechanik bekommen.
+  function buildElementDiv(el) {
+    const div = document.createElement('div');
+    div.className = 'el' + (el.kind === 'tableBounds' ? ' el-tableBounds' : '') + (el.id === state.selectedId ? ' selected' : '') + (el.resizable ? '' : ' no-resize');
+    div.dataset.id = el.id;
+    div.style.left = pctX(el.x) + '%';
+    div.style.top = pctY(el.y) + '%';
+    div.style.width = pctX(el.w) + '%';
+    div.style.height = pctY(el.h) + '%';
+
+    if (el.kind === 'tableBounds') {
+      const bg = document.createElement('div');
+      bg.className = 'el-tableBounds-bg';
+      bg.style.backgroundImage = `linear-gradient(rgba(47,31,19,0.88), rgba(47,31,19,0.88)), url('${assetSrc(el.asset)}')`;
+      div.appendChild(bg);
+    }
+
+    const fill = document.createElement('div');
+    fill.className = 'el-fill';
+    div.appendChild(fill);
+
+    if (el.kind === 'niche' || el.kind === 'trap') {
+      ['el-tl', 'el-tr', 'el-bl', 'el-br'].forEach((cls) => {
+        const c = document.createElement('div');
+        c.className = 'el-corner ' + cls;
+        c.style.backgroundImage = "url('./images/frames/corner-gold.png')";
+        div.appendChild(c);
+      });
+      // Beispielkarte(n) als Vorschau IN der Box (nicht ueber die Asset-
+      // Bibliothek zuweisbar -- rein illustrativ, wie im echten Spiel
+      // DeckStack/GraveyardTop/HeroCard/TrapTray). Exakt auf Kartengroesse+
+      // 2px-Rand berechnet (siehe .zone-card-slot/.trap-token in
+      // index.html) -- bei Trap-Zonen ALLE 5 Slots, exakt an derselben
+      // Geometrie wie die Container-Breite selbst (TRAP_SLOTS/-GAP/
+      // -PADDING), damit sichtbar wird, dass die Breite wirklich aus
+      // Kartengroesse*5+Abstaenden folgt.
+      if (el.kind === 'niche' && el.cardAsset) {
+        const innerW = state.cardSize.w / (state.cardSize.w + 4) * 100;
+        const innerH = state.cardSize.h / (state.cardSize.h + 4) * 100;
+        const card = document.createElement('img');
+        card.src = './' + el.cardAsset;
+        card.alt = '';
+        card.className = 'el-card-preview';
+        card.style.left = '50%'; card.style.top = '50%';
+        card.style.width = innerW + '%'; card.style.height = innerH + '%';
+        card.style.transform = 'translate(-50%, -50%)';
+        div.appendChild(card);
+      } else if (el.kind === 'trap') {
+        const slotW = state.cardSize.w + 4;
+        const innerH = state.cardSize.h / (state.cardSize.h + 4) * 100;
+        for (let i = 0; i < TRAP_SLOTS; i++) {
+          const slotLeft = TRAP_H_PADDING + i * (slotW + TRAP_SLOT_GAP);
+          const card = document.createElement('img');
+          card.src = './images/card-back.jpg';
+          card.alt = '';
+          card.className = 'el-card-preview';
+          card.style.left = (slotLeft / el.w * 100) + '%';
+          card.style.top = '50%';
+          card.style.width = (slotW / el.w * 100) + '%';
+          card.style.height = innerH + '%';
+          card.style.transform = 'translateY(-50%)';
+          div.appendChild(card);
+        }
+      }
+      if (el.asset) {
+        const img = document.createElement('img');
+        img.src = assetSrc(el.asset);
+        img.alt = '';
+        img.className = 'el-gold-label';
+        div.appendChild(img);
+      }
+    }
+
+    if (el.kind === 'wall' && el.asset) {
+      const iconWrap = document.createElement('div');
+      iconWrap.className = 'el-wall-icons';
+      // Icon-Hoehe von der Slot-Anzahl ableiten (nicht fest), sonst
+      // wuerden z.B. 10 Icons in einer schmalen Spalte ueber den Rand
+      // hinaus laufen (space-between skaliert NICHT automatisch runter).
+      const iconPct = Math.min(60, 85 / Math.max(1, el.count));
+      for (let i = 0; i < el.count; i++) {
+        const img = document.createElement('img');
+        img.src = assetSrc(el.asset);
+        img.alt = '';
+        img.style.height = iconPct + '%';
+        iconWrap.appendChild(img);
+      }
+      div.appendChild(iconWrap);
+    }
+
+    const labelSpan = document.createElement('div');
+    labelSpan.className = 'el-label';
+    labelSpan.textContent = el.label;
+    div.appendChild(labelSpan);
+
+    if (el.resizable) {
+      ['nw', 'ne', 'sw', 'se'].forEach((corner) => {
+        const h = document.createElement('div');
+        h.className = 'handle ' + corner;
+        h.dataset.corner = corner;
+        h.addEventListener('pointerdown', (e) => {
+          // Nachtrag: Trap-Zonen resizen jetzt genau wie Nischen -- nur
+          // Eck-Griffe, schreibt in die gemeinsame state.cardSize statt
+          // frei zu verzerren (Container-Breite folgt daraus automatisch,
+          // siehe syncNicheGeometry).
+          if (el.kind === 'niche' || el.kind === 'trap') startResizeNiche(e, el.id, corner);
+          else startResize(e, el.id, corner);
+        });
+        div.appendChild(h);
+      });
+    }
+
+    div.addEventListener('pointerdown', (e) => {
+      if (e.target.classList.contains('handle')) return;
+      selectElement(el.id);
+      startDrag(e, el.id);
+    });
+
+    return div;
+  }
+
+  function renderStage() {
+    syncNicheGeometry();
+    // Punkt 2: Canvas-Seitenverhaeltnis folgt der editierbaren Tisch-
+    // Groesse -- Element-Positionen bleiben unveraendert in absoluten
+    // Ref-Koordinaten, nur die Prozent-Umrechnung (pctX/pctY) und damit
+    // die Darstellung aendert sich.
+    stage.style.aspectRatio = REF_W + ' / ' + REF_H;
+    refSizeLabel.textContent = REF_W + '×' + REF_H;
+
+    stage.innerHTML = '';
+
+    // Punkt 1: Tisch-Begrenzung GANZ UNTEN im Stapel -- eigenes Element,
+    // unabhaengig von Board/Zonen positioniert, rendert die Holz-Textur
+    // als eigene Ebene. Wird per buildElementDiv() genau wie jedes andere
+    // Element aufgebaut (Drag/Resize/Smart-Guides funktionieren identisch),
+    // nur eben ZUERST angehaengt.
+    stage.appendChild(buildElementDiv(getEl('tableBounds')));
+
+    // Board-Landschaft (nur Deko-Referenz, benutzt board.asset).
+    const boardEl = getEl('board');
+    const inset = document.createElement('img');
+    inset.src = assetSrc(boardEl.asset);
+    inset.className = 'board-inset';
+    inset.alt = '';
+    inset.style.left = pctX(boardEl.x) + '%';
+    inset.style.top = pctY(boardEl.y) + '%';
+    inset.style.width = pctX(boardEl.w) + '%';
+    inset.style.height = pctY(boardEl.h) + '%';
+    stage.appendChild(inset);
+
+    // 8x8-Gitterlinien als SVG-Overlay.
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('class', 'grid-svg');
+    svg.style.left = pctX(boardEl.x) + '%';
+    svg.style.top = pctY(boardEl.y) + '%';
+    svg.style.width = pctX(boardEl.w) + '%';
+    svg.style.height = pctY(boardEl.h) + '%';
+    svg.setAttribute('viewBox', `0 0 ${boardEl.w} ${boardEl.h}`);
+    svg.setAttribute('preserveAspectRatio', 'none');
+    for (let i = 0; i <= BOARD_COLS; i++) {
+      const x = (boardEl.w / BOARD_COLS) * i;
+      const line = document.createElementNS(svgNS, 'line');
+      line.setAttribute('x1', x); line.setAttribute('y1', 0);
+      line.setAttribute('x2', x); line.setAttribute('y2', boardEl.h);
+      line.setAttribute('stroke', 'rgba(224,184,58,0.55)'); line.setAttribute('stroke-width', '1');
+      svg.appendChild(line);
+    }
+    for (let i = 0; i <= BOARD_ROWS; i++) {
+      const y = (boardEl.h / BOARD_ROWS) * i;
+      const line = document.createElementNS(svgNS, 'line');
+      line.setAttribute('x1', 0); line.setAttribute('y1', y);
+      line.setAttribute('x2', boardEl.w); line.setAttribute('y2', y);
+      line.setAttribute('stroke', 'rgba(224,184,58,0.55)'); line.setAttribute('stroke-width', '1');
+      svg.appendChild(line);
+    }
+    stage.appendChild(svg);
+
+    // Symmetrie-Hilfslinie: vertikale Mittelachse DES BOARDS (nicht der
+    // ganzen Buehne), permanent sichtbar.
+    const centerLine = document.createElement('div');
+    centerLine.className = 'center-line';
+    centerLine.style.left = pctX(boardEl.x + boardEl.w / 2) + '%';
+    stage.appendChild(centerLine);
+
+    // Alle uebrigen Elemente (Tisch-Begrenzung ist oben schon gerendert).
+    state.elements.forEach((el) => {
+      if (el.kind === 'tableBounds') return;
+      stage.appendChild(buildElementDiv(el));
+    });
+
+    // Smart Guides: volle Canvas-Hoehe/-Breite, ueber allem anderen.
+    if (state.activeGuides) {
+      state.activeGuides.v.forEach((g) => {
+        const line = document.createElement('div');
+        line.className = 'guide-line v' + (g.symmetry ? ' symmetry' : '');
+        line.style.left = pctX(g.pos) + '%';
+        stage.appendChild(line);
+      });
+      state.activeGuides.h.forEach((g) => {
+        const line = document.createElement('div');
+        line.className = 'guide-line h' + (g.symmetry ? ' symmetry' : '');
+        line.style.top = pctY(g.pos) + '%';
+        stage.appendChild(line);
+      });
+    }
+  }
+
+  function renderRefSizeFields() {
+    const wrap = document.getElementById('refSizeFields');
+    wrap.innerHTML = '';
+    const row = document.createElement('div');
+    row.className = 'field-row';
+    [
+      { label: 'Tisch-Breite', get: () => REF_W, set: (v) => { REF_W = Math.max(100, v); } },
+      { label: 'Tisch-Höhe', get: () => REF_H, set: (v) => { REF_H = Math.max(100, v); } },
+    ].forEach((def) => {
+      const field = document.createElement('div');
+      field.className = 'field';
+      const label = document.createElement('label');
+      label.textContent = def.label;
+      const input = document.createElement('input');
+      input.type = 'number'; input.step = '1'; input.value = round2(def.get());
+      input.addEventListener('input', () => {
+        const v = parseFloat(input.value);
+        if (Number.isNaN(v)) return;
+        def.set(v);
+        renderStageOnly();
+      });
+      registerField(input, def.get);
+      field.appendChild(label); field.appendChild(input);
+      row.appendChild(field);
+    });
+    wrap.appendChild(row);
+  }
+
+  function renderCardSizeFields() {
+    const nicheWrap = document.getElementById('cardSizeFields');
+    nicheWrap.innerHTML = '';
+    nicheWrap.appendChild(buildSizeRow(state.cardSize));
+    const handWrap = document.getElementById('handCardSizeFields');
+    handWrap.innerHTML = '';
+    handWrap.appendChild(buildSizeRow(state.handCardSize));
+  }
+
+  function buildSizeRow(target) {
+    const row = document.createElement('div');
+    row.className = 'field-row';
+    [
+      { label: 'Breite', key: 'w' },
+      { label: 'Höhe', key: 'h' },
+    ].forEach((def) => {
+      const field = document.createElement('div');
+      field.className = 'field';
+      const label = document.createElement('label');
+      label.textContent = def.label;
+      const input = document.createElement('input');
+      input.type = 'number'; input.step = '0.1'; input.value = round2(target[def.key]);
+      input.addEventListener('input', () => {
+        const v = parseFloat(input.value);
+        if (Number.isNaN(v)) return;
+        target[def.key] = Math.max(4, v);
+        renderStageOnly();
+      });
+      registerField(input, () => target[def.key]);
+      field.appendChild(label); field.appendChild(input);
+      row.appendChild(field);
+    });
+    return row;
+  }
+
+  function renderElList() {
+    elListEl.innerHTML = '';
+    state.elements.forEach((el) => {
+      const btn = document.createElement('button');
+      btn.textContent = el.label;
+      btn.className = el.id === state.selectedId ? 'active' : '';
+      btn.addEventListener('click', () => selectElement(el.id));
+      elListEl.appendChild(btn);
+    });
+  }
+
+  function renderFields() {
+    const el = getEl(state.selectedId);
+    selNameEl.textContent = el ? el.label : '–';
+    fieldsWrap.innerHTML = '';
+    if (!el) return;
+
+    if (el.kind === 'niche') {
+      const note = document.createElement('div');
+      note.className = 'note';
+      note.textContent = 'Größe gekoppelt an alle 6 Nischen gemeinsam -- Änderung hier (oder am Eck-Griff auf der Bühne) wirkt auf alle Deck/Grabmal/Held-Boxen (siehe „Kartengröße (Nischen)“ oben). Nur die Position (Mittelpunkt) ist pro Zone einzeln.';
+      fieldsWrap.appendChild(note);
+      appendFieldRow([
+        { key: 'cx', label: 'Mitte X', get: () => el.cx, set: (v) => { el.cx = v; } },
+        { key: 'cy', label: 'Mitte Y', get: () => el.cy, set: (v) => { el.cy = v; } },
+      ]);
+    } else if (el.kind === 'trap') {
+      const note = document.createElement('div');
+      note.className = 'note';
+      note.textContent = 'Karten-Slot-Größe an gemeinsame Nischen-Kartengröße gekoppelt -- Container-Breite skaliert automatisch mit Slot-Anzahl (5 Karten + Abstände). Nur die Position (linke obere Ecke) ist pro Trap-Zone frei.';
+      fieldsWrap.appendChild(note);
+      appendFieldRow([
+        { key: 'x', label: 'X', get: () => el.x, set: (v) => { el.x = v; } },
+        { key: 'y', label: 'Y', get: () => el.y, set: (v) => { el.y = v; } },
+      ]);
+      const sizeInfo = document.createElement('div');
+      sizeInfo.className = 'note';
+      sizeInfo.textContent = `Abgeleitete Größe: ${round2(el.w)} × ${round2(el.h)} Ref-px`;
+      fieldsWrap.appendChild(sizeInfo);
+    } else {
+      appendFieldRow([
+        { key: 'x', label: 'X', get: () => el.x, set: (v) => { el.x = v; } },
+        { key: 'y', label: 'Y', get: () => el.y, set: (v) => { el.y = v; } },
+      ]);
+      appendFieldRow([
+        { key: 'w', label: 'Breite', get: () => el.w, set: (v) => { el.w = Math.max(4, v); } },
+        { key: 'h', label: 'Höhe', get: () => el.h, set: (v) => { el.h = Math.max(4, v); } },
+      ]);
+    }
+    if (el.kind === 'wall') {
+      appendFieldRow([
+        { key: 'count', label: 'Anzahl Slots', get: () => el.count, set: (v) => { el.count = Math.round(v); } },
+      ]);
+    }
+  }
+
+  function appendFieldRow(defs) {
+    const row = document.createElement('div');
+    row.className = 'field-row';
+    defs.forEach((def) => {
+      const field = document.createElement('div');
+      field.className = 'field';
+      const label = document.createElement('label');
+      label.textContent = def.label;
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.step = '0.1';
+      input.value = round2(def.get());
+      input.addEventListener('input', () => {
+        const v = parseFloat(input.value);
+        if (Number.isNaN(v)) return;
+        def.set(v);
+        renderStageOnly();
+      });
+      registerField(input, def.get);
+      field.appendChild(label);
+      field.appendChild(input);
+      row.appendChild(field);
+    });
+    fieldsWrap.appendChild(row);
+  }
+
+  function round2(v) { return Math.round(v * 100) / 100; }
+
+  // Beim Tippen in ein Zahlenfeld soll nur die Buehne neu gezeichnet
+  // werden, nicht auch das Feld selbst (sonst verliert das Input-Element
+  // beim Tippen den Fokus/die Cursorposition).
+  // Fuer laufende Drag/Resize-Schritte UND fuer Feld-Input-Events: baut NUR
+  // die Buehne neu (renderStage) und aktualisiert alle registrierten
+  // Zahlenfelder per .value-Zuweisung (refreshFieldValues) -- das
+  // fokussierte Feld bleibt dabei unangetastet, verliert also beim Tippen
+  // NICHT mehr den Fokus (anders als frueher, wo hier komplett neu gebaut
+  // wurde).
+  function renderStageOnly() {
+    renderStage();
+    refreshFieldValues();
+  }
+
+  function selectElement(id) {
+    state.selectedId = id;
+    render();
+  }
+
+  // ------------------------------------------------------------------
+  // Drag (Position) und Resize (an den 4 Eck-Griffen).
+  // ------------------------------------------------------------------
+  function stageScale() {
+    const rect = stage.getBoundingClientRect();
+    return { sx: REF_W / rect.width, sy: REF_H / rect.height, rect };
+  }
+
+  function midLines(lines) {
+    const out = [];
+    for (let i = 0; i < lines.length - 1; i++) out.push((lines[i] + lines[i + 1]) / 2);
+    return out;
+  }
+
+  // --------------------------------------------------------------------
+  // Smart Alignment Guides (immer aktiv, unabhaengig von Shift): vergleicht
+  // Kanten (left/right/top/bottom) UND Mittelpunkte (cx/cy) des gezogenen
+  // Elements mit denen ALLER anderen Elemente. Bei Uebereinstimmung
+  // innerhalb SMART_TOL: Guide-Linie + soft snap (ueberstimmbar, kein
+  // harter Snap wie Shift-Grid). Enthaelt zusaetzlich den Symmetrie-Check:
+  // gleiche Y UND gleicher Abstand zur Board-Mittelachse (auf der
+  // GEGENUEBERLIEGENDEN Seite) = Spiegel-Paar erkannt -- eigene Cyan-Linie
+  // plus Snap auf die exakt gespiegelte X-Position.
+  // box: {x,y,w,h}-Kandidat (schon evtl. shift-grid-gesnapped). xProps/
+  // yProps: welche eigenen Eigenschaften ueberhaupt verglichen werden
+  // (beim Drag alle drei, beim Resize nur die eine zur gezogenen Ecke
+  // gehoerende -- z.B. 'right' fuer eine Ost-Ecke).
+  // --------------------------------------------------------------------
+  function computeSmartGuidesForBox(activeId, box, xProps, yProps) {
+    const guides = { v: [], h: [] };
+    let bestX = null, bestY = null;
+    const bLeft = box.x, bRight = box.x + box.w, bCx = box.x + box.w / 2;
+    const bTop = box.y, bBottom = box.y + box.h, bCy = box.y + box.h / 2;
+    const activeVal = { left: bLeft, right: bRight, cx: bCx, top: bTop, bottom: bBottom, cy: bCy };
+
+    const boardEl = getEl('board');
+    const boardCenterX = activeId === 'board' ? bCx : boardEl.x + boardEl.w / 2;
+    const checkSymmetry = xProps.includes('cx') && yProps.includes('cy');
+
+    state.elements.forEach((other) => {
+      if (other.id === activeId) return;
+      const oLeft = other.x, oRight = other.x + other.w, oCx = other.x + other.w / 2;
+      const oTop = other.y, oBottom = other.y + other.h, oCy = other.y + other.h / 2;
+      const oVal = { left: oLeft, right: oRight, cx: oCx, top: oTop, bottom: oBottom, cy: oCy };
+
+      xProps.forEach((p) => {
+        const d = Math.abs(activeVal[p] - oVal[p]);
+        if (d <= SMART_TOL) {
+          guides.v.push({ pos: oVal[p] });
+          if (!bestX || d < bestX.dist) bestX = { dist: d, prop: p, value: oVal[p] };
+        }
+      });
+      yProps.forEach((p) => {
+        const d = Math.abs(activeVal[p] - oVal[p]);
+        if (d <= SMART_TOL) {
+          guides.h.push({ pos: oVal[p] });
+          if (!bestY || d < bestY.dist) bestY = { dist: d, prop: p, value: oVal[p] };
+        }
+      });
+
+      if (checkSymmetry) {
+        const activeDist = bCx - boardCenterX;
+        const otherDist = oCx - boardCenterX;
+        const dy = Math.abs(bCy - oCy);
+        const dDist = Math.abs(Math.abs(activeDist) - Math.abs(otherDist));
+        if (activeDist !== 0 && Math.sign(activeDist) !== Math.sign(otherDist) && dy <= SMART_TOL && dDist <= SMART_TOL) {
+          guides.h.push({ pos: oCy, symmetry: true });
+          if (!bestY || dy <= bestY.dist) bestY = { dist: dy, prop: 'cy', value: oCy };
+          const mirroredCx = boardCenterX - otherDist;
+          guides.v.push({ pos: mirroredCx, symmetry: true });
+          const dSym = Math.abs(bCx - mirroredCx);
+          if (dSym <= SMART_TOL && (!bestX || dSym <= bestX.dist)) bestX = { dist: dSym, prop: 'cx', value: mirroredCx };
+        }
+      }
+    });
+
+    return { guides, bestX, bestY };
+  }
+
+  function startDrag(e, id) {
+    e.preventDefault();
+    const el = getEl(id);
+    const { sx, sy } = stageScale();
+    const startX = e.clientX, startY = e.clientY;
+    const origX = el.x, origY = el.y;
+
+    function onMove(ev) {
+      const dxRef = (ev.clientX - startX) * sx;
+      const dyRef = (ev.clientY - startY) * sy;
+      let nx = origX + dxRef;
+      let ny = origY + dyRef;
+      if (ev.shiftKey) {
+        if (el.kind === 'niche') {
+          // Fuer Nischen zaehlt nur der Mittelpunkt -- der darf auf
+          // Rand- ODER Zellen-Mittellinien einrasten (beides sind
+          // sinnvolle Ziele für einen Zonen-Mittelpunkt).
+          const cx = nx + el.w / 2, cy = ny + el.h / 2;
+          const xLines = gridLinesX().concat(midLines(gridLinesX()));
+          const yLines = gridLinesY().concat(midLines(gridLinesY()));
+          nx = snapValue(cx, xLines) - el.w / 2;
+          ny = snapValue(cy, yLines) - el.h / 2;
+        } else {
+          nx = snapValue(nx, gridLinesX());
+          ny = snapValue(ny, gridLinesY());
+        }
+      }
+      // Smart Guides: IMMER (unabhaengig von Shift) zusaetzlich pruefen --
+      // ueberschreibt den Grid-Snap, falls ein naeherer Treffer existiert.
+      const { guides, bestX, bestY } = computeSmartGuidesForBox(
+        id, { x: nx, y: ny, w: el.w, h: el.h }, ['left', 'right', 'cx'], ['top', 'bottom', 'cy']
+      );
+      if (bestX) {
+        if (bestX.prop === 'left') nx = bestX.value;
+        else if (bestX.prop === 'right') nx = bestX.value - el.w;
+        else if (bestX.prop === 'cx') nx = bestX.value - el.w / 2;
+      }
+      if (bestY) {
+        if (bestY.prop === 'top') ny = bestY.value;
+        else if (bestY.prop === 'bottom') ny = bestY.value - el.h;
+        else if (bestY.prop === 'cy') ny = bestY.value - el.h / 2;
+      }
+      state.activeGuides = guides;
+
+      el.x = nx; el.y = ny;
+      if (el.kind === 'niche') { el.cx = nx + el.w / 2; el.cy = ny + el.h / 2; }
+      renderStageOnly();
+      updateSnapIndicator(ev.shiftKey);
+    }
+    function onUp() {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      state.activeGuides = null;
+      updateSnapIndicator(false);
+      renderStageOnly();
+    }
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }
+
+  function startResize(e, id, corner) {
+    e.preventDefault();
+    e.stopPropagation();
+    selectElement(id);
+    const el = getEl(id);
+    const { sx, sy } = stageScale();
+    const startX = e.clientX, startY = e.clientY;
+    const orig = { x: el.x, y: el.y, w: el.w, h: el.h };
+    // Welche eigene Kante gehoert zu dieser Ecke -- fuer Smart Guides UND
+    // fuer's Anwenden eines Treffers auf x/w bzw. y/h.
+    const xProp = corner.includes('e') ? 'right' : 'left';
+    const yProp = corner.includes('s') ? 'bottom' : 'top';
+
+    function onMove(ev) {
+      const dxRef = (ev.clientX - startX) * sx;
+      const dyRef = (ev.clientY - startY) * sy;
+      let { x, y, w, h } = orig;
+      if (corner.includes('e')) w = orig.w + dxRef;
+      if (corner.includes('w')) { x = orig.x + dxRef; w = orig.w - dxRef; }
+      if (corner.includes('s')) h = orig.h + dyRef;
+      if (corner.includes('n')) { y = orig.y + dyRef; h = orig.h - dyRef; }
+
+      if (ev.shiftKey) {
+        const linesX = gridLinesX(), linesY = gridLinesY();
+        if (corner.includes('e')) { const right = snapValue(x + w, linesX); w = right - x; }
+        if (corner.includes('w')) { const left = snapValue(x, linesX); w = w + (x - left); x = left; }
+        if (corner.includes('s')) { const bottom = snapValue(y + h, linesY); h = bottom - y; }
+        if (corner.includes('n')) { const top = snapValue(y, linesY); h = h + (y - top); y = top; }
+      }
+
+      // Smart Guides: nur die zur gezogenen Ecke gehoerende Kante pruefen.
+      const { guides, bestX, bestY } = computeSmartGuidesForBox(id, { x, y, w, h }, [xProp], [yProp]);
+      if (bestX) {
+        if (xProp === 'right') { w = bestX.value - x; }
+        else { const newLeft = bestX.value; w = w + (x - newLeft); x = newLeft; }
+      }
+      if (bestY) {
+        if (yProp === 'bottom') { h = bestY.value - y; }
+        else { const newTop = bestY.value; h = h + (y - newTop); y = newTop; }
+      }
+      state.activeGuides = guides;
+
+      el.x = x; el.y = y; el.w = Math.max(4, w); el.h = Math.max(4, h);
+      renderStageOnly();
+      updateSnapIndicator(ev.shiftKey);
+    }
+    function onUp() {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      state.activeGuides = null;
+      updateSnapIndicator(false);
+      renderStageOnly();
+    }
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }
+
+  // Gekoppelter Karten-Resize: schreibt bewusst NICHT in das einzelne
+  // Element, sondern in das GLOBALE state.cardSize -- ALLE 8 Zonen (6
+  // Nischen + 2 Trap-Zonen, seit dem Nachtrag) aktualisieren sich gemeinsam
+  // (siehe syncNicheGeometry). Verwendet fuer BEIDE Zonentypen identisch --
+  // fuer Nischen wachsen die einzelnen Boxen direkt, fuer Trap-Zonen
+  // wächst die abgeleitete Container-Breite (5 Slots * Kartenbreite +
+  // Abstaende, siehe syncNicheGeometry). Jede Ecke zieht die Kartengroesse
+  // "nach aussen" (vom jeweiligen Zentrum weg) -- fuer eine SE-Ecke also
+  // z.B. dw=dxRef/dh=dyRef, fuer eine NW-Ecke dw=-dxRef/dh=-dyRef.
+  // Seitenverhaeltnis-Sperre: die Karten-Bilder selbst haben ein festes
+  // Verhaeltnis (961:1323) -- state.cardSize.h folgt daher IMMER
+  // state.cardSize.w * CARD_ASPECT, nie unabhaengig. Getrieben wird von der
+  // Achse mit der (aspect-normalisierten) groesseren Bewegung, damit sich
+  // eine diagonale Ecken-Ziehbewegung natuerlich anfuehlt.
+  function startResizeNiche(e, id, corner) {
+    e.preventDefault();
+    e.stopPropagation();
+    selectElement(id);
+    const { sx, sy } = stageScale();
+    const startX = e.clientX, startY = e.clientY;
+    const orig = { w: state.cardSize.w, h: state.cardSize.h };
+    const signX = corner.includes('e') ? 1 : -1;
+    const signY = corner.includes('s') ? 1 : -1;
+
+    function onMove(ev) {
+      const dxRef = (ev.clientX - startX) * sx * signX;
+      const dyRef = (ev.clientY - startY) * sy * signY;
+      // Groessere (aspect-normalisierte) Bewegung treibt das Ergebnis,
+      // die jeweils andere Dimension wird strikt aus CARD_ASPECT abgeleitet
+      // -- so bleibt das Kartenverhaeltnis IMMER exakt 961:1323.
+      let w, h;
+      if (Math.abs(dxRef) >= Math.abs(dyRef) / CARD_ASPECT) {
+        w = orig.w + dxRef;
+        h = w * CARD_ASPECT;
+      } else {
+        h = orig.h + dyRef;
+        w = h / CARD_ASPECT;
+      }
+      if (ev.shiftKey) {
+        // Grid-Snap fuer Kartengroesse: Breite auf ganzzahlige Vielfache
+        // einer halben Zellenbreite einrasten, Hoehe bleibt ueber
+        // CARD_ASPECT an der (gesnappten) Breite gekoppelt -- sonst wuerde
+        // Snapping die Seitenverhaeltnis-Sperre wieder aufbrechen.
+        const b = getEl('board');
+        const stepW = b.w / BOARD_COLS / 2;
+        w = Math.round(w / stepW) * stepW;
+        h = w * CARD_ASPECT;
+      }
+      state.cardSize.w = Math.max(4, w);
+      state.cardSize.h = Math.max(4, h);
+      state.activeGuides = null; // Smart Guides ergeben fuer eine globale Groessenaenderung keinen sinnvollen Bezugspunkt -- bewusst ausgelassen.
+      renderStageOnly();
+      updateSnapIndicator(ev.shiftKey);
+    }
+    function onUp() {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      updateSnapIndicator(false);
+    }
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }
+
+  function updateSnapIndicator(active) {
+    snapIndicator.textContent = active ? '⚡ Grid-Snap aktiv' : 'Shift = Grid-Snap';
+    snapIndicator.className = 'snap-indicator ' + (active ? 'snap-on' : 'snap-off');
+  }
+
+  // ------------------------------------------------------------------
+  // Export: baut aus dem aktuellen Editor-Zustand ein TABLE_LAYOUT-
+  // foermiges JS-Objekt als Text (Copy-Paste zurueck in index.html).
+  // ------------------------------------------------------------------
+  function buildExportText() {
+    syncNicheGeometry();
+    const tableBounds = getEl('tableBounds');
+    const board = getEl('board');
+    const boardOrigin = { x: round2(board.x), y: round2(board.y) };
+    const cellSize = { w: round2(board.w / BOARD_COLS), h: round2(board.h / BOARD_ROWS) };
+
+    const nicheOrder = ['deckOpponent', 'graveyardOpponent', 'heroOpponent', 'heroMine', 'graveyardMine', 'deckMine'];
+    const nicheLines = nicheOrder.map((key) => {
+      const el = getEl('niche_' + key);
+      return `    ${key.padEnd(18)}: { cx: ${round2(el.cx)}, cy: ${round2(el.cy)}, asset: ${JSON.stringify(el.asset)} },`;
+    });
+
+    const trapOpp = getEl('trapZoneOpponent');
+    const trapMine = getEl('trapZoneMine');
+    const wallLeft = getEl('wallTrayLeft');
+    const wallRight = getEl('wallTrayRight');
+
+    // Eigene Uploads sind data:-URIs -- technisch als asset-Wert gueltig
+    // (funktioniert 1:1 wie ein Datei-Pfad), aber unhandlich als Ergebnis
+    // (sehr lange Zeile) und nicht Teil des Repos. Warnhinweis, falls
+    // irgendein Element gerade ein hochgeladenes Bild zugewiesen hat.
+    const usesCustomAsset = state.elements.some((el) => el.asset && el.asset.startsWith('data:'));
+    const customAssetWarning = usesCustomAsset ? `// ACHTUNG: mindestens ein Element hat gerade ein SELBST HOCHGELADENES
+// Bild zugewiesen (asset-Wert beginnt mit "data:..."). Das funktioniert
+// technisch 1:1 wie ein normaler Datei-Pfad, macht die Zeile hier aber sehr
+// lang und das Bild existiert nicht als echte Datei im Repo. Praktikabler:
+// die Datei nach images/... kopieren und den asset-Wert unten auf den
+// entsprechenden repo-relativen Pfad (z.B. "images/frames/mein-bild.png")
+// aendern, bevor du das hier einfuegst.
+` : '';
+
+    return `${customAssetWarning}const TABLE_LAYOUT = {
+  // Editor-Erweiterung Punkt 2: refWidth/refHeight sind jetzt ein
+  // EDITIERBARES Ergebnis aus dem Editor, keine feste Referenz auf
+  // TABLE_REF_W/TABLE_REF_H mehr. Falls abweichend von den bisherigen
+  // 1584/672: die beiden "const TABLE_REF_W ="/"const TABLE_REF_H ="-
+  // Zeilen ganz oben in index.html manuell auf dieselben Werte anpassen
+  // (pctX/pctY rechnen dagegen).
+  refWidth: ${REF_W},
+  refHeight: ${REF_H},
+  // Editor-Erweiterung Punkt 1: eigenes, unabhaengiges Element fuer den
+  // aeusseren Holz-Tisch-Container (.board-frame) -- bewusst NICHT an
+  // Board/Zonen gekoppelt. Existiert im aktuellen index.html-Code noch
+  // NICHT als TABLE_LAYOUT-Feld (.board-frame nutzt bisher die volle
+  // Canvas); um diesen Wert wirksam zu machen, muesste .board-frame in
+  // index.html separat darauf umgestellt werden (nicht Teil dieses Tools).
+  tableBounds: { x: ${round2(tableBounds.x)}, y: ${round2(tableBounds.y)}, w: ${round2(tableBounds.w)}, h: ${round2(tableBounds.h)}, asset: ${JSON.stringify(tableBounds.asset)} },
+  boardCols: 8,
+  boardRows: 8,
+  boardOrigin: { x: ${boardOrigin.x}, y: ${boardOrigin.y} },
+  cellSize: { w: ${cellSize.w}, h: ${cellSize.h} },
+  // Editor-Erweiterung Punkt 3: pro Element das im Editor zugewiesene Bild
+  // (asset-Feld) mit exportiert -- damit das echte Spiel bei Bedarf exakt
+  // dieselben Assets an derselben Stelle laden kann wie im Editor zu sehen.
+  // Existiert im aktuellen index.html-Code noch NICHT als gelesenes Feld
+  // (die echten Komponenten haben ihre Bildpfade bisher fest verdrahtet,
+  // z.B. GoldFrameDecor/label-*.png) -- um das wirksam zu machen, muessten
+  // die entsprechenden JSX-Stellen separat auf TABLE_LAYOUT...asset
+  // umgestellt werden (nicht Teil dieses Tools).
+  boardAsset: ${JSON.stringify(board.asset)},
+  // Referenz-Kartengroesse fuer alle 6 Nischen gemeinsam (Nische = Karte +
+  // 2px Rand pro Seite, siehe --card-w/-h-standard in index.html).
+  cardSize: { width: ${round2(state.cardSize.w)}, height: ${round2(state.cardSize.h)} },
+  // Referenz-Kartengroesse fuer die Hand-Leisten (ausserhalb des Tisches,
+  // unabhaengig von cardSize) -- entspricht sinngemaess den clamp()-Werten
+  // von .hand-row in index.html.
+  handCardSize: { width: ${round2(state.handCardSize.w)}, height: ${round2(state.handCardSize.h)} },
+  niches: {
+${nicheLines.join('\n')}
+  },
+  trapZoneOpponent: { x: ${round2(trapOpp.x)}, y: ${round2(trapOpp.y)}, w: ${round2(trapOpp.w)}, h: ${round2(trapOpp.h)}, asset: ${JSON.stringify(trapOpp.asset)} },
+  trapZoneMine:     { x: ${round2(trapMine.x)}, y: ${round2(trapMine.y)}, w: ${round2(trapMine.w)}, h: ${round2(trapMine.h)}, asset: ${JSON.stringify(trapMine.asset)} },
+  wallTray: {
+    left:  { x: ${round2(wallLeft.x)}, y: ${round2(wallLeft.y)}, w: ${round2(wallLeft.w)}, h: ${round2(wallLeft.h)}, count: ${wallLeft.count}, asset: ${JSON.stringify(wallLeft.asset)} },
+    right: { x: ${round2(wallRight.x)}, y: ${round2(wallRight.y)}, w: ${round2(wallRight.w)}, h: ${round2(wallRight.h)}, count: ${wallRight.count}, asset: ${JSON.stringify(wallRight.asset)} },
+  },
+};
+// Hinweis: boardArea (fuer board-inset.png / .board-grid) wird in index.html
+// direkt NACH diesem Objekt aus boardOrigin + cellSize*boardCols/boardRows
+// abgeleitet -- dieser Block hier muss NICHT manuell mit ausgetauscht werden,
+// er entsteht automatisch aus den obigen Werten.
+// cardSize/handCardSize sind NEU (siehe Auftrag "Editor erweitern") und
+// existieren im aktuellen index.html-Code noch NICHT als TABLE_LAYOUT-
+// Felder -- die tatsaechliche Kartengroesse kommt dort weiterhin aus
+// --card-w/-h-standard (CSS) bzw. der .hand-row-clamp()-Regel. Um diese
+// Editor-Werte wirksam zu machen, muessten die entsprechenden CSS-Stellen
+// in index.html separat darauf umgestellt werden (nicht Teil dieses Tools).`;
+  }
+
+  document.getElementById('uploadAssetBtn').addEventListener('click', () => {
+    document.getElementById('assetUploadInput').click();
+  });
+  document.getElementById('assetUploadInput').addEventListener('change', (e) => {
+    handleAssetUpload(e.target.files);
+    e.target.value = ''; // erlaubt, dieselbe Datei erneut auszuwaehlen
+  });
+
+  document.getElementById('exportBtn').addEventListener('click', () => {
+    const text = buildExportText();
+    const wrap = document.getElementById('exportWrap');
+    const out = document.getElementById('exportOutput');
+    out.value = text;
+    wrap.style.display = 'block';
+  });
+  document.getElementById('copyBtn').addEventListener('click', async () => {
+    const out = document.getElementById('exportOutput');
+    out.select();
+    try {
+      await navigator.clipboard.writeText(out.value);
+      const btn = document.getElementById('copyBtn');
+      const orig = btn.textContent;
+      btn.textContent = 'Kopiert!';
+      setTimeout(() => { btn.textContent = orig; }, 1200);
+    } catch (err) {
+      // Clipboard-API evtl. blockiert (file://-Kontext) -- Textarea ist
+      // bereits selektiert, manuelles Strg+C funktioniert als Fallback.
+    }
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
