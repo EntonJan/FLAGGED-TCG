@@ -29,6 +29,25 @@ if (!app.isPackaged) {
   );
 }
 
+// Auto-Update NUR im gepackten Build (im Dev-Modus gibt es weder eine
+// installierte Version noch die von electron-builder generierte
+// app-update.yml, aus der electron-updater den Update-Feed liest -- siehe
+// "publish" in package.json, das electron-updater automatisch einbettet,
+// kein manuelles setFeedURL() noetig). Feed ist ein einfacher Ordner im
+// Repo selbst (tools/table-editor-app/releases/, ueber
+// raw.githubusercontent.com), dorthin wird nach jedem Patch der frisch
+// gebaute NSIS-Installer + latest.yml committet/gepusht -- kein GitHub-
+// Token/Release-Publish-Schritt noetig. Laeuft komplett im Hintergrund:
+// laedt ein gefundenes Update automatisch herunter (autoDownload, Default)
+// und installiert es beim naechsten Beenden der App (autoInstallOnAppQuit)
+// -- kein erzwungener Neustart waehrend der laufenden Nutzung.
+if (app.isPackaged) {
+  const { autoUpdater } = require('electron-updater');
+  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.on('error', (err) => console.error('[auto-updater]', err));
+  autoUpdater.checkForUpdatesAndNotify();
+}
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 1600,

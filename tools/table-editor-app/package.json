@@ -1,13 +1,13 @@
 {
   "name": "table-layout-editor",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Standalone-Fenster fuer den TABLE_LAYOUT Editor (FLAGGED-TCG)",
   "main": "main.js",
   "private": true,
   "scripts": {
     "start": "electron .",
     "dev": "electron .",
-    "build": "electron-builder --win portable"
+    "build": "electron-builder --win"
   },
   "devDependencies": {
     "electron": "^33.0.0",
@@ -22,11 +22,26 @@
     },
     "files": [
       "main.js",
-      "app/**/*"
+      "app/**/*",
+      "package.json",
+      "node_modules/**/*"
     ],
     "win": {
-      "target": "portable",
+      "target": "nsis",
       "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "publish": {
+      "provider": "generic",
+      "url": "https://raw.githubusercontent.com/EntonJan/FLAGGED-TCG/main/tools/table-editor-app/releases/"
     }
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
   }
 }
